@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { TextInput, Button, Text, Title, Portal, Modal, List } from 'react-native-paper';
 import { supabase } from '../../api/supabaseClient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { ChevronDown } from 'lucide-react-native';
 import { ThemeContainer } from '../../components/ThemeContainer';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -17,10 +17,14 @@ const days = [
   { label: 'Sábado', value: 6 },
 ];
 
-const AddClassScreen = () => {
+const EditClassScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const colors = useThemeColors();
+  const { classId } = route.params;
+  
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   
   // Form State
   const [activityId, setActivityId] = useState('');
@@ -28,11 +32,11 @@ const AddClassScreen = () => {
   const [teacherId, setTeacherId] = useState('');
   const [teacherName, setTeacherName] = useState('Seleccionar Profesora');
   const [dayOfWeek, setDayOfWeek] = useState(1);
-  const [startTime, setStartTime] = useState('18:00');
-  const [endTime, setEndTime] = useState('19:00');
-  const [capacity, setCapacity] = useState('15');
-  const [basePrice, setBasePrice] = useState('5000');
-  const [commission, setCommission] = useState('50');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [capacity, setCapacity] = useState('');
+  const [basePrice, setBasePrice] = useState('');
+  const [commission, setCommission] = useState('');
 
   // Menus visibility
   const [showActivityMenu, setShowActivityMenu] = useState(false);
@@ -47,43 +51,77 @@ const AddClassScreen = () => {
   }, []);
 
   const fetchInitialData = async () => {
+    // 1. Fetch Class Data
+    const { data: classData } = await supabase
+      .from('classes')
+      .select('*, activities(name), profiles(full_name)')
+      .eq('id', classId)
+      .single();
+
+    if (classData) {
+      setActivityId(classData.activity_id);
+      setActivityName(classData.activities?.name || 'Seleccionar Actividad');
+      setTeacherId(classData.teacher_id);
+      setTeacherName(classData.profiles?.full_name || 'Seleccionar Profesora');
+      setDayOfWeek(classData.day_of_week);
+      setStartTime(classData.start_time.slice(0, 5));
+      setEndTime(classData.end_time.slice(0, 5));
+      setCapacity(classData.capacity.toString());
+      setBasePrice(classData.base_price.toString());
+      setCommission(classData.teacher_commission_pct.toString());
+    }
+
+    // 2. Fetch Lists
     const { data: acts } = await supabase.from('activities').select('*');
     const { data: tchrs } = await supabase.from('profiles').select('*').eq('role', 'teacher');
     
     if (acts) setActivities(acts);
     if (tchrs) setTeachers(tchrs);
+
+    setFetching(false);
   };
 
-  const handleCreate = async () => {
+  const handleUpdate = async () => {
     if (!activityId || !teacherId) {
       Alert.alert('Error', 'Debes seleccionar una actividad y una profesora.');
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.from('classes').insert({
-      activity_id: activityId,
-      teacher_id: teacherId,
-      day_of_week: dayOfWeek,
-      start_time: startTime,
-      end_time: endTime,
-      capacity: parseInt(capacity),
-      base_price: parseFloat(basePrice),
-      teacher_commission_pct: parseFloat(commission),
-    });
+    const { error } = await supabase
+      .from('classes')
+      .update({
+        activity_id: activityId,
+        teacher_id: teacherId,
+        day_of_week: dayOfWeek,
+        start_time: startTime,
+        end_time: endTime,
+        capacity: parseInt(capacity),
+        base_price: parseFloat(basePrice),
+        teacher_commission_pct: parseFloat(commission),
+      })
+      .eq('id', classId);
 
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      Alert.alert('Éxito', 'Clase creada correctamente');
+      Alert.alert('Éxito', 'Clase actualizada correctamente');
       navigation.goBack();
     }
     setLoading(false);
   };
 
+  if (fetching) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <ThemeContainer>
-      <Title style={[styles.title, { color: colors.black }]}>Nueva Clase</Title>
+      <Title style={[styles.title, { color: colors.black }]}>Editar Clase</Title>
       
       {/* Selector de Actividad */}
       <Text style={[styles.label, { color: colors.primary }]}>Actividad</Text>
@@ -91,7 +129,7 @@ const AddClassScreen = () => {
         onPress={() => setShowActivityMenu(true)}
         style={[styles.pickerButton, { backgroundColor: colors.white, borderColor: colors.lightGray }]}
       >
-        <Text style={{ color: activityId ? colors.black : colors.gray }}>{activityName}</Text>
+        <Text style={{ color: colors.black }}>{activityName}</Text>
         <ChevronDown size={20} color={colors.primary} />
       </TouchableOpacity>
 
@@ -101,7 +139,7 @@ const AddClassScreen = () => {
         onPress={() => setShowTeacherMenu(true)}
         style={[styles.pickerButton, { backgroundColor: colors.white, borderColor: colors.lightGray }]}
       >
-        <Text style={{ color: teacherId ? colors.black : colors.gray }}>{teacherName}</Text>
+        <Text style={{ color: colors.black }}>{teacherName}</Text>
         <ChevronDown size={20} color={colors.primary} />
       </TouchableOpacity>
 
@@ -133,80 +171,6 @@ const AddClassScreen = () => {
         </View>
       </View>
 
-      {/* Modales de Selección - Rediseñados como Bottom Sheets */}
-      <Portal>
-        {/* Modal Actividades */}
-        <Modal visible={showActivityMenu} onDismiss={() => setShowActivityMenu(false)} contentContainerStyle={[styles.bottomSheet, { backgroundColor: colors.white }]}>
-          <View style={styles.sheetHeader}>
-            <View style={[styles.sheetHandle, { backgroundColor: colors.lightGray }]} />
-            <Title style={[styles.sheetTitle, { color: colors.black }]}>Actividad</Title>
-          </View>
-          <ScrollView style={styles.sheetScroll}>
-            {activities.map(act => (
-              <TouchableOpacity 
-                key={act.id} 
-                style={[styles.sheetItem, activityId === act.id && [styles.sheetItemActive, { backgroundColor: colors.isDark ? '#2A2740' : '#F0EFFF' }]]}
-                onPress={() => {
-                  setActivityId(act.id);
-                  setActivityName(act.name);
-                  setShowActivityMenu(false);
-                }}
-              >
-                <Text style={[styles.sheetItemText, { color: activityId === act.id ? colors.primary : colors.gray }]}>{act.name}</Text>
-                {activityId === act.id && <List.Icon icon="check" color={colors.primary} />}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Modal>
-
-        {/* Modal Profesoras */}
-        <Modal visible={showTeacherMenu} onDismiss={() => setShowTeacherMenu(false)} contentContainerStyle={[styles.bottomSheet, { backgroundColor: colors.white }]}>
-          <View style={styles.sheetHeader}>
-            <View style={[styles.sheetHandle, { backgroundColor: colors.lightGray }]} />
-            <Title style={[styles.sheetTitle, { color: colors.black }]}>Profesora</Title>
-          </View>
-          <ScrollView style={styles.sheetScroll}>
-            {teachers.map(t => (
-              <TouchableOpacity 
-                key={t.id} 
-                style={[styles.sheetItem, teacherId === t.id && [styles.sheetItemActive, { backgroundColor: colors.isDark ? '#2A2740' : '#F0EFFF' }]]}
-                onPress={() => {
-                  setTeacherId(t.id);
-                  setTeacherName(t.full_name);
-                  setShowTeacherMenu(false);
-                }}
-              >
-                <Text style={[styles.sheetItemText, { color: teacherId === t.id ? colors.primary : colors.gray }]}>{t.full_name}</Text>
-                {teacherId === t.id && <List.Icon icon="check" color={colors.primary} />}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Modal>
-
-        {/* Modal Días */}
-        <Modal visible={showDayMenu} onDismiss={() => setShowDayMenu(false)} contentContainerStyle={[styles.bottomSheet, { backgroundColor: colors.white }]}>
-          <View style={styles.sheetHeader}>
-            <View style={[styles.sheetHandle, { backgroundColor: colors.lightGray }]} />
-            <Title style={[styles.sheetTitle, { color: colors.black }]}>Día de la Semana</Title>
-          </View>
-          <View style={styles.sheetScroll}>
-            {days.map(d => (
-              <TouchableOpacity 
-                key={d.value} 
-                style={[styles.sheetItem, dayOfWeek === d.value && [styles.sheetItemActive, { backgroundColor: colors.isDark ? '#2A2740' : '#F0EFFF' }]]}
-                onPress={() => {
-                  setDayOfWeek(d.value);
-                  setShowDayMenu(false);
-                }}
-              >
-                <Text style={[styles.sheetItemText, { color: dayOfWeek === d.value ? colors.primary : colors.gray }]}>{d.label}</Text>
-                {dayOfWeek === d.value && <List.Icon icon="check" color={colors.primary} />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Modal>
-      </Portal>
-
       <View style={styles.row}>
         <View style={{ flex: 1, marginRight: 10 }}>
           <Text style={[styles.label, { color: colors.primary }]}>Inicio (HH:MM)</Text>
@@ -218,8 +182,6 @@ const AddClassScreen = () => {
             textColor={colors.black}
             outlineColor={colors.lightGray}
             activeOutlineColor={colors.primary}
-            placeholder="18:00"
-            placeholderTextColor={colors.gray}
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -232,8 +194,6 @@ const AddClassScreen = () => {
             textColor={colors.black}
             outlineColor={colors.lightGray}
             activeOutlineColor={colors.primary}
-            placeholder="19:00"
-            placeholderTextColor={colors.gray}
           />
         </View>
       </View>
@@ -269,21 +229,80 @@ const AddClassScreen = () => {
 
       <Button
         mode="contained"
-        onPress={handleCreate}
+        onPress={handleUpdate}
         loading={loading}
         style={styles.button}
         buttonColor={colors.primary}
         textColor="#FFFFFF"
       >
-        Guardar Clase
+        Guardar Cambios
       </Button>
+
+      {/* Modales de Selección */}
+      <Portal>
+        <Modal visible={showActivityMenu} onDismiss={() => setShowActivityMenu(false)} contentContainerStyle={[styles.modal, { backgroundColor: colors.white }]}>
+          <Title style={{ color: colors.black }}>Seleccionar Actividad</Title>
+          <ScrollView style={{ maxHeight: 300 }}>
+            {activities.map(act => (
+              <List.Item
+                key={act.id}
+                title={act.name}
+                titleStyle={{ color: colors.black }}
+                onPress={() => {
+                  setActivityId(act.id);
+                  setActivityName(act.name);
+                  setShowActivityMenu(false);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </Modal>
+
+        <Modal visible={showTeacherMenu} onDismiss={() => setShowTeacherMenu(false)} contentContainerStyle={[styles.modal, { backgroundColor: colors.white }]}>
+          <Title style={{ color: colors.black }}>Seleccionar Profesora</Title>
+          <ScrollView style={{ maxHeight: 300 }}>
+            {teachers.map(t => (
+              <List.Item
+                key={t.id}
+                title={t.full_name}
+                titleStyle={{ color: colors.black }}
+                onPress={() => {
+                  setTeacherId(t.id);
+                  setTeacherName(t.full_name);
+                  setShowTeacherMenu(false);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </Modal>
+
+        <Modal visible={showDayMenu} onDismiss={() => setShowDayMenu(false)} contentContainerStyle={[styles.modal, { backgroundColor: colors.white }]}>
+          <Title style={{ color: colors.black }}>Seleccionar Día</Title>
+          {days.map(d => (
+            <List.Item
+              key={d.value}
+              title={d.label}
+              titleStyle={{ color: colors.black }}
+              onPress={() => {
+                setDayOfWeek(d.value);
+                setShowDayMenu(false);
+              }}
+            />
+          ))}
+        </Modal>
+      </Portal>
     </ThemeContainer>
   );
 };
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20,
   },
@@ -317,48 +336,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     elevation: 4,
   },
-  bottomSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-  },
-  sheetHeader: {
-    alignItems: 'center',
-    paddingVertical: 15,
-  },
-  sheetHandle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    marginBottom: 10,
-  },
-  sheetTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  sheetScroll: {
-    marginTop: 10,
-  },
-  sheetItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    marginBottom: 5,
-  },
-  sheetItemActive: {
-    elevation: 0,
-  },
-  sheetItemText: {
-    fontSize: 16,
+  modal: {
+    padding: 20,
+    margin: 20,
+    borderRadius: 16,
   },
 });
 
-export default AddClassScreen;
+export default EditClassScreen;

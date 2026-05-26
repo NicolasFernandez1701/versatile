@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { COLORS } from '../../theme/colors';
-import VersatileHeader from '../../components/VersatileHeader';
 import { HolidayService, Holiday } from '../../api/HolidayService';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 // Configure Calendar to Spanish
 LocaleConfig.locales['es'] = {
@@ -16,63 +16,61 @@ LocaleConfig.locales['es'] = {
 LocaleConfig.defaultLocale = 'es';
 
 const AdminCalendar = () => {
+  const colors = useThemeColors();
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [markedDates, setMarkedDates] = useState<any>({});
 
   useEffect(() => {
     const fetchHolidays = async () => {
-      const data = await HolidayService.getHolidays(2026); // Current year
+      const currentYear = new Date().getFullYear();
+      const data = await HolidayService.getHolidays(currentYear); // Dynamic year
       setHolidays(data);
       
       const marked: any = {};
       data.forEach(h => {
-        // Format: YYYY-MM-DD
-        const month = h.mes < 10 ? `0${h.mes}` : h.mes;
-        const day = h.dia < 10 ? `0${h.dia}` : h.dia;
-        const dateString = `2026-${month}-${day}`;
-        marked[dateString] = {
+        // Formatear fecha: YYYY-MM-DD (asegurando ceros a la izquierda)
+        const dayStr = h.dia < 10 ? `0${h.dia}` : `${h.dia}`;
+        const monthStr = h.mes < 10 ? `0${h.mes}` : `${h.mes}`;
+        const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
+        
+        marked[dateKey] = {
           marked: true,
-          dotColor: COLORS.error,
-          customStyles: {
-            container: { backgroundColor: '#FFEBEE' },
-            text: { color: COLORS.error, fontWeight: 'bold' }
-          }
+          dotColor: colors.error,
         };
       });
       setMarkedDates(marked);
     };
 
     fetchHolidays();
-  }, []);
+  }, [colors.error]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <VersatileHeader />
-      <View style={styles.container}>
-        <Text style={styles.title}>Calendario de Actividades</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.white }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.title, { color: colors.black }]}>Calendario de Actividades</Text>
         <Calendar
+          key={colors.isDark ? 'dark-calendar' : 'light-calendar'} // Forza la recreación del calendario al cambiar el tema para evitar retención de caché
           theme={{
-            calendarBackground: COLORS.white,
-            textSectionTitleColor: COLORS.primary,
-            selectedDayBackgroundColor: COLORS.primary,
-            selectedDayTextColor: COLORS.white,
-            todayTextColor: COLORS.secondary,
-            dayTextColor: COLORS.black,
-            textDisabledColor: COLORS.lightGray,
-            arrowColor: COLORS.primary,
-            monthTextColor: COLORS.primary,
-            indicatorColor: COLORS.primary,
+            calendarBackground: colors.white,
+            textSectionTitleColor: colors.primary,
+            selectedDayBackgroundColor: colors.primary,
+            selectedDayTextColor: colors.white,
+            todayTextColor: colors.secondary,
+            dayTextColor: colors.black,
+            textDisabledColor: colors.lightGray,
+            arrowColor: colors.primary,
+            monthTextColor: colors.primary,
+            indicatorColor: colors.primary,
           }}
-          markingType={'custom'}
           markedDates={markedDates}
           onDayPress={(day: any) => {
             console.log('Selected day', day);
           }}
         />
-        <View style={styles.legend}>
+        <View style={[styles.legend, { backgroundColor: colors.white }]}>
           <View style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: COLORS.error }]} />
-            <Text style={styles.legendText}>Feriado Argentina</Text>
+            <View style={[styles.dot, { backgroundColor: colors.error }]} />
+            <Text style={[styles.legendText, { color: colors.gray }]}>Feriado Argentina</Text>
           </View>
         </View>
       </View>
@@ -83,23 +81,19 @@ const AdminCalendar = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
   },
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: COLORS.background,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.black,
     marginBottom: 20,
   },
   legend: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: COLORS.white,
     borderRadius: 12,
   },
   legendItem: {
@@ -114,7 +108,6 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 14,
-    color: COLORS.gray,
   }
 });
 

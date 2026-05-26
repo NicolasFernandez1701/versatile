@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { COLORS } from '../../theme/colors';
-import VersatileHeader from '../../components/VersatileHeader';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { supabase } from '../../api/supabaseClient';
-import { Plus, Clock, Users, Trash2 } from 'lucide-react-native';
-import { Button, Card, Title, Paragraph } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { Plus, Clock, Users, Trash2, Edit2 } from 'lucide-react-native';
+import { Card, Title, Paragraph } from 'react-native-paper';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { ThemeContainer } from '../../components/ThemeContainer';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 const ClassManagement = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
+  const colors = useThemeColors();
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchClasses();
-  }, []);
+    if (isFocused) {
+      fetchClasses();
+    }
+  }, [isFocused]);
 
   const fetchClasses = async () => {
     setLoading(true);
@@ -28,85 +32,94 @@ const ClassManagement = () => {
     setLoading(false);
   };
 
+  const handleDelete = async (id: string) => {
+    Alert.alert(
+      'Confirmar',
+      '¿Estás seguro de que quieres eliminar esta clase?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.from('classes').delete().eq('id', id);
+            if (!error) fetchClasses();
+            else Alert.alert('Error', error.message);
+          }
+        }
+      ]
+    );
+  };
+
   const getDayName = (day: number) => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     return days[day];
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <VersatileHeader />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Gestión de Clases</Text>
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => navigation.navigate('AddClass')}
-          >
-            <Plus color={COLORS.white} size={24} />
-          </TouchableOpacity>
-        </View>
+    <ThemeContainer scrollable={false}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.black }]}>Gestión de Clases</Text>
+        <TouchableOpacity 
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          onPress={() => navigation.navigate('AddClass')}
+        >
+          <Plus color="#FFFFFF" size={24} />
+        </TouchableOpacity>
+      </View>
 
-        <FlatList
-          data={classes}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.cardHeader}>
-                  <Title style={styles.className}>{item.activities?.name}</Title>
-                  <TouchableOpacity onPress={() => console.log('Delete', item.id)}>
-                    <Trash2 size={20} color={COLORS.error} />
+      <FlatList
+        data={classes}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Card style={[styles.card, { backgroundColor: colors.white, shadowColor: colors.isDark ? 'transparent' : colors.black }]}>
+            <Card.Content>
+              <View style={styles.cardHeader}>
+                <Title style={[styles.className, { color: colors.primary }]}>{item.activities?.name}</Title>
+                <View style={styles.headerActions}>
+                  <TouchableOpacity 
+                    onPress={() => navigation.navigate('EditClass', { classId: item.id })}
+                    style={{ marginRight: 15 }}
+                  >
+                    <Edit2 size={18} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item.id)}>
+                    <Trash2 size={18} color={colors.error} />
                   </TouchableOpacity>
                 </View>
-                <Paragraph style={styles.teacherName}>Prof: {item.profiles?.full_name || 'Sin asignar'}</Paragraph>
-                
-                <View style={styles.details}>
-                  <View style={styles.detailItem}>
-                    <Clock size={16} color={COLORS.gray} />
-                    <Text style={styles.detailText}>{getDayName(item.day_of_week)} {item.start_time.slice(0, 5)}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Users size={16} color={COLORS.gray} />
-                    <Text style={styles.detailText}>{item.capacity} cupos</Text>
-                  </View>
+              </View>
+              <Paragraph style={[styles.teacherName, { color: colors.gray }]}>Prof: {item.profiles?.full_name || 'Sin asignar'}</Paragraph>
+              
+              <View style={styles.details}>
+                <View style={styles.detailItem}>
+                  <Clock size={16} color={colors.gray} />
+                  <Text style={[styles.detailText, { color: colors.gray }]}>{getDayName(item.day_of_week)} {item.start_time.slice(0, 5)}</Text>
                 </View>
-                
-                <View style={styles.commissionTag}>
-                  <Text style={styles.commissionText}>Comisión: {item.teacher_commission_pct}%</Text>
+                <View style={styles.detailItem}>
+                  <Users size={16} color={colors.gray} />
+                  <Text style={[styles.detailText, { color: colors.gray }]}>{item.capacity} cupos</Text>
                 </View>
-              </Card.Content>
-            </Card>
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No hay clases creadas aún.</Text>
-              <Button 
-                mode="outlined" 
-                onPress={() => {}} 
-                style={styles.emptyButton}
-                textColor={COLORS.primary}
-              >
-                Crear Primera Clase
-              </Button>
-            </View>
-          }
-        />
-      </View>
-    </SafeAreaView>
+              </View>
+              
+              <View style={[styles.commissionTag, { backgroundColor: colors.isDark ? '#2A2740' : '#F0EFFF' }]}>
+                <Text style={[styles.commissionText, { color: colors.primary }]}>Comisión: {item.teacher_commission_pct}%</Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={{ color: colors.gray, marginBottom: 20 }}>No hay clases creadas aún.</Text>
+          </View>
+        }
+        refreshing={loading}
+        onRefresh={fetchClasses}
+      />
+    </ThemeContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: COLORS.background,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -116,10 +129,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.black,
   },
   addButton: {
-    backgroundColor: COLORS.primary,
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -129,7 +140,6 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 16,
-    backgroundColor: COLORS.white,
     borderRadius: 16,
   },
   cardHeader: {
@@ -138,11 +148,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   className: {
-    color: COLORS.primary,
     fontWeight: 'bold',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   teacherName: {
-    color: COLORS.gray,
     fontSize: 14,
     marginTop: -4,
   },
@@ -158,18 +170,15 @@ const styles = StyleSheet.create({
   detailText: {
     marginLeft: 6,
     fontSize: 13,
-    color: COLORS.gray,
   },
   commissionTag: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F0EFFF',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
     marginTop: 12,
   },
   commissionText: {
-    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -177,13 +186,6 @@ const styles = StyleSheet.create({
     marginTop: 60,
     alignItems: 'center',
   },
-  emptyText: {
-    color: COLORS.gray,
-    marginBottom: 20,
-  },
-  emptyButton: {
-    borderColor: COLORS.primary,
-  }
 });
 
 export default ClassManagement;

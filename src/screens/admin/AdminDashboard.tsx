@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
-import { COLORS } from '../../theme/colors';
-import VersatileHeader from '../../components/VersatileHeader';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import SummaryCard from '../../components/SummaryCard';
-import { DollarSign, Users, Calendar, TrendingUp } from 'lucide-react-native';
+import { DollarSign, Users, Calendar, TrendingUp, CheckSquare } from 'lucide-react-native';
 import { supabase } from '../../api/supabaseClient';
 import { useNavigation } from '@react-navigation/native';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 const AdminDashboard = () => {
   const navigation = useNavigation<any>();
+  const colors = useThemeColors();
   const [stats, setStats] = useState({
     totalBalance: 0,
     totalStudents: 0,
     activeClasses: 0,
     teacherPayouts: 0,
   });
+  const [todayClasses, setTodayClasses] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -37,8 +39,7 @@ const AdminDashboard = () => {
       
       const totalBalance = payments?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
 
-      // 4. Teacher Payouts (Mocked logically as 0 for now until commissions are calculated)
-      // Actually, let's fetch it if the table exists
+      // 4. Teacher Payouts
       const { data: commissions } = await supabase
         .from('commissions')
         .select('amount_earned');
@@ -51,30 +52,39 @@ const AdminDashboard = () => {
         activeClasses: classCount || 0,
         teacherPayouts: teacherPayouts,
       });
+
+      // 5. Today's Classes
+      const today = new Date().getDay();
+      const { data: classes } = await supabase
+        .from('classes')
+        .select('*, activities(name), profiles(full_name)')
+        .eq('day_of_week', today)
+        .eq('is_active', true)
+        .order('start_time', { ascending: true });
+      
+      setTodayClasses(classes || []);
     };
 
     fetchStats();
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <VersatileHeader />
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.white }]}>
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen Mensual</Text>
+          <Text style={[styles.sectionTitle, { color: colors.black }]}>Resumen Mensual</Text>
           <View style={styles.row}>
             <SummaryCard 
               title="Balance Total" 
               value={`$${stats.totalBalance}`} 
-              subtitle="+12% vs mes pasado"
               icon={DollarSign}
-              iconColor={COLORS.success}
+              iconColor={colors.success}
             />
             <SummaryCard 
               title="Alumnos" 
               value={stats.totalStudents} 
-              subtitle="3 nuevos hoy"
               icon={Users}
+              iconColor={colors.primary}
             />
           </View>
           <View style={styles.row}>
@@ -82,62 +92,94 @@ const AdminDashboard = () => {
               title="Clases Activas" 
               value={stats.activeClasses} 
               icon={Calendar}
-              iconColor={COLORS.secondary}
+              iconColor={colors.secondary}
             />
             <SummaryCard 
               title="Pago Profes" 
               value={`$${stats.teacherPayouts}`} 
-              subtitle="50% del ingreso"
               icon={TrendingUp}
-              iconColor={COLORS.primary}
+              iconColor={colors.primary}
             />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-          <View style={styles.actionRow}>
+          <Text style={[styles.sectionTitle, { color: colors.black }]}>Acciones Rápidas</Text>
+          <View style={[styles.actionGrid, { backgroundColor: colors.white }]}>
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => navigation.navigate('ClassManagement')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#F0EFFF' }]}>
-                <Calendar color={COLORS.primary} size={24} />
+              <View style={[styles.actionIcon, { backgroundColor: colors.isDark ? '#2A2740' : '#F0EFFF' }]}>
+                <Calendar color={colors.primary} size={24} />
               </View>
-              <Text style={styles.actionText}>Clases</Text>
+              <Text style={[styles.actionText, { color: colors.black }]}>Clases</Text>
             </TouchableOpacity>
+
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => navigation.navigate('StudentManagement')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Users color={COLORS.success} size={24} />
+              <View style={[styles.actionIcon, { backgroundColor: colors.isDark ? '#1C3E2D' : '#E8F5E9' }]}>
+                <Users color={colors.success} size={24} />
               </View>
-              <Text style={styles.actionText}>Alumnos</Text>
+              <Text style={[styles.actionText, { color: colors.black }]}>Alumnos</Text>
             </TouchableOpacity>
+
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => navigation.navigate('RecordPayment')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-                <DollarSign color={COLORS.warning} size={24} />
+              <View style={[styles.actionIcon, { backgroundColor: colors.isDark ? '#3E2E1C' : '#FFF3E0' }]}>
+                <DollarSign color={colors.warning} size={24} />
               </View>
-              <Text style={styles.actionText}>Pagos</Text>
+              <Text style={[styles.actionText, { color: colors.black }]}>Pagos</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={[styles.actionIcon, { backgroundColor: '#FFEBEE' }]}>
-                <TrendingUp color={COLORS.error} size={24} />
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('FinancialReports')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: colors.isDark ? '#3E1C1F' : '#FFEBEE' }]}>
+                <TrendingUp color={colors.error} size={24} />
               </View>
-              <Text style={styles.actionText}>Balance</Text>
+              <Text style={[styles.actionText, { color: colors.black }]}>Balance</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('PlanManagement')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: colors.isDark ? '#341C3E' : '#F3E5F5' }]}>
+                <CheckSquare color={colors.primary} size={24} />
+              </View>
+              <Text style={[styles.actionText, { color: colors.black }]}>Planes</Text>
+            </TouchableOpacity>
+            
+            {/* Espacio vacío para mantener el grid alineado */}
+            <View style={styles.actionButton} />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Próximas Clases</Text>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No hay clases programadas para hoy.</Text>
-          </View>
+          <Text style={[styles.sectionTitle, { color: colors.black }]}>Próximas Clases de Hoy</Text>
+          {todayClasses.length > 0 ? (
+            todayClasses.map((item) => (
+              <View key={item.id} style={[styles.classCard, { backgroundColor: colors.white, shadowColor: colors.isDark ? 'transparent' : colors.black }]}>
+                <View style={styles.classInfo}>
+                  <Text style={[styles.classActivity, { color: colors.primary }]}>{item.activities?.name}</Text>
+                  <Text style={[styles.classTeacher, { color: colors.gray }]}>Prof: {item.profiles?.full_name}</Text>
+                </View>
+                <View style={[styles.classTimeContainer, { backgroundColor: colors.isDark ? '#2A2740' : '#F0EFFF' }]}>
+                  <Text style={[styles.classTime, { color: colors.primary }]}>{item.start_time.slice(0, 5)} hs</Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={[styles.emptyState, { backgroundColor: colors.white, borderColor: colors.lightGray }]}>
+              <Text style={[styles.emptyText, { color: colors.gray }]}>No hay clases programadas para hoy.</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -147,11 +189,9 @@ const AdminDashboard = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
   },
   container: {
     padding: 20,
-    backgroundColor: COLORS.background,
   },
   section: {
     marginBottom: 24,
@@ -159,7 +199,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.black,
     marginBottom: 16,
   },
   row: {
@@ -167,17 +206,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  actionRow: {
+  actionGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: COLORS.white,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     padding: 20,
     borderRadius: 16,
     marginBottom: 16,
   },
   actionButton: {
     alignItems: 'center',
-    width: 70,
+    width: '30%',
+    marginBottom: 20,
   },
   actionIcon: {
     width: 50,
@@ -190,21 +230,49 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.black,
   },
   emptyState: {
-    backgroundColor: COLORS.white,
     padding: 30,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
     borderStyle: 'dashed',
   },
   emptyText: {
-    color: COLORS.gray,
     fontSize: 14,
+  },
+  classCard: {
+    padding: 16,
+    borderRadius: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  classInfo: {
+    flex: 1,
+  },
+  classActivity: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  classTeacher: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  classTimeContainer: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  classTime: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

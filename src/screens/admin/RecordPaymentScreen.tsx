@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Title, Button, Text, TextInput, Card, List } from 'react-native-paper';
-import { COLORS } from '../../theme/colors';
-import VersatileHeader from '../../components/VersatileHeader';
 import { supabase } from '../../api/supabaseClient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { format, addDays } from 'date-fns';
+import { ThemeContainer } from '../../components/ThemeContainer';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 const PLANS = [
   { id: 'libre', name: 'Pase Libre', price: '12000' },
@@ -17,6 +17,7 @@ const PLANS = [
 const RecordPaymentScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
+  const colors = useThemeColors();
   const [loading, setLoading] = useState(false);
   
   const [students, setStudents] = useState<any[]>([]);
@@ -67,92 +68,85 @@ const RecordPaymentScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <VersatileHeader />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Title style={styles.title}>Registrar Pago</Title>
+    <ThemeContainer>
+      <Title style={{ color: colors.black, marginBottom: 20 }}>Registrar Pago</Title>
 
-        <Text style={styles.label}>1. Selecciona Alumno</Text>
-        <Card style={styles.card}>
-          <ScrollView style={{ maxHeight: 150 }}>
-            {students.map(s => (
-              <List.Item
-                key={s.id}
-                title={s.full_name}
-                onPress={() => setSelectedStudent(s.id)}
-                left={props => <List.Icon {...props} icon="account" color={selectedStudent === s.id ? COLORS.primary : COLORS.gray} />}
-                style={{ backgroundColor: selectedStudent === s.id ? '#F0EFFF' : 'transparent' }}
-              />
-            ))}
-          </ScrollView>
-        </Card>
-
-        <Text style={styles.label}>2. Selecciona Plan</Text>
-        <View style={styles.planContainer}>
-          {PLANS.map(p => (
-            <TouchableOpacity 
-              key={p.id} 
-              style={[styles.planChip, selectedPlan?.id === p.id && styles.selectedPlanChip]}
-              onPress={() => handleSelectPlan(p)}
-            >
-              <Text style={[styles.planChipText, selectedPlan?.id === p.id && styles.selectedPlanChipText]}>
-                {p.name}
-              </Text>
-            </TouchableOpacity>
+      <Text style={[styles.label, { color: colors.primary }]}>1. Selecciona Alumno</Text>
+      <Card style={[styles.card, { backgroundColor: colors.white, borderColor: colors.lightGray, shadowColor: colors.isDark ? 'transparent' : colors.black }]}>
+        <ScrollView style={{ maxHeight: 150 }}>
+          {students.map(s => (
+            <List.Item
+              key={s.id}
+              title={s.full_name}
+              titleStyle={{ color: colors.black }}
+              onPress={() => setSelectedStudent(s.id)}
+              left={props => <List.Icon {...props} icon="account" color={selectedStudent === s.id ? colors.primary : colors.gray} />}
+              style={{ backgroundColor: selectedStudent === s.id ? (colors.isDark ? '#2A2740' : '#F0EFFF') : 'transparent' }}
+            />
           ))}
-        </View>
+        </ScrollView>
+      </Card>
 
-        <Text style={styles.label}>3. Monto Abonado ($)</Text>
-        <TextInput
-          value={amount}
-          onChangeText={setAmount}
-          mode="outlined"
-          keyboardType="numeric"
-          style={styles.input}
-          outlineColor={COLORS.lightGray}
-          activeOutlineColor={COLORS.primary}
-        />
+      <Text style={[styles.label, { color: colors.primary }]}>2. Selecciona Plan</Text>
+      <View style={styles.planContainer}>
+        {PLANS.map(p => (
+          <TouchableOpacity 
+            key={p.id} 
+            style={[
+              styles.planChip, 
+              { backgroundColor: colors.white, borderColor: colors.lightGray },
+              selectedPlan?.id === p.id && [styles.selectedPlanChip, { backgroundColor: colors.primary, borderColor: colors.primary }]
+            ]}
+            onPress={() => handleSelectPlan(p)}
+          >
+            <Text style={[
+              styles.planChipText, 
+              { color: colors.black },
+              selectedPlan?.id === p.id && styles.selectedPlanChipText
+            ]}>
+              {p.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        <Button
-          mode="contained"
-          onPress={handleRecord}
-          loading={loading}
-          style={styles.button}
-          buttonColor={COLORS.primary}
-        >
-          Confirmar Pago
-        </Button>
-      </ScrollView>
-    </SafeAreaView>
+      <Text style={[styles.label, { color: colors.primary }]}>3. Monto Abonado ($)</Text>
+      <TextInput
+        value={amount}
+        onChangeText={setAmount}
+        mode="outlined"
+        keyboardType="numeric"
+        style={[styles.input, { backgroundColor: colors.white }]}
+        textColor={colors.black}
+        outlineColor={colors.lightGray}
+        activeOutlineColor={colors.primary}
+      />
+
+      <Button
+        mode="contained"
+        onPress={handleRecord}
+        loading={loading}
+        style={styles.button}
+        buttonColor={colors.primary}
+        textColor="#FFFFFF"
+      >
+        Confirmar Pago
+      </Button>
+    </ThemeContainer>
   );
 };
 
-import { TouchableOpacity } from 'react-native';
-
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  container: {
-    padding: 20,
-  },
-  title: {
-    marginBottom: 20,
-  },
   label: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
     marginTop: 15,
-    color: COLORS.primary,
   },
   card: {
-    backgroundColor: COLORS.white,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
   },
   planContainer: {
     flexDirection: 'row',
@@ -163,24 +157,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
   },
   selectedPlanChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    elevation: 0,
   },
   planChipText: {
     fontSize: 12,
-    color: COLORS.black,
   },
   selectedPlanChipText: {
-    color: COLORS.white,
+    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   input: {
-    backgroundColor: COLORS.white,
+    height: 50,
   },
   button: {
     marginTop: 30,

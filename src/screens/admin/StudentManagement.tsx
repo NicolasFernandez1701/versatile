@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList } from 'react-native';
-import { COLORS } from '../../theme/colors';
-import VersatileHeader from '../../components/VersatileHeader';
-import StudentCard from '../../components/StudentCard';
-import { supabase } from '../../api/supabaseClient';
-import { Search, UserPlus } from 'lucide-react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { Search, UserPlus, Bookmark } from 'lucide-react-native';
 import { TextInput, Title, Button } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { supabase } from '../../api/supabaseClient';
+import { ThemeContainer } from '../../components/ThemeContainer';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import StudentCard from '../../components/StudentCard';
 
 const StudentManagement = () => {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
+  const colors = useThemeColors();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStudents();
-  }, []);
+    if (isFocused) {
+      fetchStudents();
+    }
+  }, [isFocused]);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -42,87 +46,100 @@ const StudentManagement = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <VersatileHeader />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <Title style={styles.title}>Alumnos</Title>
-            <Text style={styles.subtitle}>Control de planes y pagos</Text>
-          </View>
-          <Button 
-            mode="contained" 
-            onPress={() => navigation.navigate('EnrollStudent')}
-            buttonColor={COLORS.primary}
-            icon={() => <UserPlus size={18} color={COLORS.white} />}
-          >
-            Inscribir
-          </Button>
+    <ThemeContainer scrollable={false}>
+      <View style={styles.header}>
+        <View>
+          <Title style={[styles.title, { color: colors.black }]}>Alumnos</Title>
+          <Text style={[styles.subtitle, { color: colors.gray }]}>Control de planes y pagos</Text>
         </View>
-
-        <TextInput
-          placeholder="Buscar alumno..."
-          mode="outlined"
-          left={<TextInput.Icon icon={() => <Search size={20} color={COLORS.gray} />} />}
-          style={styles.searchBar}
-          outlineColor={COLORS.lightGray}
-          activeOutlineColor={COLORS.primary}
-        />
-
-        <FlatList
-          data={students}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <StudentCard 
-              name={item.full_name} 
-              plan={item.payments?.[0]?.plan_details || 'Sin Plan'} 
-              status={getStatus(item.payments?.[0]?.expiration_date)}
-              onPress={() => console.log('Student details', item.id)}
-            />
-          )}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No hay alumnos registrados.</Text>
-            </View>
-          }
-        />
       </View>
-    </SafeAreaView>
+
+      <View style={styles.actionRow}>
+        <Button 
+          mode="contained" 
+          onPress={() => navigation.navigate('RegisterStudent')}
+          buttonColor={colors.primary}
+          textColor="#FFFFFF"
+          icon={() => <UserPlus size={18} color="#FFFFFF" />}
+          style={styles.actionButton}
+          labelStyle={{ fontSize: 13, fontWeight: 'bold' }}
+        >
+          Registrar Alumno
+        </Button>
+        <Button 
+          mode="outlined" 
+          onPress={() => navigation.navigate('EnrollStudent')}
+          textColor={colors.primary}
+          icon={() => <Bookmark size={18} color={colors.primary} />}
+          style={[styles.actionButton, { borderColor: colors.primary }]}
+          labelStyle={{ fontSize: 13, fontWeight: 'bold' }}
+        >
+          Inscribir Clase
+        </Button>
+      </View>
+
+      <TextInput
+        placeholder="Buscar alumno..."
+        placeholderTextColor={colors.gray}
+        mode="outlined"
+        left={<TextInput.Icon icon={() => <Search size={20} color={colors.gray} />} />}
+        style={[styles.searchBar, { backgroundColor: colors.white }]}
+        outlineColor={colors.lightGray}
+        activeOutlineColor={colors.primary}
+        textColor={colors.black}
+      />
+
+      <FlatList
+        data={students}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <StudentCard 
+            name={item.full_name} 
+            plan={item.payments?.[0]?.plan_details || 'Sin Plan'} 
+            status={getStatus(item.payments?.[0]?.expiration_date)}
+            onPress={() => console.log('Student details', item.id)}
+          />
+        )}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={{ color: colors.gray }}>No hay alumnos registrados.</Text>
+          </View>
+        }
+        refreshing={loading}
+        onRefresh={fetchStudents}
+      />
+    </ThemeContainer>
   );
 };
 
-// Re-using Title from paper (already imported)
-
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: COLORS.background,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
     marginBottom: 20,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 8,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.black,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.gray,
     marginTop: 4,
   },
   searchBar: {
     marginBottom: 20,
-    backgroundColor: COLORS.white,
   },
   list: {
     paddingBottom: 20,
@@ -131,9 +148,6 @@ const styles = StyleSheet.create({
     marginTop: 60,
     alignItems: 'center',
   },
-  emptyText: {
-    color: COLORS.gray,
-  }
 });
 
 export default StudentManagement;

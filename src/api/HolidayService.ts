@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { format } from 'date-fns';
 
-const API_BASE = 'https://nolaborables.com.ar/api/v2/feriados';
+const API_BASE = 'https://api.argentinadatos.com/v1/feriados';
 
 export interface Holiday {
   id: string;
@@ -15,10 +14,35 @@ export interface Holiday {
 export const HolidayService = {
   getHolidays: async (year: number): Promise<Holiday[]> => {
     try {
-      const response = await axios.get(`${API_BASE}/${year}?incluir=opcional`);
-      return response.data;
+      const response = await fetch(`${API_BASE}/${year}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) throw new Error('Network response was not ok');
+      
+      const data = await response.json();
+      
+      // Mapeamos el formato de ArgentinaDatos a la interfaz local Holiday
+      return data.map((item: any, index: number) => {
+        // item.fecha viene como "YYYY-MM-DD"
+        const parts = item.fecha.split('-');
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+        
+        return {
+          id: `${year}-${month}-${day}-${index}`,
+          motivo: item.nombre,
+          tipo: item.tipo,
+          dia: day,
+          mes: month,
+          id_info: item.nombre
+        };
+      });
     } catch (error) {
-      console.error('Error fetching holidays:', error);
+      console.warn('Error fetching holidays (Network):', error);
       return [];
     }
   },
@@ -29,3 +53,4 @@ export const HolidayService = {
     return holidays.find(h => h.dia === day && h.mes === month);
   }
 };
+

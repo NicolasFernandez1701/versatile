@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
-import { Title, Button, Text, Card, List, Searchbar } from 'react-native-paper';
-import { COLORS } from '../../theme/colors';
-import VersatileHeader from '../../components/VersatileHeader';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { Title, Button, Text, Card, List } from 'react-native-paper';
 import { supabase } from '../../api/supabaseClient';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { ThemeContainer } from '../../components/ThemeContainer';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 const EnrollStudentScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
+  const colors = useThemeColors();
   const [loading, setLoading] = useState(false);
   
   const [students, setStudents] = useState<any[]>([]);
@@ -55,80 +56,68 @@ const EnrollStudentScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <VersatileHeader />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Title style={styles.title}>Inscribir Alumno</Title>
+    <ThemeContainer>
+      <Title style={{ color: colors.black, marginBottom: 20 }}>Inscribir Alumno</Title>
 
-        <Text style={styles.label}>1. Selecciona Alumno</Text>
-        <Card style={styles.card}>
-          <ScrollView style={{ maxHeight: 200 }}>
-            {students.map(s => (
-              <List.Item
-                key={s.id}
-                title={s.full_name}
-                onPress={() => setSelectedStudent(s.id)}
-                left={props => <List.Icon {...props} icon="account" color={selectedStudent === s.id ? COLORS.primary : COLORS.gray} />}
-                style={{ backgroundColor: selectedStudent === s.id ? '#F0EFFF' : 'transparent' }}
-              />
-            ))}
-          </ScrollView>
-        </Card>
+      <Text style={[styles.label, { color: colors.primary }]}>1. Selecciona Alumno</Text>
+      <Card style={[styles.card, { backgroundColor: colors.white, borderColor: colors.lightGray, shadowColor: colors.isDark ? 'transparent' : colors.black }]}>
+        <ScrollView style={{ maxHeight: 200 }}>
+          {students.map(s => (
+            <List.Item
+              key={s.id}
+              title={s.full_name}
+              titleStyle={{ color: colors.black }}
+              onPress={() => setSelectedStudent(s.id)}
+              left={props => <List.Icon {...props} icon="account" color={selectedStudent === s.id ? colors.primary : colors.gray} />}
+              style={{ backgroundColor: selectedStudent === s.id ? (colors.isDark ? '#2A2740' : '#F0EFFF') : 'transparent' }}
+            />
+          ))}
+        </ScrollView>
+      </Card>
 
-        <Text style={styles.label}>2. Selecciona Clase</Text>
-        <Card style={styles.card}>
-          <ScrollView style={{ maxHeight: 200 }}>
-            {classes.map(c => (
-              <List.Item
-                key={c.id}
-                title={c.activities?.name}
-                description={`${c.start_time.slice(0,5)} - ${c.capacity} cupos`}
-                onPress={() => setSelectedClass(c.id)}
-                left={props => <List.Icon {...props} icon="calendar" color={selectedClass === c.id ? COLORS.primary : COLORS.gray} />}
-                style={{ backgroundColor: selectedClass === c.id ? '#F0EFFF' : 'transparent' }}
-              />
-            ))}
-          </ScrollView>
-        </Card>
+      <Text style={[styles.label, { color: colors.primary }]}>2. Selecciona Clase</Text>
+      <Card style={[styles.card, { backgroundColor: colors.white, borderColor: colors.lightGray, shadowColor: colors.isDark ? 'transparent' : colors.black }]}>
+        <ScrollView style={{ maxHeight: 200 }}>
+          {classes.map(c => (
+            <List.Item
+              key={c.id}
+              title={c.activities?.name}
+              titleStyle={{ color: colors.black }}
+              description={`${c.start_time.slice(0,5)} - ${c.capacity} cupos`}
+              descriptionStyle={{ color: colors.gray }}
+              onPress={() => setSelectedClass(c.id)}
+              left={props => <List.Icon {...props} icon="calendar" color={selectedClass === c.id ? colors.primary : colors.gray} />}
+              style={{ backgroundColor: selectedClass === c.id ? (colors.isDark ? '#2A2740' : '#F0EFFF') : 'transparent' }}
+            />
+          ))}
+        </ScrollView>
+      </Card>
 
-        <Button
-          mode="contained"
-          onPress={handleEnroll}
-          loading={loading}
-          style={styles.button}
-          buttonColor={COLORS.primary}
-        >
-          Confirmar Inscripción
-        </Button>
-      </ScrollView>
-    </SafeAreaView>
+      <Button
+        mode="contained"
+        onPress={handleEnroll}
+        loading={loading}
+        style={styles.button}
+        buttonColor={colors.primary}
+        textColor="#FFFFFF"
+      >
+        Confirmar Inscripción
+      </Button>
+    </ThemeContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  container: {
-    padding: 20,
-  },
-  title: {
-    marginBottom: 20,
-  },
   label: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
     marginTop: 15,
-    color: COLORS.primary,
   },
   card: {
-    backgroundColor: COLORS.white,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
   },
   button: {
     marginTop: 30,
