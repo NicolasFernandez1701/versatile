@@ -23,7 +23,9 @@ import { TeacherDashboard } from '@/pages/teacher/dashboard/TeacherDashboard';
 import { TeacherClassesPage } from '@/pages/teacher/classes/TeacherClassesPage';
 
 import { ProfilePage } from './pages/admin/profile/ProfilePage';
-import { StudentDashboard } from './pages/student/StudentDashboard';
+import { StudentLayout } from './pages/student/layouts/StudentLayout';
+import { StudentDashboard } from './pages/student/dashboard/StudentDashboard';
+import { StudentClassesPage } from './pages/student/classes/StudentClassesPage';
 
 export default function App() {
   const { setUser, setLoading } = useAuthStore();
@@ -109,7 +111,12 @@ export default function App() {
 
           {/* Rutas Protegidas (Solo Alumno) */}
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student" element={<StudentLayout />}>
+              <Route path="dashboard" element={<StudentDashboard />} />
+              <Route path="classes" element={<StudentClassesPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
+            </Route>
           </Route>
 
           {/* Fallback */}

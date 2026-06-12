@@ -83,6 +83,41 @@ export const attendanceService = {
         date,
         status
       }, { onConflict: 'enrollment_id,date' });
+    if (error) throw error;
+  },
+  /**
+   * Obtiene las asistencias de un alumno a partir de sus enrollments.
+   */
+  async getStudentAttendances(studentId: string): Promise<AttendanceRecord[]> {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select(`
+        id,
+        enrollment_id,
+        date,
+        status,
+        enrollments!inner (
+          student_id,
+          class_id
+        )
+      `)
+      .eq('enrollments.student_id', studentId);
+
+    if (error) throw error;
+    return data as any;
+  },
+
+  /**
+   * Permite al alumno confirmar o cancelar su asistencia (booking).
+   */
+  async toggleStudentBooking(enrollmentId: string, date: string, newStatus: 'confirmed' | 'cancelled'): Promise<void> {
+    const { error } = await supabase
+      .from('attendance')
+      .upsert({
+        enrollment_id: enrollmentId,
+        date,
+        status: newStatus
+      }, { onConflict: 'enrollment_id,date' });
 
     if (error) throw error;
   }
