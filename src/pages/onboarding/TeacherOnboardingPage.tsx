@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { usersService } from '@/core/services';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
-import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, Eye, EyeOff } from 'lucide-react';
 import './onboarding.css';
 import { Loader, Input, Button } from '@/components/ui';
 
@@ -17,6 +17,8 @@ export function TeacherOnboardingPage() {
   // Step 1: Password
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Step 2: Datos Personales
   const [address, setAddress] = useState('');
@@ -90,15 +92,20 @@ export function TeacherOnboardingPage() {
   };
 
   return (
-    <div className="onboarding-page">
-      <div className="onboarding-container">
+    <div className="onboarding-container">
+      <div className="onboarding-card">
         <div className="onboarding-header">
-          <h2>Hola Profesora!</h2>
+          <h1>Hola Profesora!</h1>
           <p>Completá tu perfil para empezar a dar clases</p>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
-          </div>
-          <p className="step-indicator">Paso {step} de {totalSteps}</p>
+        </div>
+
+        <div className="progress-container">
+          <div className="progress-bar" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
+        </div>
+
+        <div className="step-indicator">
+          <span>Paso {step} de {totalSteps}</span>
+          <span>{Math.round((step / totalSteps) * 100)}% Completado</span>
         </div>
 
         <div className="onboarding-content">
@@ -109,16 +116,26 @@ export function TeacherOnboardingPage() {
               
               <Input 
                 label="Nueva Contraseña"
-                type="password" 
+                type={showNewPassword ? 'text' : 'password'} 
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
+                rightElement={
+                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                }
               />
               <Input 
                 label="Confirmar Contraseña"
-                type="password" 
+                type={showConfirmPassword ? 'text' : 'password'} 
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
+                rightElement={
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                }
               />
             </div>
           )}

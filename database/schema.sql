@@ -1,4 +1,4 @@
--- ==========================================
+ï»¿-- ==========================================
 -- VERSATILE - ESQUEMA DE BASE DE DATOS
 -- ==========================================
 
@@ -270,56 +270,4 @@ ALTER TABLE public.classes DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.enrollments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attendance DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.commissions DISABLE ROW LEVEL SECURITY;- -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
- - -   F U N C I Ã  N   R P C   P A R A   O B T E N E R   B A L A N C E S   F I N A N C I E R O S  
- - -   C o p i a r   y   p e g a r   e s t e   s c r i p t   e n   e l   S Q L   E d i t o r   d e   S u p a b a s e   y   h a c e r   c l i c k   e n   " R u n "  
- - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
-  
- C R E A T E   O R   R E P L A C E   F U N C T I O N   g e t _ f i n a n c i a l _ b a l a n c e ( q u e r y _ y e a r   I N T ,   q u e r y _ m o n t h   I N T )  
- R E T U R N S   J S O N B  
- L A N G U A G E   p l p g s q l  
- S E C U R I T Y   D E F I N E R  
- A S   $ $  
- D E C L A R E  
-         r e s u l t   J S O N B ;  
- B E G I N  
-         S E L E C T   j s o n b _ b u i l d _ o b j e c t (  
-                 ' m o n t h l y T o t a l ' ,   C O A L E S C E ( (  
-                         S E L E C T   S U M ( a m o u n t )    
-                         F R O M   p u b l i c . p a y m e n t s    
-                         W H E R E   E X T R A C T ( Y E A R   F R O M   p a y m e n t _ d a t e )   =   q u e r y _ y e a r    
-                             A N D   E X T R A C T ( M O N T H   F R O M   p a y m e n t _ d a t e )   =   q u e r y _ m o n t h  
-                 ) ,   0 ) ,  
-                  
-                 ' a n n u a l T o t a l ' ,   C O A L E S C E ( (  
-                         S E L E C T   S U M ( a m o u n t )    
-                         F R O M   p u b l i c . p a y m e n t s    
-                         W H E R E   E X T R A C T ( Y E A R   F R O M   p a y m e n t _ d a t e )   =   q u e r y _ y e a r  
-                 ) ,   0 ) ,  
-                  
-                 ' m o n t h l y B y P l a n ' ,   C O A L E S C E ( (  
-                         S E L E C T   j s o n b _ o b j e c t _ a g g ( p l a n _ n a m e ,   t o t a l )  
-                         F R O M   (  
-                                 S E L E C T   C O A L E S C E ( s p l i t _ p a r t ( p l a n _ d e t a i l s ,   '   -   ' ,   1 ) ,   ' O t r o s ' )   a s   p l a n _ n a m e ,   S U M ( a m o u n t )   a s   t o t a l  
-                                 F R O M   p u b l i c . p a y m e n t s  
-                                 W H E R E   E X T R A C T ( Y E A R   F R O M   p a y m e n t _ d a t e )   =   q u e r y _ y e a r    
-                                     A N D   E X T R A C T ( M O N T H   F R O M   p a y m e n t _ d a t e )   =   q u e r y _ m o n t h  
-                                 G R O U P   B Y   1  
-                         )   s u b  
-                 ) ,   ' { } ' : : j s o n b ) ,  
-                  
-                 ' a n n u a l B y P l a n ' ,   C O A L E S C E ( (  
-                         S E L E C T   j s o n b _ o b j e c t _ a g g ( p l a n _ n a m e ,   t o t a l )  
-                         F R O M   (  
-                                 S E L E C T   C O A L E S C E ( s p l i t _ p a r t ( p l a n _ d e t a i l s ,   '   -   ' ,   1 ) ,   ' O t r o s ' )   a s   p l a n _ n a m e ,   S U M ( a m o u n t )   a s   t o t a l  
-                                 F R O M   p u b l i c . p a y m e n t s  
-                                 W H E R E   E X T R A C T ( Y E A R   F R O M   p a y m e n t _ d a t e )   =   q u e r y _ y e a r  
-                                 G R O U P   B Y   1  
-                         )   s u b  
-                 ) ,   ' { } ' : : j s o n b )  
-         )   I N T O   r e s u l t ;  
-  
-         R E T U R N   r e s u l t ;  
- E N D ;  
- $ $ ;  
- 
+ALTER TABLE public.commissions DISABLE ROW LEVEL SECURITY;

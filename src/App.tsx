@@ -15,7 +15,13 @@ import { FinancesPage } from './pages/admin/finances/FinancesPage';
 import { StudentsPage } from './pages/admin/students/StudentsPage';
 import { TeachersPage } from './pages/admin/teachers/TeachersPage';
 import { EnrollmentsPage } from './pages/admin/enrollments/EnrollmentsPage';
-import { AdminCalendarPage } from './pages/admin/calendar/AdminCalendarPage';
+import { AdminCalendarPage } from '@/pages/admin/calendar/AdminCalendarPage';
+
+// Pages - Teacher
+import { TeacherLayout } from '@/pages/teacher/layouts/TeacherLayout';
+import { TeacherDashboard } from '@/pages/teacher/dashboard/TeacherDashboard';
+import { TeacherClassesPage } from '@/pages/teacher/classes/TeacherClassesPage';
+
 import { ProfilePage } from './pages/admin/profile/ProfilePage';
 import { StudentDashboard } from './pages/student/StudentDashboard';
 
@@ -87,6 +93,17 @@ export default function App() {
               <Route path="enrollments" element={<EnrollmentsPage />} />
               <Route path="calendar" element={<AdminCalendarPage />} />
               <Route path="profile" element={<ProfilePage />} />
+            </Route>
+          </Route>
+
+          {/* Rutas Protegidas (Solo Profesor) */}
+          <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
+            <Route path="/teacher" element={<TeacherLayout />}>
+              <Route path="dashboard" element={<TeacherDashboard />} />
+              <Route path="classes" element={<TeacherClassesPage />} />
+              <Route path="calendar" element={<AdminCalendarPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
           </Route>
 

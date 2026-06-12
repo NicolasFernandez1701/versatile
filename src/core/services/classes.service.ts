@@ -12,6 +12,18 @@ export const classesService = {
     return data as any; // Typecasting for complex joins
   },
 
+  async getClassesByTeacher(teacherId: string): Promise<ClassEntity[]> {
+    const { data, error } = await supabase
+      .from('classes')
+      .select('*, profiles(full_name), enrollments(count)')
+      .eq('teacher_id', teacherId)
+      .order('day_of_week', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    if (error) throw error;
+    return data as any;
+  },
+
   async deleteClass(id: string): Promise<void> {
     const { error } = await supabase.from('classes').delete().eq('id', id);
     if (error) throw error;

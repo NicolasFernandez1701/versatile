@@ -3,8 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { usersService } from '@/core/services';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
-import { ChevronRight, ChevronLeft, Check, Upload } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, Upload, Eye, EyeOff } from 'lucide-react';
 import './onboarding.css';
+import { Input } from '@/components/ui';
 
 export function OnboardingPage() {
   const { user } = useAuthStore();
@@ -19,6 +20,8 @@ export function OnboardingPage() {
   // Step 1: Password
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Step 2: Datos Personales
   const [documentId, setDocumentId] = useState('');
@@ -169,14 +172,28 @@ export function OnboardingPage() {
           <div className="onboarding-section">
             <h2>Cambio de Contraseña</h2>
             <p className="section-desc">Por seguridad, debés cambiar la contraseña inicial asignada por la administración.</p>
-            <div className="form-group">
-              <label>Nueva Contraseña (mín. 6 caracteres)</label>
-              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Confirmar Contraseña</label>
-              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
-            </div>
+            <Input 
+              label="Nueva Contraseña (mín. 6 caracteres)"
+              type={showNewPassword ? 'text' : 'password'} 
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              rightElement={
+                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+            />
+            <Input 
+              label="Confirmar Contraseña"
+              type={showConfirmPassword ? 'text' : 'password'} 
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              rightElement={
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+            />
           </div>
         );
       case 2:

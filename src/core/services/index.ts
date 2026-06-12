@@ -6,3 +6,4 @@ export * from './holiday.service';
 export * from './finances.service';
 export * from './plans.service';
 export * from './users.service';
+export * from './attendance.service';
