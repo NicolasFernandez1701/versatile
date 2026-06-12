@@ -1,0 +1,64 @@
+/* =========================================
+   FINANCES MODULE
+   ========================================= */
+
+.payment-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .payment-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.breakdown-panel {
+  background-color: var(--surface-color);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  height: fit-content;
+}
+
+.breakdown-placeholder {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .breakdown-placeholder {
+    display: flex !important;
+  }
+}
+
+.breakdown-title {
+  margin-bottom: 1.5rem;
+  color: var(--primary-color);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.breakdown-divider {
+  border-top: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+.breakdown-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}

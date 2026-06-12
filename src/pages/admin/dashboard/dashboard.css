@@ -1,0 +1,140 @@
+/* =========================================
+   DASHBOARD MODULE (RN CLONE)
+   ========================================= */
+
+.dashboard-page {
+  padding-bottom: 2rem;
+}
+
+.dashboard-section {
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-section .section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+/* Resumen Mensual */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Acciones Rápidas */
+.action-grid {
+  background-color: var(--surface-color);
+  border-radius: 16px;
+  padding: 1rem 0.5rem;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-around;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  margin-bottom: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.quick-action-btn span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 0.5rem;
+}
+
+.action-icon-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.quick-action-btn:hover .action-icon-wrapper {
+  transform: scale(1.05);
+}
+
+/* Icon Background Colors (Similar to RN Theme) */
+.bg-calendar { background-color: var(--surface-hover); }
+.bg-students { background-color: var(--badge-active-bg); }
+.bg-payments { background-color: var(--badge-pending-bg); }
+.bg-reports { background-color: var(--badge-inactive-bg); }
+.bg-plans { background-color: rgba(167, 148, 223, 0.15); }
+
+/* Próximas Clases */
+.today-classes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.today-class-card {
+  background-color: var(--surface-color);
+  border-radius: 16px;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.class-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.class-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+.class-prof {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0.1rem 0 0 0;
+}
+
+.class-time-badge {
+  background-color: var(--surface-hover);
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+}
+
+.class-time-badge span {
+  color: var(--primary-color);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px dashed var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}

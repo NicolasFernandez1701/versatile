@@ -1,0 +1,70 @@
+import { supabase } from './supabase';
+import type { ClassEntity, EnrollmentEntity, Profile } from '../types/classes.types';
+
+export const classesService = {
+  async getClasses(): Promise<ClassEntity[]> {
+    const { data, error } = await supabase
+      .from('classes')
+      .select('*, profiles(full_name), enrollments(count)')
+      .order('day_of_week', { ascending: true });
+
+    if (error) throw error;
+    return data as any; // Typecasting for complex joins
+  },
+
+  async deleteClass(id: string): Promise<void> {
+    const { error } = await supabase.from('classes').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getEnrolledStudents(classId: string): Promise<EnrollmentEntity[]> {
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select('id, profiles(id, full_name, email, phone)')
+      .eq('class_id', classId);
+
+    if (error) throw error;
+    return data as any;
+  },
+
+  async getTeachers(): Promise<Profile[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'teacher');
+      
+    if (error) throw error;
+    return data as Profile[];
+  },
+
+  async createClass(payload: Partial<ClassEntity>): Promise<void> {
+    if (payload.activity_name) {
+      await supabase.from('specialties').upsert({ name: payload.activity_name }, { onConflict: 'name' });
+    }
+    const { error } = await supabase.from('classes').insert(payload);
+    if (error) throw error;
+  },
+
+  async getClassById(id: string): Promise<ClassEntity> {
+    const { data, error } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data as ClassEntity;
+  },
+
+  async updateClass(id: string, payload: Partial<ClassEntity>): Promise<void> {
+    if (payload.activity_name) {
+      await supabase.from('specialties').upsert({ name: payload.activity_name }, { onConflict: 'name' });
+    }
+    const { error } = await supabase
+      .from('classes')
+      .update(payload)
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+};

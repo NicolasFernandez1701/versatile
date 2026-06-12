@@ -1,0 +1,192 @@
+/* =========================================
+   CLASS MANAGEMENT MODULE
+   ========================================= */
+
+/* --- Card --- */
+.class-card {
+  background-color: var(--surface-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.class-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+}
+
+.class-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.class-title {
+  color: var(--primary-color);
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.class-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.action-btn.edit:hover { color: var(--primary-color); }
+.action-btn.delete:hover { color: var(--error-color); }
+
+.class-teacher {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.class-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.commission-tag {
+  display: inline-block;
+  background-color: rgba(62, 38, 130, 0.1);
+  color: var(--primary-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .commission-tag {
+  background-color: rgba(167, 148, 223, 0.15);
+}
+
+/* --- Form --- */
+.class-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* El padding y background lo maneja el modal o el contenedor padre */
+}
+
+.class-form .form-group {
+  margin-bottom: 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group select {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  font-size: 1rem;
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.student-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.student-row:last-child {
+  border-bottom: none;
+}
+
+.student-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(62, 38, 130, 0.1);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-info h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.student-info p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+
+
+/* FAB */
+.fab-button { position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), #8854d0); color: white; display: flex; justify-content: center; align-items: center; box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4); border: none; cursor: pointer; z-index: 100; transition: transform 0.2s, box-shadow 0.2s; }
+.fab-button:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 8px 25px rgba(108, 92, 231, 0.5); }
+.fab-button:active { transform: scale(0.95); }
+
+/* --- Autocomplete Dropdown --- */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  margin-top: 0.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.autocomplete-option {
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.autocomplete-option:hover {
+  background-color: rgba(62, 38, 130, 0.3);
+}
+
+[data-theme="dark"] .autocomplete-option:hover {
+  background-color: rgba(167, 148, 223, 0.15);
+}
