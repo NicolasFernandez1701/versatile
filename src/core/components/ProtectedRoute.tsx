@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, role, isLoading } = useAuthStore();
+  const { isAuthenticated, role, isLoading, user } = useAuthStore();
 
   if (isLoading) {
     return <Loader fullScreen text="Cargando sesión..." size="large" />;
@@ -18,8 +18,8 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  const { user } = useAuthStore.getState();
-  const hasCompletedOnboarding = user?.profile?.has_completed_onboarding;
+  // Convertimos undefined/null a false explícitamente para evitar saltos del onboarding
+  const hasCompletedOnboarding = user?.profile?.has_completed_onboarding ?? false;
 
   // Si es un estudiante y no completó el onboarding, enviarlo a /onboarding
   const isStudentOnboarding = window.location.pathname === '/onboarding';

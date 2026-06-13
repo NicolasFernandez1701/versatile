@@ -29,14 +29,25 @@ export const classesService = {
     if (error) throw error;
   },
 
-  async getEnrolledStudents(classId: string): Promise<EnrollmentEntity[]> {
-    const { data, error } = await supabase
+  async getEnrolledStudents(classId: string, reservationDate?: string): Promise<EnrollmentEntity[]> {
+    let query = supabase
       .from('enrollments')
-      .select('id, profiles(id, full_name, email, phone)')
+      .select('id, reservation_date, attendance_status, profiles(id, full_name, email, phone)')
       .eq('class_id', classId);
+
+    if (reservationDate) {
+      query = query.eq('reservation_date', reservationDate);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data as any;
+  },
+
+  async cancelEnrollment(enrollmentId: string): Promise<void> {
+    const { error } = await supabase.from('enrollments').delete().eq('id', enrollmentId);
+    if (error) throw error;
   },
 
   async getTeachers(): Promise<Profile[]> {

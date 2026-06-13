@@ -72,5 +72,37 @@ export const dashboardService = {
 
     if (error) throw error;
     return data as ClassEntity[];
+  },
+
+  /**
+   * Obtiene la información del dashboard del alumno
+   */
+  async getStudentDashboardData(studentId: string) {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const [paymentsRes, enrollmentsRes] = await Promise.all([
+      supabase
+        .from('payments')
+        .select('plan_id, plan_details, expiration_date')
+        .eq('student_id', studentId)
+        .gte('expiration_date', today)
+        .order('expiration_date', { ascending: false })
+        .limit(1),
+      supabase
+        .from('enrollments')
+        .select('reservation_date, classes(activity_name, start_time, end_time)')
+        .eq('student_id', studentId)
+        .gte('reservation_date', today)
+        .order('reservation_date', { ascending: true })
+        .limit(1)
+    ]);
+
+    if (paymentsRes.error) throw paymentsRes.error;
+    if (enrollmentsRes.error) throw enrollmentsRes.error;
+
+    return {
+      activePlan: paymentsRes.data?.[0] || null,
+      nextClass: enrollmentsRes.data?.[0] || null
+    };
   }
 };

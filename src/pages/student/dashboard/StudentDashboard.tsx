@@ -1,10 +1,26 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { CreditCard, CalendarDays, AlertTriangle } from 'lucide-react';
 import { SummaryCard } from '@/pages/admin/dashboard/components/SummaryCard';
+import { dashboardService } from '@/core/services';
+import { Loader } from '@/components/ui';
 import '@/pages/admin/dashboard/dashboard.css';
 
 export function StudentDashboard() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const [data, setData] = useState<{ activePlan: any; nextClass: any } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      dashboardService.getStudentDashboardData(user.id)
+        .then(setData)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
 
   const cardStyle = {
     background: 'var(--surface-color)',
@@ -14,6 +30,14 @@ export function StudentDashboard() {
   };
 
   const firstName = user?.profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Alumno';
+
+  if (loading) {
+    return (
+      <div className="page-container flex-center">
+        <Loader size="large" text="Cargando tu dashboard..." />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container dashboard-page">
@@ -27,16 +51,20 @@ export function StudentDashboard() {
       <div className="summary-grid">
         <SummaryCard 
           title="Mi Plan Activo"
-          value="Plan Activo"
-          subtitle="Tus clases semanales"
+          value={data?.activePlan ? data.activePlan.plan_details : "Sin Plan Activo"}
+          subtitle={data?.activePlan ? `Vence: ${new Date(data.activePlan.expiration_date).toLocaleDateString('es-AR')}` : "Hacé click para ver planes"}
           icon={CreditCard}
+          onClick={() => navigate('/student/plans')}
+          iconColorClass="text-primary"
         />
 
         <SummaryCard 
           title="Próxima Clase"
-          value="Revisá tus reservas"
+          value={data?.nextClass ? `${data.nextClass.classes.activity_name}` : "No tenés reservas"}
+          subtitle={data?.nextClass ? `${new Date(data.nextClass.reservation_date).toLocaleDateString('es-AR')} a las ${data.nextClass.classes.start_time.substring(0, 5)}` : "Hacé click para ver la grilla"}
           icon={CalendarDays}
-          iconColorClass="text-secondary"
+          onClick={() => navigate('/student/reservations')}
+          iconColorClass={data?.nextClass ? "text-success" : "text-secondary"}
         />
       </div>
 

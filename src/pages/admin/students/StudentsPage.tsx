@@ -18,7 +18,8 @@ export function StudentsPage() {
     fetchStudents();
   }, [fetchStudents]);
 
-  const getStatus = (expirationDate?: string | null) => {
+  const getStatus = (expirationDate?: string | null, hasPlan?: boolean) => {
+    if (!hasPlan) return 'Sin Plan';
     if (!expirationDate) return 'Pendiente';
     const today = new Date();
     const exp = new Date(expirationDate);
@@ -32,7 +33,7 @@ export function StudentsPage() {
   );
 
   return (
-    <div className="page-container students-page">
+    <div className="students-page" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)', overflow: 'hidden' }}>
       <div className="page-header">
         <div>
           <h1>Alumnos</h1>
@@ -73,7 +74,7 @@ export function StudentsPage() {
         />
       </div>
 
-      <div className="student-list-container">
+      <div className="student-list-container" style={{ flex: 1, overflowY: 'auto' }}>
         {loading ? (
           <div style={{ padding: '2rem' }}><Loader text="Cargando alumnos..." size="medium" /></div>
         ) : filteredStudents.length === 0 ? (
@@ -86,7 +87,7 @@ export function StudentsPage() {
               key={item.id}
               name={item.full_name} 
               plan={item.plans?.name || 'Sin Plan'} 
-              status={getStatus(item.plan_expiration_date)}
+              status={getStatus(item.plan_expiration_date, !!item.plan_id)}
               phone={item.phone}
               email={item.email}
               onPress={() => {

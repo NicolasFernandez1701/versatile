@@ -2,6 +2,8 @@ export interface EnrollmentEntity {
   id: string;
   student_id: string;
   class_id: string;
+  reservation_date: string;
+  attendance_status: 'pending' | 'attended' | 'absent' | 'cancelled';
   created_at: string;
   
   // Joins

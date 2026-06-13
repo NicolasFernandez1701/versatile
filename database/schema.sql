@@ -1,4 +1,4 @@
-﻿-- ==========================================
+-- ==========================================
 -- VERSATILE - ESQUEMA DE BASE DE DATOS
 -- ==========================================
 
@@ -165,10 +165,12 @@ CREATE TABLE public.enrollments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    reservation_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    attendance_status VARCHAR(20) CHECK (attendance_status IN ('pending', 'attended', 'absent', 'cancelled')) DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
 
-    -- Un alumno no puede inscribirse dos veces a la misma clase
-    UNIQUE (student_id, class_id)
+    -- Un alumno no puede inscribirse dos veces a la misma clase EL MISMO DÍA
+    UNIQUE (student_id, class_id, reservation_date)
 );
 
 -- ==========================================
@@ -196,27 +198,13 @@ CREATE TABLE public.payments (
 );
 
 -- ==========================================
--- 8. TABLA DE ASISTENCIA (attendance)
--- ==========================================
-CREATE TABLE public.attendance (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    enrollment_id UUID NOT NULL REFERENCES public.enrollments(id) ON DELETE CASCADE,
-    date DATE NOT NULL DEFAULT CURRENT_DATE,
-    status VARCHAR(20) CHECK (status IN ('present', 'absent', 'confirmed', 'cancelled')) DEFAULT 'confirmed',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-
-    -- Solo un registro de asistencia por alumno/clase al día
-    UNIQUE (enrollment_id, date)
-);
-
--- ==========================================
--- 9. TABLA DE COMISIONES DE PROFESORES (commissions)
+-- 8. TABLA DE COMISIONES DE PROFESORES (commissions)
 -- ==========================================
 CREATE TABLE public.commissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
-    attendance_id UUID REFERENCES public.attendance(id) ON DELETE CASCADE,
+    enrollment_id UUID REFERENCES public.enrollments(id) ON DELETE CASCADE,
     amount_earned NUMERIC(10, 2) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -269,5 +257,55 @@ ALTER TABLE public.plan_activities DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.enrollments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.attendance DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.commissions DISABLE ROW LEVEL SECURITY;
+
+-- ==========================================
+-- 12. FUNCIONES RPC
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.get_financial_balance(query_year INT, query_month INT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    SELECT jsonb_build_object(
+        'monthlyTotal', COALESCE((
+            SELECT SUM(amount) 
+            FROM public.payments 
+            WHERE EXTRACT(YEAR FROM payment_date) = query_year 
+              AND EXTRACT(MONTH FROM payment_date) = query_month
+        ), 0),
+        
+        'annualTotal', COALESCE((
+            SELECT SUM(amount) 
+            FROM public.payments 
+            WHERE EXTRACT(YEAR FROM payment_date) = query_year
+        ), 0),
+        
+        'monthlyByPlan', COALESCE((
+            SELECT jsonb_object_agg(plan_name, total)
+            FROM (
+                SELECT COALESCE(split_part(plan_details, ' - ', 1), 'Otros') as plan_name, SUM(amount) as total
+                FROM public.payments
+                WHERE EXTRACT(YEAR FROM payment_date) = query_year 
+                  AND EXTRACT(MONTH FROM payment_date) = query_month
+                GROUP BY 1
+            ) sub
+        ), '{}'::jsonb),
+        
+        'annualByPlan', COALESCE((
+            SELECT jsonb_object_agg(plan_name, total)
+            FROM (
+                SELECT COALESCE(split_part(plan_details, ' - ', 1), 'Otros') as plan_name, SUM(amount) as total
+                FROM public.payments
+                WHERE EXTRACT(YEAR FROM payment_date) = query_year
+                GROUP BY 1
+            ) sub
+        ), '{}'::jsonb)
+    ) INTO result;
+
+    RETURN result;
+END;
+$$;

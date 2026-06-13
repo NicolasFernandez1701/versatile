@@ -26,6 +26,7 @@ import { ProfilePage } from './pages/admin/profile/ProfilePage';
 import { StudentLayout } from './pages/student/layouts/StudentLayout';
 import { StudentDashboard } from './pages/student/dashboard/StudentDashboard';
 import { StudentClassesPage } from './pages/student/classes/StudentClassesPage';
+import { StudentPlansPage } from './pages/student/plans/StudentPlansPage';
 
 export default function App() {
   const { setUser, setLoading } = useAuthStore();
@@ -113,6 +114,8 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>
             <Route path="/student" element={<StudentLayout />}>
               <Route path="dashboard" element={<StudentDashboard />} />
+              <Route path="catalog" element={<AdminCalendarPage />} />
+              <Route path="plans" element={<StudentPlansPage />} />
               <Route path="classes" element={<StudentClassesPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route index element={<Navigate to="dashboard" replace />} />

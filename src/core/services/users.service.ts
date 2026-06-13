@@ -62,14 +62,13 @@ export const usersService = {
     if (error) throw error;
   },
 
-  async saveOnboardingDetails(profileId: string, newPassword: string | null, details: any): Promise<void> {
-    // 1. Update Password if provided
-    if (newPassword) {
-      const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
-      if (authError) throw authError;
-    }
+  async updatePassword(newPassword: string): Promise<void> {
+    const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
+    if (authError) throw authError;
+  },
 
-    // 2. Insert Student Details
+  async saveOnboardingDetails(profileId: string, details: any): Promise<void> {
+    // 1. Insert Student Details
     const { error: detailsError } = await supabase
       .from('student_details')
       .insert([{ profile_id: profileId, ...details }]);
@@ -84,11 +83,7 @@ export const usersService = {
 
     if (profileError) throw profileError;
   },
-  async saveTeacherOnboardingDetails(profileId: string, newPassword: string | null, details: any): Promise<void> {
-    if (newPassword) {
-      const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
-      if (authError) throw authError;
-    }
+  async saveTeacherOnboardingDetails(profileId: string, details: any): Promise<void> {
 
     const { error: detailsError } = await supabase
       .from('teacher_details')

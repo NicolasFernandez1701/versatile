@@ -86,6 +86,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
       await financesService.recordPayment({
         student_id: selectedStudentId,
+        plan_id: plan.id,
         amount: finalAmount,
         expiration_date: nextExp.toISOString().split('T')[0],
         plan_details: `${plan.name} - $${plan.price}`,
@@ -173,9 +174,9 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             <label>Monto Final a Cobrar ($) (Override Manual)</label>
             <input 
               type="number" 
-              value={amountOverride !== '' ? amountOverride : subtotal}
+              value={amountOverride}
               onChange={(e) => setAmountOverride(e.target.value)}
-              placeholder="Dejar vacío para usar cálculo automático"
+              placeholder={`Automático: $${subtotal.toFixed(2)}`}
             />
           </div>
 

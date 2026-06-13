@@ -1,15 +1,32 @@
 import { useEffect, useState } from 'react';
-import { Wallet, Plus, Activity } from 'lucide-react';
+import { Wallet, Plus, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { financesService, dashboardService, type FinancialBalance } from '@/core/services';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
-import { DataTable, type Column, Button, Loader } from '@/components/ui';
+import { usePaymentHistory } from './hooks/usePaymentHistory';
+import { DataTable, type Column, Button, Loader, Select, Input } from '@/components/ui';
 
 export function FinancesPage() {
   const [payments, setPayments] = useState<PaymentEntity[]>([]);
   const [balance, setBalance] = useState<FinancialBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Tabs State
+  const [activeTab, setActiveTab] = useState<'resumen' | 'historial'>('resumen');
+
+  // Logic delegated to Custom Hook
+  const {
+    searchTerm,
+    setSearchTerm,
+    methodFilter,
+    setMethodFilter,
+    currentPage,
+    setCurrentPage,
+    paginatedPayments,
+    filteredPayments,
+    totalPages
+  } = usePaymentHistory(payments);
 
   useEffect(() => {
     loadData();
@@ -80,13 +97,13 @@ export function FinancesPage() {
   const planNames = balance ? Object.keys(balance.annualByPlan).sort() : [];
 
   return (
-    <div className="page-container">
+    <div>
       <div className="page-header">
         <div>
           <h1>Finanzas</h1>
-          <p>Registro histórico de pagos de alumnos y reportes financieros.</p>
+          <p>Registro histórico de pagos y reportes financieros.</p>
         </div>
-        <Button 
+        <Button
           variant="primary"
           onClick={() => setIsModalOpen(true)}
         >
@@ -101,57 +118,150 @@ export function FinancesPage() {
         </div>
       ) : (
         <>
-          <div className="dashboard-section" style={{ marginBottom: '2rem' }}>
-            <h2 className="section-title">Desglose Financiero por Plan</h2>
-            <div className="table-container" style={{ marginTop: '0' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Plan</th>
-                    <th style={{ textAlign: 'right' }}>Recaudación Mensual</th>
-                    <th style={{ textAlign: 'right' }}>Recaudación Anual</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {planNames.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="empty-state-cell">No hay cobros registrados en el año.</td>
-                    </tr>
-                  ) : (
-                    planNames.map(planName => (
-                      <tr key={planName}>
-                        <td>
-                          <div className="cell-flex">
-                            <Activity size={16} className="text-primary" />
-                            <strong>{planName}</strong>
-                          </div>
-                        </td>
-                        <td data-label="Mensual" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success-color)' }}>
-                          ${(balance.monthlyByPlan[planName] || 0).toLocaleString()}
-                        </td>
-                        <td data-label="Anual" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--primary-color)' }}>
-                          ${balance.annualByPlan[planName].toLocaleString()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid var(--border-color)', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+            <button
+              onClick={() => setActiveTab('resumen')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: activeTab === 'resumen' ? 'var(--surface-hover)' : 'none',
+                border: 'none',
+                borderBottom: activeTab === 'resumen' ? '3px solid var(--primary-color)' : '3px solid transparent',
+                color: activeTab === 'resumen' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: activeTab === 'resumen' ? 700 : 500,
+                fontSize: '1rem',
+                transition: 'all 0.2s',
+                borderTopLeftRadius: '8px',
+                borderTopRightRadius: '8px',
+                marginBottom: '-2px'
+              }}
+            >
+              Resumen por Plan
+            </button>
+            <button
+              onClick={() => setActiveTab('historial')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: activeTab === 'historial' ? 'var(--surface-hover)' : 'none',
+                border: 'none',
+                borderBottom: activeTab === 'historial' ? '3px solid var(--primary-color)' : '3px solid transparent',
+                color: activeTab === 'historial' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: activeTab === 'historial' ? 700 : 500,
+                fontSize: '1rem',
+                transition: 'all 0.2s',
+                borderTopLeftRadius: '8px',
+                borderTopRightRadius: '8px',
+                marginBottom: '-2px'
+              }}
+            >
+              Historial de Pagos
+            </button>
           </div>
 
-          <h2 className="section-title" style={{ marginTop: '2rem' }}>Historial de Pagos</h2>
-          <DataTable
-            columns={columns}
-            data={payments}
-            loading={loading}
-            keyExtractor={(p) => p.id}
-            emptyMessage="No hay pagos registrados."
-          />
+          {activeTab === 'resumen' && (
+            <div className="dashboard-section" style={{ marginBottom: '1rem' }}>
+              <h2 className="section-title">Desglose Financiero por Plan</h2>
+              <div className="table-container" style={{ marginTop: '0' }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Plan</th>
+                      <th style={{ textAlign: 'right' }}>Recaudación Mensual</th>
+                      <th style={{ textAlign: 'right' }}>Recaudación Anual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {planNames.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="empty-state-cell">No hay cobros registrados en el año.</td>
+                      </tr>
+                    ) : (
+                      planNames.map(planName => (
+                        <tr key={planName}>
+                          <td>
+                            <div className="cell-flex">
+                              <Activity size={16} className="text-primary" />
+                              <strong>{planName}</strong>
+                            </div>
+                          </td>
+                          <td data-label="Mensual" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success-color)' }}>
+                            ${(balance.monthlyByPlan[planName] || 0).toLocaleString()}
+                          </td>
+                          <td data-label="Anual" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--primary-color)' }}>
+                            ${balance.annualByPlan[planName].toLocaleString()}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'historial' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ width: '250px' }}>
+                    <Input
+                      type="text"
+                      icon={<Search size={16} />}
+                      placeholder="Buscar alumno o plan..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ width: '180px' }}>
+                    <Select
+                      options={[
+                        { value: 'all', label: 'Todos los métodos' },
+                        { value: 'transferencia', label: 'Transferencias' },
+                        { value: 'efectivo', label: 'Efectivo' }
+                      ]}
+                      value={methodFilter}
+                      onChange={(e) => setMethodFilter(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <DataTable
+                columns={columns}
+                data={paginatedPayments}
+                loading={loading}
+                keyExtractor={(p) => p.id}
+                emptyMessage={searchTerm || methodFilter !== 'all' ? "No se encontraron pagos con esos filtros." : "No hay pagos registrados."}
+              />
+
+              {filteredPayments.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft size={16} /> Anterior
+                  </Button>
+                  <span className="text-secondary" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Siguiente <ChevronRight size={16} />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
-      <RecordPaymentModal 
+      <RecordPaymentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {

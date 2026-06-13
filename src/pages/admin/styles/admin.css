@@ -4,9 +4,9 @@
 .admin-layout {
   display: grid;
   grid-template-columns: 250px 1fr;
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* Sidebar */
@@ -17,6 +17,8 @@
   flex-direction: column;
   padding: 1.5rem 1rem;
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -94,6 +96,7 @@
   background-color: var(--background-color);
   overflow-y: auto;
   overflow-x: hidden;
+  height: 100vh;
   width: 100%;
   min-width: 0;
 }
@@ -160,9 +163,12 @@
 
   .admin-sidebar {
     position: fixed;
+    top: auto;
     bottom: 0;
     left: 0;
     width: 100%;
+    height: auto;
+    overflow-y: visible;
     flex-direction: row;
     padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
     border-right: none;

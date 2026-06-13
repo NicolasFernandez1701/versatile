@@ -6,26 +6,33 @@ import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { usersService } from '@/core/services';
 import { TeacherList } from './components/TeacherList';
 import { TeacherFormModal } from './components/TeacherFormModal';
+import { ConfirmModal } from '@/components/ui';
 
 export function TeachersPage() {
   const { showError, showSuccess } = useAlert();
   const { teachers, loading, fetchTeachers } = useUsersStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeachers();
   }, [fetchTeachers]);
 
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Eliminar a este profesor? Se desvinculará de sus clases actuales.')) {
-      try {
-        await usersService.deleteUser(id);
-        fetchTeachers();
-        showSuccess('Profesor eliminado.');
-      } catch (error) {
-        showError('Error al borrar profesor');
-      }
+  const handleDelete = (id: string) => {
+    setDeletingId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await usersService.deleteUser(deletingId);
+      fetchTeachers();
+      showSuccess('Profesor eliminado.');
+    } catch (error) {
+      showError('Error al borrar profesor');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -74,6 +81,16 @@ export function TeachersPage() {
           fetchTeachers();
           setIsModalOpen(false);
         }}
+      />
+
+      <ConfirmModal
+        isOpen={!!deletingId}
+        title="Eliminar Profesor"
+        message="¿Eliminar a este profesor? Se desvinculará de sus clases actuales."
+        confirmText="Eliminar"
+        isDestructive={true}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingId(null)}
       />
     </div>
   );

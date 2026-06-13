@@ -12,12 +12,47 @@ export const enrollmentsService = {
     return data as any;
   },
 
-  async enrollStudent(studentId: string, classId: string): Promise<void> {
-    // 1. Chequear cupo disponible
+  async enrollStudent(studentId: string, classId: string, reservationDate: string): Promise<void> {
+    // 1. Validar límite mensual del alumno
+    // Obtenemos el perfil y su plan para saber cuántas clases tiene por semana
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('plan_id, plans(classes_per_week)')
+      .eq('id', studentId)
+      .single();
+
+    if (profileError) throw profileError;
+    if (!profile?.plan_id) throw new Error('El alumno no tiene un plan activo asignado.');
+    
+    // Obtenemos cuántas reservas tiene el alumno en el MES actual
+    const [year, month] = reservationDate.split('-');
+    const firstDayOfMonth = `${year}-${month}-01`;
+    const lastDayOfMonth = new Date(Number(year), Number(month), 0).toISOString().split('T')[0];
+
+    const { count: monthlyCount, error: countMonthlyError } = await supabase
+      .from('enrollments')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .gte('reservation_date', firstDayOfMonth)
+      .lte('reservation_date', lastDayOfMonth)
+      .neq('attendance_status', 'cancelled'); // No contamos las canceladas
+
+    if (countMonthlyError) throw countMonthlyError;
+
+    // TODO: La base de datos guarda 'classes_per_week', en muchos gimnasios el cupo mensual es x4
+    const classesPerMonth = (profile.plans as any)?.classes_per_week * 4 || 0;
+    
+    if (monthlyCount !== null && monthlyCount >= classesPerMonth) {
+      throw new Error(`Límite mensual excedido. El plan permite ${classesPerMonth} clases por mes.`);
+    }
+
+    // 2. Chequear cupo disponible de la clase
     const { count: enrolledCount, error: countError } = await supabase
       .from('enrollments')
       .select('*', { count: 'exact', head: true })
-      .eq('class_id', classId);
+      .eq('class_id', classId)
+      .eq('reservation_date', reservationDate)
+      .neq('attendance_status', 'cancelled');
 
     if (countError) throw countError;
 
@@ -30,16 +65,16 @@ export const enrollmentsService = {
     if (classError) throw classError;
 
     if (enrolledCount !== null && classData && enrolledCount >= classData.capacity) {
-      throw new Error('La clase ha alcanzado su capacidad máxima.');
+      throw new Error('La clase ha alcanzado su capacidad máxima para esa fecha.');
     }
 
-    // 2. Inscribir
+    // 3. Inscribir (Reservar)
     const { error } = await supabase
       .from('enrollments')
-      .insert({ student_id: studentId, class_id: classId });
+      .insert({ student_id: studentId, class_id: classId, reservation_date: reservationDate });
 
     if (error) {
-      if (error.code === '23505') throw new Error('El alumno ya está inscripto en esta clase.');
+      if (error.code === '23505') throw new Error('El alumno ya está inscripto en esta clase para ese día.');
       throw error;
     }
   },

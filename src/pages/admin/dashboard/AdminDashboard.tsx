@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, TrendingUp, DollarSign } from 'lucide-react';
+import { Users, Calendar, TrendingUp, DollarSign, ClipboardList } from 'lucide-react';
 import { SummaryCard } from './components/SummaryCard';
 import { dashboardService, type DashboardStats, type FinancialBalance } from '@/core/services';
 import type { ClassEntity } from '@/core/types/classes.types';
@@ -50,29 +50,33 @@ export function AdminDashboard() {
       <div className="dashboard-section">
         <h2 className="section-title">Vista General</h2>
         <div className="summary-grid">
-          <SummaryCard 
-            title="Ingresos del Mes" 
-            value={`$${balance.monthlyTotal.toLocaleString()}`} 
+          <SummaryCard
+            title="Ingresos del Mes"
+            value={`$${balance.monthlyTotal.toLocaleString()}`}
             icon={DollarSign}
             iconColorClass="text-success"
+            onClick={() => navigate('/admin/finances')}
           />
-          <SummaryCard 
-            title="Ingresos del Año" 
-            value={`$${balance.annualTotal.toLocaleString()}`} 
+          <SummaryCard
+            title="Ingresos del Año"
+            value={`$${balance.annualTotal.toLocaleString()}`}
             icon={TrendingUp}
             iconColorClass="text-primary"
+            onClick={() => navigate('/admin/finances')}
           />
-          <SummaryCard 
-            title="Alumnos Activos" 
-            value={stats.totalStudents} 
+          <SummaryCard
+            title="Alumnos Activos"
+            value={stats.totalStudents}
             icon={Users}
             iconColorClass="text-primary"
+            onClick={() => navigate('/admin/students')}
           />
-          <SummaryCard 
-            title="Clases Activas" 
-            value={stats.activeClasses} 
+          <SummaryCard
+            title="Clases Activas"
+            value={stats.activeClasses}
             icon={Calendar}
             iconColorClass="text-secondary"
+            onClick={() => navigate('/admin/classes')}
           />
         </div>
       </div>
@@ -88,16 +92,23 @@ export function AdminDashboard() {
             </div>
             <span>Alumnos</span>
           </button>
-          
+
+          <button className="quick-action-btn" onClick={() => navigate('/admin/enrollments')}>
+            <div className="action-icon-wrapper bg-plans">
+              <ClipboardList size={24} color="#6C5CE7" />
+            </div>
+            <span>Matrículas</span>
+          </button>
+
           <button className="quick-action-btn" onClick={() => navigate('/admin/calendar')}>
             <div className="action-icon-wrapper bg-calendar">
               <Calendar size={24} color="#0277BD" />
             </div>
             <span>Grilla</span>
           </button>
-          
+
           <button className="quick-action-btn" onClick={() => navigate('/admin/finances')}>
-            <div className="action-icon-wrapper bg-finances">
+            <div className="action-icon-wrapper bg-payments">
               <DollarSign size={24} color="#F57F17" />
             </div>
             <span>Finanzas</span>
@@ -108,11 +119,8 @@ export function AdminDashboard() {
       <div className="dashboard-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 className="section-title" style={{ marginBottom: 0 }}>Clases de Hoy</h2>
-          <button className="btn-secondary" onClick={() => navigate('/admin/calendar')} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
-            Ver Grilla
-          </button>
         </div>
-        
+
         <div className="today-classes-list">
           {todayClasses.length === 0 ? (
             <div className="empty-state-cell" style={{ background: 'var(--surface-color)', borderRadius: 'var(--border-radius-sm)' }}>

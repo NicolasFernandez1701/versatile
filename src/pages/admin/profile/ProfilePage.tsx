@@ -3,19 +3,24 @@ import { authService } from '@/core/services';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Sun, Moon, Monitor, Shield, Mail } from 'lucide-react';
 import './profile.css';
+import { ConfirmModal } from '@/components/ui';
 import { useThemeStore } from '@/core/store/useThemeStore';
+import { useState } from 'react';
 
 export function ProfilePage() {
   const { user, logout } = useAuthStore();
   const { theme: themeMode, setTheme } = useThemeStore();
   const navigate = useNavigate(); 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = async () => {
-    if (window.confirm('¿Estás seguro de que deseas salir de Versatile Studio?')) {
-      await authService.logout();
-      logout();
-      navigate('/login');
-    }
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    await authService.logout();
+    logout();
+    navigate('/login');
   };
 
   const getInitials = (name: string) => {
@@ -96,6 +101,16 @@ export function ProfilePage() {
         <LogOut size={20} />
         <span>Cerrar Sesión</span>
       </button>
+
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Cerrar Sesión"
+        message="¿Estás seguro de que deseas salir de Versatile Studio?"
+        confirmText="Salir"
+        isDestructive={true}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }

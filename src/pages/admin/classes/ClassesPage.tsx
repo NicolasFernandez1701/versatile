@@ -105,7 +105,7 @@ export function ClassesPage() {
   };
 
   return (
-    <div className="page-container classes-page">
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)', overflow: 'hidden' }}>
       <div className="page-header">
         <div>
           <h1>Clases</h1>
@@ -126,16 +126,18 @@ export function ClassesPage() {
       ) : classes.length === 0 ? (
         <p>No hay clases creadas aún.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {classes.map(cls => (
-            <ClassCard 
-              key={cls.id} 
-              cls={cls} 
-              onDelete={handleDeleteClick} 
-              onEdit={() => openFormModal(cls)}
-              onClick={openStudentsModal}
-            />
-          ))}
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {classes.map(cls => (
+              <ClassCard 
+                key={cls.id} 
+                cls={cls} 
+                onDelete={handleDeleteClick} 
+                onEdit={() => openFormModal(cls)}
+                onClick={openStudentsModal}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -145,6 +147,12 @@ export function ClassesPage() {
         onClose={() => setViewingStudentsClass(null)}
         students={students}
         isLoading={loadingStudents}
+        onStudentRemoved={() => {
+          if (viewingStudentsClass) {
+            openStudentsModal(viewingStudentsClass);
+            fetchClasses();
+          }
+        }}
       />
 
       <Modal

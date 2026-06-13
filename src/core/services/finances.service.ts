@@ -27,5 +27,13 @@ export const financesService = {
   async recordPayment(payload: RecordPaymentPayload): Promise<void> {
     const { error } = await supabase.from('payments').insert(payload);
     if (error) throw error;
+
+    // Update the student's expiration date in their profile so the badge reflects the payment
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ plan_expiration_date: payload.expiration_date })
+      .eq('id', payload.student_id);
+
+    if (profileError) throw profileError;
   }
 };

@@ -34,10 +34,20 @@ export function TeacherOnboardingPage() {
       .catch(err => console.error('Error fetching specialties:', err));
   }, []);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (newPassword.length < 6) return showError('La contraseña debe tener al menos 6 caracteres');
       if (newPassword !== confirmPassword) return showError('Las contraseñas no coinciden');
+      
+      setIsSubmitting(true);
+      try {
+        await usersService.updatePassword(newPassword);
+      } catch (error: any) {
+        showError(`Error al actualizar contraseña: ${error.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+      setIsSubmitting(false);
     }
     if (step === 2) {
       if (!address.trim()) return showError('Completá tu dirección');
@@ -77,7 +87,7 @@ export function TeacherOnboardingPage() {
       const [dd, mm, yyyy] = birthDate.split('/');
       const isoDate = `${yyyy}-${mm}-${dd}`;
 
-      await usersService.saveTeacherOnboardingDetails(user.id, newPassword, {
+      await usersService.saveTeacherOnboardingDetails(user.id, {
         address,
         birth_date: isoDate,
         specialties: selectedSpecialties
@@ -194,8 +204,8 @@ export function TeacherOnboardingPage() {
           ) : <div></div>}
           
           {step < totalSteps ? (
-            <Button variant="primary" onClick={handleNext}>
-              Siguiente <ChevronRight size={20} />
+            <Button variant="primary" onClick={handleNext} loading={isSubmitting}>
+              {isSubmitting ? 'Cargando...' : <>Siguiente <ChevronRight size={20} /></>}
             </Button>
           ) : (
             <Button variant="primary" onClick={handleSubmit} loading={isSubmitting}>

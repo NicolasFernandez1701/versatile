@@ -83,6 +83,18 @@
   padding-top: 10px;
 }
 
+.custom-calendar .react-calendar__tile:enabled:hover,
+.custom-calendar .react-calendar__tile:enabled:focus {
+  background-color: var(--surface-hover) !important;
+  border-radius: 8px;
+}
+
+.custom-calendar .react-calendar__tile--active:enabled:hover,
+.custom-calendar .react-calendar__tile--active:enabled:focus {
+  background-color: var(--primary-hover) !important;
+  color: white !important;
+}
+
 .holiday-dot {
   width: 6px;
   height: 6px;

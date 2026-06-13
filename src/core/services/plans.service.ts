@@ -12,6 +12,17 @@ export const plansService = {
     return data as PlanEntity[];
   },
 
+  async getActivePlans(): Promise<PlanEntity[]> {
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*, plan_activities(*)')
+      .eq('is_active', true)
+      .order('price', { ascending: true });
+
+    if (error) throw error;
+    return data as PlanEntity[];
+  },
+
   async createPlanWithActivities(planData: CreatePlanDTO, activities: CreatePlanActivityDTO[]): Promise<PlanEntity> {
     // Insertamos el plan principal
     const { data: plan, error: planError } = await supabase

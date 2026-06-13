@@ -212,6 +212,11 @@ select {
   appearance: none;
 }
 
+select option {
+  background: var(--surface-bg);
+  color: var(--text-primary);
+}
+
 input:focus, select:focus {
   outline: none;
   border-color: var(--primary-color);
@@ -433,6 +438,7 @@ input:disabled {
     border-radius: var(--border-radius-lg);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
+    overflow: hidden;
   }
 
   .data-table {
@@ -460,7 +466,7 @@ input:disabled {
 
 .activities-list {
   padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
   max-height: 150px;
@@ -481,6 +487,11 @@ input:disabled {
   gap: 0.5rem;
   margin-bottom: 0.5rem;
   align-items: center;
+}
+
+.activity-row input,
+.activity-row select {
+  background-color: var(--surface-color) !important;
 }
 
 .activity-row:last-child {
@@ -596,6 +607,7 @@ input:disabled {
   border-radius: var(--border-radius-md);
   width: 90%;
   max-width: 650px;
+  max-height: 90vh;
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -622,7 +634,7 @@ input:disabled {
 
 .modal-body {
   padding: 1.5rem;
-  overflow: visible;
+  overflow-y: auto;
 }
 
 /* =========================================
@@ -646,6 +658,7 @@ input:disabled {
 
   .modal-body {
     padding: 1rem;
+    overflow-y: auto;
   }
 
   @keyframes slideUp {

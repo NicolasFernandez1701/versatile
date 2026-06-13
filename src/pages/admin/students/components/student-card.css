@@ -111,21 +111,18 @@
   color: #2E7D32; /* text success */
 }
 
-/* Dark mode whatsapp override using global classes or var if needed */
-@media (prefers-color-scheme: dark) {
-  .btn-whatsapp {
-    background-color: #1E3E26;
-    color: #66BB6A;
-  }
+/* Dark mode overrides */
+[data-theme="dark"] .btn-whatsapp {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #66BB6A;
 }
 
 .btn-email {
-  background-color: rgba(167, 148, 223, 0.15); /* #F0EFFF native */
+  background-color: rgba(94, 77, 205, 0.1); /* Lighter translucent background */
   color: var(--primary-color);
 }
 
-@media (prefers-color-scheme: dark) {
-  .btn-email {
-    background-color: #2A2740;
-  }
+[data-theme="dark"] .btn-email {
+  background-color: rgba(167, 148, 223, 0.15);
+  color: #A794DF; /* Much lighter purple for contrast */
 }

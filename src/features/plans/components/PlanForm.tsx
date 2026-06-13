@@ -125,14 +125,16 @@ export function PlanForm({ initialData, availableClasses, onSubmit, onCancel, lo
           {activities.map((act, idx) => (
             <div key={idx} className="activity-row">
               <div style={{ position: 'relative' }}>
-                <input
-                  list="activity-catalog-list"
-                  type="text"
-                  placeholder="Ej: Funcional..."
+                <select
                   value={act.activity_name}
                   onChange={e => updateActivity(idx, 'activity_name', e.target.value)}
                   required
-                />
+                >
+                  <option value="" disabled>Seleccionar actividad...</option>
+                  {Array.from(activityCatalog.keys()).map(actName => (
+                    <option key={actName} value={actName}>{actName}</option>
+                  ))}
+                </select>
               </div>
               
               <input 
@@ -154,11 +156,6 @@ export function PlanForm({ initialData, availableClasses, onSubmit, onCancel, lo
           <Plus size={16} /> Agregar Actividad
         </button>
 
-        <datalist id="activity-catalog-list">
-          {Array.from(activityCatalog.keys()).map(actName => (
-            <option key={actName} value={actName} />
-          ))}
-        </datalist>
       </div>
 
       <div className="plan-form-row">

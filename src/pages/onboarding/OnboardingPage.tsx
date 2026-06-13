@@ -84,10 +84,21 @@ export function OnboardingPage() {
   const [agreedRules, setAgreedRules] = useState(true);
   const [agreedImage, setAgreedImage] = useState(true);
 
-  const handleNext = () => {
-    if (step === 1 && (!newPassword || newPassword !== confirmPassword || newPassword.length < 6)) {
-      showError('Por favor ingresá una contraseña válida de al menos 6 caracteres que coincida en ambos campos.');
-      return;
+  const handleNext = async () => {
+    if (step === 1) {
+      if (!newPassword || newPassword !== confirmPassword || newPassword.length < 6) {
+        showError('Por favor ingresá una contraseña válida de al menos 6 caracteres que coincida en ambos campos.');
+        return;
+      }
+      setIsSubmitting(true);
+      try {
+        await usersService.updatePassword(newPassword);
+      } catch (error: any) {
+        showError(`Error al actualizar contraseña: ${error.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+      setIsSubmitting(false);
     }
     if (step < totalSteps) setStep(step + 1);
   };
@@ -154,7 +165,7 @@ export function OnboardingPage() {
         agreed_to_image_rights: agreedImage
       };
 
-      await usersService.saveOnboardingDetails(user.id, newPassword, payload);
+      await usersService.saveOnboardingDetails(user.id, payload);
 
       // Force reload to update auth context and redirect to dashboard
       window.location.href = '/';
@@ -403,8 +414,8 @@ export function OnboardingPage() {
           )}
 
           {step < totalSteps ? (
-            <button className="btn-primary" onClick={handleNext}>
-              Siguiente <ChevronRight size={20} />
+            <button className="btn-primary" onClick={handleNext} disabled={isSubmitting}>
+              {isSubmitting ? 'Cargando...' : <>Siguiente <ChevronRight size={20} /></>}
             </button>
           ) : (
             <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>

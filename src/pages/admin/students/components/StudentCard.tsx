@@ -4,7 +4,7 @@ import './student-card.css';
 interface StudentCardProps {
   name: string;
   plan: string;
-  status: 'Al Día' | 'Pendiente' | 'Vencido';
+  status: 'Al Día' | 'Pendiente' | 'Vencido' | 'Sin Plan';
   phone?: string | null;
   email?: string | null;
   onPress: () => void;
@@ -16,6 +16,7 @@ export function StudentCard({ name, plan, status, phone, email, onPress }: Stude
       case 'Al Día': return 'badge-active';
       case 'Pendiente': return 'badge-pending';
       case 'Vencido': return 'badge-inactive';
+      case 'Sin Plan': return 'badge-inactive';
       default: return 'badge-inactive';
     }
   };

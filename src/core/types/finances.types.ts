@@ -21,6 +21,7 @@ export interface PaymentEntity {
 
 export interface RecordPaymentPayload {
   student_id: string;
+  plan_id?: string;
   amount: number;
   expiration_date: string;
   plan_details: string;

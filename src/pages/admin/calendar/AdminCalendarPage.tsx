@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { classesService } from '@/core/services';
-import type { ClassEntity } from '@/core/types/classes.types';
+import type { ClassEntity, EnrollmentEntity } from '@/core/types/classes.types';
 import { useHolidays } from '@/core/hooks/useHolidays';
+import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStudentsModal';
 import { User } from 'lucide-react';
 import './calendar.css';
 import { Loader } from '@/components/ui';
@@ -17,18 +18,44 @@ export function AdminCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [isDayExpanded, setIsDayExpanded] = useState(false);
 
-  const { holidays, loadingHolidays, getHolidayForDate } = useHolidays(activeStartDate.getFullYear());
+  // Modal State for viewing students
+  const [viewingStudentsClass, setViewingStudentsClass] = useState<ClassEntity | null>(null);
+  const [students, setStudents] = useState<EnrollmentEntity[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+
+  const { loadingHolidays, getHolidayForDate } = useHolidays(activeStartDate.getFullYear());
+
+  const fetchClasses = async () => {
+    try {
+      const data = await classesService.getClasses();
+      setClasses(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    classesService.getClasses().then(data => {
-      setClasses(data);
-      setLoading(false);
-    }).catch(console.error);
+    fetchClasses();
   }, []);
 
+  const openStudentsModal = async (cls: ClassEntity) => {
+    setViewingStudentsClass(cls);
+    setLoadingStudents(true);
+    try {
+      // Formatear la fecha a YYYY-MM-DD para consultar la base de datos
+      const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+      const reservationDate = localDate.toISOString().split('T')[0];
 
-
-  const tileClassName = ({ date, view }: { date: Date, view: string }) => {
+      const data = await classesService.getEnrolledStudents(cls.id, reservationDate);
+      setStudents(data);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }; const tileClassName = ({ date, view }: { date: Date, view: string }) => {
     if (view === 'month') {
       if (getHolidayForDate(date)) {
         return 'react-calendar__tile--holiday';
@@ -162,7 +189,11 @@ export function AdminCalendarPage() {
               {isDayExpanded && (
                 <div className="schedule-card-body" style={{ flexDirection: 'column', gap: '1rem', alignItems: 'stretch' }}>
                   {dayClasses.map(c => (
-                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                    <div
+                      key={c.id}
+                      style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', cursor: 'pointer' }}
+                      onClick={() => openStudentsModal(c)}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         <strong style={{ color: 'var(--primary-color)' }}>{c.activity_name}</strong>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -174,7 +205,7 @@ export function AdminCalendarPage() {
                           {c.start_time.substring(0, 5)} - {c.end_time.substring(0, 5)} hs
                         </div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                          Cupo: {c.capacity}
+                          Anotados: {c.enrollments?.[0]?.count || 0} / {c.capacity}
                         </div>
                       </div>
                     </div>
@@ -185,6 +216,20 @@ export function AdminCalendarPage() {
           </div>
         )}
       </div>
+
+      <EnrolledStudentsModal
+        title={viewingStudentsClass?.activity_name || 'Clase'}
+        isOpen={!!viewingStudentsClass}
+        onClose={() => setViewingStudentsClass(null)}
+        students={students}
+        isLoading={loadingStudents}
+        onStudentRemoved={() => {
+          if (viewingStudentsClass) {
+            openStudentsModal(viewingStudentsClass);
+            fetchClasses();
+          }
+        }}
+      />
     </div>
   );
 }

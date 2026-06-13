@@ -1,19 +1,25 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
-import { LayoutDashboard, CalendarDays, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, User, LogOut, Tag } from 'lucide-react';
+import { ConfirmModal } from '@/components/ui';
+import { useState } from 'react';
 import '@/pages/admin/styles/admin.css';
 
 export function StudentLayout() {
   const { logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    if (window.confirm('¿Estás seguro de que deseas salir?')) {
-      await authService.logout();
-      logout();
-      navigate('/login');
-    }
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    await authService.logout();
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -34,11 +40,27 @@ export function StudentLayout() {
           </NavLink>
 
           <NavLink 
+            to="/student/catalog" 
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <CalendarDays size={20} />
+            <span>Catálogo de Clases</span>
+          </NavLink>
+
+          <NavLink 
+            to="/student/plans" 
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Tag size={20} />
+            <span>Nuestros Planes</span>
+          </NavLink>
+
+          <NavLink 
             to="/student/classes" 
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <CalendarDays size={20} />
-            <span>Mis Clases</span>
+            <span>Mis Reservas</span>
           </NavLink>
 
           <NavLink 
@@ -59,9 +81,19 @@ export function StudentLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="admin-main">
+      <main className="admin-content">
         <Outlet />
       </main>
+
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Cerrar Sesión"
+        message="¿Estás seguro de que deseas salir?"
+        confirmText="Salir"
+        isDestructive={true}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }
