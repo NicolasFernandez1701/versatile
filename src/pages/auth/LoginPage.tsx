@@ -3,19 +3,16 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+
 
 import { Button } from '@/components/ui';
 import '../../features/auth/styles/auth.css';
 
 export function LoginPage() {
-  const { showSuccess } = useAlert();
   const { isAuthenticated, role, isLoading } = useAuthStore();
-  const [isLogin, setIsLogin] = useState(true);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
   const [error, setError] = useState('');
@@ -55,20 +52,9 @@ export function LoginPage() {
 
     setLoading(true);
     try {
-      if (isLogin) {
-        await authService.login(email, password);
-      } else {
-        if (!fullName) {
-          setError('Por favor ingresa tu nombre completo.');
-          setLoading(false);
-          return;
-        }
-        await authService.register({ email, password, full_name: fullName });
-        showSuccess('Registro exitoso. Por favor verifica tu email o intenta iniciar sesión.');
-        setIsLogin(true);
-      }
+      await authService.login(email, password);
     } catch (err: any) {
-      setError(err.message || (isLogin ? 'Error al iniciar sesión' : 'Error al registrarse'));
+      setError(err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -83,26 +69,14 @@ export function LoginPage() {
 
         <div className="auth-form-container">
           <h2 className="auth-form-title">
-            {isLogin ? 'Bienvenida de nuevo' : 'Crear cuenta'}
+            Bienvenido de nuevo
           </h2>
           <p className="auth-form-subtitle">
-            {isLogin ? 'Ingresa tus datos para continuar' : 'Únete a nuestra comunidad'}
+            Ingresá tus credenciales para continuar
           </p>
 
           <form onSubmit={handleAuth} className="auth-form">
             {error && <div className="auth-error-message">{error}</div>}
-
-            {!isLogin && (
-              <div className="auth-input-group">
-                <input 
-                  type="text" 
-                  placeholder="Nombre Completo"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="auth-input"
-                />
-              </div>
-            )}
 
             <div className="auth-input-group">
               <input 
@@ -132,19 +106,8 @@ export function LoginPage() {
             </div>
 
             <Button type="submit" loading={loading} className="auth-submit-btn">
-              {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
+              Iniciar Sesión
             </Button>
-
-            <button 
-              type="button" 
-              className="auth-switch-btn"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-              }}
-            >
-              {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
-            </button>
           </form>
         </div>
       </div>

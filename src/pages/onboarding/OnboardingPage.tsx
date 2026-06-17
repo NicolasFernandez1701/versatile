@@ -69,13 +69,24 @@ export function OnboardingPage() {
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/\D/g, '');
     if (val.length > 8) val = val.substring(0, 8);
-
     if (val.length > 4) {
-      val = `${val.substring(0, 2)}/${val.substring(2, 4)}/${val.substring(4)}`;
+      val = val.substring(0, 2) + '/' + val.substring(2, 4) + '/' + val.substring(4, 8);
     } else if (val.length > 2) {
-      val = `${val.substring(0, 2)}/${val.substring(2)}`;
+      val = val.substring(0, 2) + '/' + val.substring(2, 4);
     }
     setBirthDate(val);
+    
+    if (val.length === 10) {
+      const [dd, mm, yyyy] = val.split('/');
+      const birth = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        calculatedAge--;
+      }
+      setAge(calculatedAge.toString());
+    }
   };
 
   // Step 6: Legales
