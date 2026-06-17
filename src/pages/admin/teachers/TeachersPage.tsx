@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
 import { useAlert } from '@/core/components/GlobalAlertProvider';

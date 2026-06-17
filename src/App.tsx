@@ -57,13 +57,13 @@ export default function App() {
   useEffect(() => {
     // Verificar sesión inicial
     authService.getCurrentUser()
-      .then(user => setUser(user))
+      .then(user => setUser(user as any))
       .catch(console.error)
       .finally(() => setLoading(false));
 
     // Suscribirse a cambios de sesión (login/logout/token refresh)
     const { data: { subscription } } = authService.onAuthStateChange((session) => {
-      setUser(session?.user || null);
+      setUser((session?.user as any) || null);
     });
 
     return () => {

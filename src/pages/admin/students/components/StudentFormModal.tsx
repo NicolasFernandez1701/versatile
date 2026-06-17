@@ -65,9 +65,9 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
         // Update
         await usersService.updateUser(studentId!, {
           full_name,
-          plan_id: planId || null,
+          plan_id: planId || undefined,
           promotion_discount_pct: promoDiscountPct,
-          promotion_expiration_date: promoExpirationDate || null
+          promotion_expiration_date: promoExpirationDate || undefined
         });
       }
       onSuccess();
