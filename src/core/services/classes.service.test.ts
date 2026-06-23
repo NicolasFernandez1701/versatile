@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { classesService } from './classes.service';
-import type { ClassEntity, EnrollmentEntity } from '../types/classes.types';
+import type { ClassEntity } from '../types/classes.types';
 
 // ──────────────────────────────────────────────
 // 1. Datos de prueba

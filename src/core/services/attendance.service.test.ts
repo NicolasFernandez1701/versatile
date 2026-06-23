@@ -34,53 +34,7 @@ const mockRawEnrollments: any[] = [
   },
 ];
 
-const mockAttendanceRecords = [
-  {
-    id: 'enr-001',
-    enrollment_id: 'enr-001',
-    date: '2024-06-15',
-    status: 'confirmed',
-    enrollments: {
-      student_id: 'stu-001',
-      class_id: 'cls-001',
-      profiles: {
-        id: 'stu-001',
-        full_name: 'María García',
-        phone: '123456789',
-        email: 'maria@test.com',
-      },
-    },
-  },
-  {
-    id: 'enr-002',
-    enrollment_id: 'enr-002',
-    date: '2024-06-15',
-    status: 'pending',
-    enrollments: {
-      student_id: 'stu-002',
-      class_id: 'cls-001',
-      profiles: {
-        id: 'stu-002',
-        full_name: 'Juan Pérez',
-        phone: '987654321',
-        email: 'juan@test.com',
-      },
-    },
-  },
-];
 
-const mockStudentAttendances = [
-  {
-    id: 'enr-001',
-    enrollment_id: 'enr-001',
-    date: '2024-06-15',
-    status: 'attended',
-    enrollments: {
-      student_id: 'stu-001',
-      class_id: 'cls-001',
-    },
-  },
-];
 
 // ──────────────────────────────────────────────
 // 2. Mock de Supabase
