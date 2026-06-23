@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, TrendingUp, DollarSign, ClipboardList } from 'lucide-react';
+import { Users, Calendar, TrendingUp, DollarSign, ClipboardList, BookOpen } from 'lucide-react';
 import { SummaryCard } from './components/SummaryCard';
 import { dashboardService, type DashboardStats, type FinancialBalance } from '@/core/services';
 import type { ClassEntity } from '@/core/types/classes.types';
@@ -39,7 +39,15 @@ export function AdminDashboard() {
 
   if (loading || !stats || !balance) {
     return (
-      <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div
+        className="page-container"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh'
+        }}
+      >
         <Loader text="Cargando métricas..." />
       </div>
     );
@@ -81,8 +89,6 @@ export function AdminDashboard() {
         </div>
       </div>
 
-
-
       <div className="dashboard-section hide-on-desktop">
         <h2 className="section-title">Acciones Rápidas</h2>
         <div className="action-grid" style={{ justifyContent: 'space-around' }}>
@@ -113,17 +119,39 @@ export function AdminDashboard() {
             </div>
             <span>Finanzas</span>
           </button>
+
+          <button className="quick-action-btn" onClick={() => navigate('/admin/teachers')}>
+            <div className="action-icon-wrapper bg-teachers">
+              <BookOpen size={24} color="#6366f1" />
+            </div>
+            <span>Profesores</span>
+          </button>
         </div>
       </div>
 
       <div className="dashboard-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 className="section-title" style={{ marginBottom: 0 }}>Clases de Hoy</h2>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem'
+          }}
+        >
+          <h2 className="section-title" style={{ marginBottom: 0 }}>
+            Clases de Hoy
+          </h2>
         </div>
 
         <div className="today-classes-list">
           {todayClasses.length === 0 ? (
-            <div className="empty-state-cell" style={{ background: 'var(--surface-color)', borderRadius: 'var(--border-radius-sm)' }}>
+            <div
+              className="empty-state-cell"
+              style={{
+                background: 'var(--surface-color)',
+                borderRadius: 'var(--border-radius-sm)'
+              }}
+            >
               No hay clases programadas para hoy.
             </div>
           ) : (
@@ -131,10 +159,14 @@ export function AdminDashboard() {
               <div key={cls.id} className="today-class-card">
                 <div className="class-info">
                   <span className="class-name">{cls.activity_name}</span>
-                  <span className="class-prof">Prof: {cls.profiles?.full_name || 'Sin Asignar'}</span>
+                  <span className="class-prof">
+                    Prof: {cls.profiles?.full_name || 'Sin Asignar'}
+                  </span>
                 </div>
                 <div className="class-time-badge">
-                  <span>{cls.start_time.substring(0, 5)} - {cls.end_time.substring(0, 5)}</span>
+                  <span>
+                    {cls.start_time.substring(0, 5)} - {cls.end_time.substring(0, 5)}
+                  </span>
                 </div>
               </div>
             ))

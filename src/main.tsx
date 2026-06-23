@@ -6,7 +6,10 @@ import { GlobalAlertProvider } from './core/components/GlobalAlertProvider';
 
 import React from 'react';
 
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: any }
+> {
   constructor(props: any) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -35,5 +38,5 @@ createRoot(document.getElementById('root')!).render(
         <App />
       </GlobalAlertProvider>
     </ErrorBoundary>
-  </StrictMode>,
+  </StrictMode>
 );

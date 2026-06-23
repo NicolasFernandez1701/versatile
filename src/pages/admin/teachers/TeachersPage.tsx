@@ -35,9 +35,10 @@ export function TeachersPage() {
     }
   };
 
-  const filteredTeachers = teachers.filter(t => 
-    t.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (t.email && t.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredTeachers = teachers.filter(
+    (t) =>
+      t.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.email && t.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -47,31 +48,23 @@ export function TeachersPage() {
           <h1>Gestión de Profesores</h1>
           <p>Administrá al equipo docente.</p>
         </div>
-        <button 
-          className="btn-primary"
-          onClick={() => setIsModalOpen(true)}
-          title="Nuevo Profesor"
-        >
+        <button className="btn-primary" onClick={() => setIsModalOpen(true)} title="Nuevo Profesor">
           <UserPlus size={20} />
           <span>Nuevo Profesor</span>
         </button>
       </div>
 
       <div style={{ marginBottom: '1.5rem' }}>
-        <input 
-          type="text" 
-          placeholder="Buscar profesor..." 
+        <input
+          type="text"
+          placeholder="Buscar profesor..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{ maxWidth: '400px' }}
         />
       </div>
 
-      <TeacherList 
-        teachers={filteredTeachers} 
-        loading={loading} 
-        onDelete={handleDelete}
-      />
+      <TeacherList teachers={filteredTeachers} loading={loading} onDelete={handleDelete} />
 
       <TeacherFormModal
         isOpen={isModalOpen}

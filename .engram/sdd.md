@@ -1,24 +1,38 @@
 # Spec-Driven Development (SDD) - Versatile
 
 ## 1. Visión General
-- **Proyecto:** Versatile
-- **Objetivo Principal:** Sistema de gestión para estudios/gimnasios chicos (clases, talleres) con costo de infraestructura cercano a cero.
-- **Stack Tecnológico:** Web App (PWA Mobile-First) con React, Vite (SPA sin SSR) y TypeScript.
+
+- **Proyecto:** Versatile Studio
+- **Objetivo Principal:** Sistema de gestión para estudios/gimnasios chicos (clases, talleres) con costo de infraestructura cercano a cero (Servicios Gratuitos Serverless).
+- **Stack Tecnológico:** Web App (PWA Mobile-First) con React, Vite (SPA sin SSR), TypeScript y desplegado en Vercel.
 
 ## 2. Dominio y Entidades (Core Business)
-*Definición de las reglas de negocio puras, sin depender del framework.*
+
 - **Perfiles (Roles):** Administrador, Profesor, Alumno.
-- **Entidades Principales (Borrador):** Clases/Talleres, Reservas, Pagos/Cuotas (a confirmar).
+- **Planes:** Sistemas de pases libres o cupos semanales.
+- **Entidades Principales:** Clases, Reservas (Attendances), Finanzas (Pagos), Comisiones de Profesores.
 
 ## 3. Arquitectura y Reglas Técnicas
-*Reglas inquebrantables del proyecto basadas en el stack actual:*
-- **Backend / BaaS:** Supabase (Detectado).
-- **Manejo de Estado Global:** Zustand.
-- **UI / Componentes:** CSS Puro (Variables Nativas) para máximo rendimiento y control absoluto. Nada de frameworks UI pesados.
-- **Navegación:** React Router DOM.
-- **Estructura (Patrones):** Screaming Architecture (organización por `features/`). Patrón Container/Presentational para aislar la vista de la lógica. Capa de Servicios aislada para llamadas a Supabase.
 
-## 4. Estado Actual y Siguientes Pasos
-- [x] Inicializar estructura de Engram / SDD.
-- [ ] Definir el dominio principal con el usuario.
-- [ ] Crear la estructura de carpetas base en `src/`.
+- **Backend / BaaS:** Supabase (Auth + PostgreSQL).
+- **Manejo de Estado Global:** Zustand (Stores por feature).
+- **UI / Componentes:** CSS Puro (Variables Nativas) para máximo rendimiento. Nada de Tailwind ni frameworks pesados.
+- **Navegación:** React Router DOM (Protección por Roles).
+- **Estructura:** Screaming Architecture (`features/`, `pages/`, `core/`). Capa de Servicios aislada para interactuar con Supabase.
+
+## 4. Estado Actual de Desarrollo
+
+- [x] Inicializar base del proyecto y repositorio.
+- [x] Definir estructura BD completa (schema.sql).
+- [x] Configurar sistema de Autenticación y Perfiles.
+- [x] Desarrollar Dashboard Administrativo (Profesores, Alumnos, Clases, Finanzas).
+- [x] Desarrollar Flujo de Onboarding.
+- [x] Desarrollar Portal de Alumnos (Reservas de clases con validación de límite de cupos).
+- [x] Despliegue productivo automatizado en Vercel (CI/CD).
+- [x] Configurar linter/reglas para GGA.
+
+## 5. Siguientes Pasos
+
+- [ ] Testing de extremo a extremo de las reservas en entorno productivo.
+- [ ] Refinamiento UI/UX para versión móvil.
+- [ ] Recolección de feedback de usuarios reales.

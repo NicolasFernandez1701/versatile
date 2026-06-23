@@ -13,11 +13,16 @@ interface StudentCardProps {
 export function StudentCard({ name, plan, status, phone, email, onPress }: StudentCardProps) {
   const getBadgeClass = () => {
     switch (status) {
-      case 'Al Día': return 'badge-active';
-      case 'Pendiente': return 'badge-pending';
-      case 'Vencido': return 'badge-inactive';
-      case 'Sin Plan': return 'badge-inactive';
-      default: return 'badge-inactive';
+      case 'Al Día':
+        return 'badge-active';
+      case 'Pendiente':
+        return 'badge-pending';
+      case 'Vencido':
+        return 'badge-inactive';
+      case 'Sin Plan':
+        return 'badge-inactive';
+      default:
+        return 'badge-inactive';
     }
   };
 
@@ -42,17 +47,19 @@ export function StudentCard({ name, plan, status, phone, email, onPress }: Stude
             <User className="text-secondary" size={24} />
           </div>
           <div className="student-info">
-            <h3 className="student-name" title={name}>{name}</h3>
+            <h3 className="student-name" title={name}>
+              {name}
+            </h3>
             <div className="student-plan-row">
               <CreditCard size={14} className="text-secondary" />
-              <span className="student-plan-text" title={plan}>{plan}</span>
+              <span className="student-plan-text" title={plan}>
+                {plan}
+              </span>
             </div>
           </div>
         </div>
         <div className="student-card-right">
-          <div className={`status-badge ${getBadgeClass()}`}>
-            {status}
-          </div>
+          <div className={`status-badge ${getBadgeClass()}`}>{status}</div>
           <ChevronRight className="text-secondary" size={20} />
         </div>
       </div>

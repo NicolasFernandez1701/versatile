@@ -67,7 +67,11 @@ export function FinancesPage() {
     {
       key: 'amount',
       header: 'Monto (Neto)',
-      render: (p) => <span className="text-primary" style={{ fontWeight: 'bold' }}>${p.amount}</span>
+      render: (p) => (
+        <span className="text-primary" style={{ fontWeight: 'bold' }}>
+          ${p.amount}
+        </span>
+      )
     },
     {
       key: 'method',
@@ -84,8 +88,12 @@ export function FinancesPage() {
       header: 'Auditoría (Mora/Promo)',
       render: (p) => (
         <ul className="activity-list">
-          {p.late_fee_applied && <li className="text-danger">Mora aplicada (+${p.surcharge_applied})</li>}
-          {p.discount_applied > 0 && <li className="text-success">Descuento aplicado (-${p.discount_applied})</li>}
+          {p.late_fee_applied && (
+            <li className="text-danger">Mora aplicada (+${p.surcharge_applied})</li>
+          )}
+          {p.discount_applied > 0 && (
+            <li className="text-success">Descuento aplicado (-${p.discount_applied})</li>
+          )}
           {p.original_amount !== p.amount && !p.late_fee_applied && p.discount_applied === 0 && (
             <li>Editado manualmente</li>
           )}
@@ -103,10 +111,7 @@ export function FinancesPage() {
           <h1>Finanzas</h1>
           <p>Registro histórico de pagos y reportes financieros.</p>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => setIsModalOpen(true)}
-        >
+        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
           <Plus size={20} />
           <span>Registrar Cobro</span>
         </Button>
@@ -118,14 +123,25 @@ export function FinancesPage() {
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid var(--border-color)', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              borderBottom: '2px solid var(--border-color)',
+              marginBottom: '1rem',
+              marginTop: '-0.5rem'
+            }}
+          >
             <button
               onClick={() => setActiveTab('resumen')}
               style={{
                 padding: '0.75rem 1.5rem',
                 background: activeTab === 'resumen' ? 'var(--surface-hover)' : 'none',
                 border: 'none',
-                borderBottom: activeTab === 'resumen' ? '3px solid var(--primary-color)' : '3px solid transparent',
+                borderBottom:
+                  activeTab === 'resumen'
+                    ? '3px solid var(--primary-color)'
+                    : '3px solid transparent',
                 color: activeTab === 'resumen' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontWeight: activeTab === 'resumen' ? 700 : 500,
@@ -144,7 +160,10 @@ export function FinancesPage() {
                 padding: '0.75rem 1.5rem',
                 background: activeTab === 'historial' ? 'var(--surface-hover)' : 'none',
                 border: 'none',
-                borderBottom: activeTab === 'historial' ? '3px solid var(--primary-color)' : '3px solid transparent',
+                borderBottom:
+                  activeTab === 'historial'
+                    ? '3px solid var(--primary-color)'
+                    : '3px solid transparent',
                 color: activeTab === 'historial' ? 'var(--text-primary)' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontWeight: activeTab === 'historial' ? 700 : 500,
@@ -174,10 +193,12 @@ export function FinancesPage() {
                   <tbody>
                     {planNames.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="empty-state-cell">No hay cobros registrados en el año.</td>
+                        <td colSpan={3} className="empty-state-cell">
+                          No hay cobros registrados en el año.
+                        </td>
                       </tr>
                     ) : (
-                      planNames.map(planName => (
+                      planNames.map((planName) => (
                         <tr key={planName}>
                           <td>
                             <div className="cell-flex">
@@ -185,10 +206,24 @@ export function FinancesPage() {
                               <strong>{planName}</strong>
                             </div>
                           </td>
-                          <td data-label="Mensual" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--success-color)' }}>
+                          <td
+                            data-label="Mensual"
+                            style={{
+                              textAlign: 'right',
+                              fontWeight: 600,
+                              color: 'var(--success-color)'
+                            }}
+                          >
                             ${(balance.monthlyByPlan[planName] || 0).toLocaleString()}
                           </td>
-                          <td data-label="Anual" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--primary-color)' }}>
+                          <td
+                            data-label="Anual"
+                            style={{
+                              textAlign: 'right',
+                              fontWeight: 600,
+                              color: 'var(--primary-color)'
+                            }}
+                          >
                             ${balance.annualByPlan[planName].toLocaleString()}
                           </td>
                         </tr>
@@ -202,8 +237,19 @@ export function FinancesPage() {
 
           {activeTab === 'historial' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  marginBottom: '0.25rem',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}
+              >
+                <div
+                  style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}
+                >
                   <div style={{ width: '250px' }}>
                     <Input
                       type="text"
@@ -232,14 +278,26 @@ export function FinancesPage() {
                 data={paginatedPayments}
                 loading={loading}
                 keyExtractor={(p) => p.id}
-                emptyMessage={searchTerm || methodFilter !== 'all' ? "No se encontraron pagos con esos filtros." : "No hay pagos registrados."}
+                emptyMessage={
+                  searchTerm || methodFilter !== 'all'
+                    ? 'No se encontraron pagos con esos filtros.'
+                    : 'No hay pagos registrados.'
+                }
               />
 
               {filteredPayments.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '1.5rem',
+                    marginTop: '1rem'
+                  }}
+                >
                   <Button
                     variant="secondary"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft size={16} /> Anterior
@@ -249,7 +307,7 @@ export function FinancesPage() {
                   </span>
                   <Button
                     variant="secondary"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                   >
                     Siguiente <ChevronRight size={16} />

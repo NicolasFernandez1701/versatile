@@ -23,7 +23,7 @@ export const enrollmentsService = {
 
     if (profileError) throw profileError;
     if (!profile?.plan_id) throw new Error('El alumno no tiene un plan activo asignado.');
-    
+
     // Obtenemos cuántas reservas tiene el alumno en el MES actual
     const [year, month] = reservationDate.split('-');
     const firstDayOfMonth = `${year}-${month}-01`;
@@ -41,9 +41,11 @@ export const enrollmentsService = {
 
     // TODO: La base de datos guarda 'classes_per_week', en muchos gimnasios el cupo mensual es x4
     const classesPerMonth = (profile.plans as any)?.classes_per_week * 4 || 0;
-    
+
     if (monthlyCount !== null && monthlyCount >= classesPerMonth) {
-      throw new Error(`Límite mensual excedido. El plan permite ${classesPerMonth} clases por mes.`);
+      throw new Error(
+        `Límite mensual excedido. El plan permite ${classesPerMonth} clases por mes.`
+      );
     }
 
     // 2. Chequear cupo disponible de la clase
@@ -74,7 +76,8 @@ export const enrollmentsService = {
       .insert({ student_id: studentId, class_id: classId, reservation_date: reservationDate });
 
     if (error) {
-      if (error.code === '23505') throw new Error('El alumno ya está inscripto en esta clase para ese día.');
+      if (error.code === '23505')
+        throw new Error('El alumno ya está inscripto en esta clase para ese día.');
       throw error;
     }
   },

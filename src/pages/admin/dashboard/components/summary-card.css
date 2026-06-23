@@ -5,7 +5,9 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   width: 100%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .summary-card.clickable {

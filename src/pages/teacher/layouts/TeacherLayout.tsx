@@ -21,21 +21,34 @@ export function TeacherLayout() {
         <div className="sidebar-header">
           <img src="/versatile-logo.png" alt="Logo" className="sidebar-logo" />
         </div>
-        
+
         <nav className="sidebar-nav">
-          <NavLink to="/teacher/dashboard" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink
+            to="/teacher/dashboard"
+            end
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </NavLink>
-          <NavLink to="/teacher/calendar" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink
+            to="/teacher/calendar"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
             <CalendarDays size={20} />
             <span>Grilla</span>
           </NavLink>
-          <NavLink to="/teacher/classes" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink
+            to="/teacher/classes"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
             <Calendar size={20} />
             <span>Mis Clases</span>
           </NavLink>
-          <NavLink to="/teacher/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink
+            to="/teacher/profile"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
             <User size={20} />
             <span>Mi Perfil</span>
           </NavLink>

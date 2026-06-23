@@ -105,34 +105,39 @@ export function ClassesPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)', overflow: 'hidden' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 4rem)',
+        overflow: 'hidden'
+      }}
+    >
       <div className="page-header">
         <div>
           <h1>Clases</h1>
           <p className="text-secondary">Gestión de clases y horarios</p>
         </div>
-        <button 
-          className="btn-primary" 
-          onClick={() => openFormModal()}
-          title="Nueva Clase"
-        >
+        <button className="btn-primary" onClick={() => openFormModal()} title="Nueva Clase">
           <Plus size={20} />
           <span>Nueva Clase</span>
         </button>
       </div>
 
       {loading ? (
-        <div style={{ padding: '2rem' }}><Loader text="Cargando clases..." size="medium" /></div>
+        <div style={{ padding: '2rem' }}>
+          <Loader text="Cargando clases..." size="medium" />
+        </div>
       ) : classes.length === 0 ? (
         <p>No hay clases creadas aún.</p>
       ) : (
         <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '2rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {classes.map(cls => (
-              <ClassCard 
-                key={cls.id} 
-                cls={cls} 
-                onDelete={handleDeleteClick} 
+            {classes.map((cls) => (
+              <ClassCard
+                key={cls.id}
+                cls={cls}
+                onDelete={handleDeleteClick}
                 onEdit={() => openFormModal(cls)}
                 onClick={openStudentsModal}
               />
@@ -141,7 +146,7 @@ export function ClassesPage() {
         </div>
       )}
 
-      <EnrolledStudentsModal 
+      <EnrolledStudentsModal
         title={viewingStudentsClass?.activity_name || ''}
         isOpen={!!viewingStudentsClass}
         onClose={() => setViewingStudentsClass(null)}
@@ -160,10 +165,10 @@ export function ClassesPage() {
         onClose={closeFormModal}
         title={editingClass ? 'Editar Clase' : 'Nueva Clase'}
       >
-        <ClassForm 
-          teachers={teachers} 
-          onSubmit={handleSaveClass} 
-          loading={saving} 
+        <ClassForm
+          teachers={teachers}
+          onSubmit={handleSaveClass}
+          loading={saving}
           initialData={editingClass || undefined}
         />
       </Modal>
@@ -177,8 +182,6 @@ export function ClassesPage() {
         onConfirm={confirmDelete}
         onCancel={() => setDeletingClassId(null)}
       />
-
-
     </div>
   );
 }

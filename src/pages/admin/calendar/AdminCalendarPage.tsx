@@ -45,7 +45,7 @@ export function AdminCalendarPage() {
     setLoadingStudents(true);
     try {
       // Formatear la fecha a YYYY-MM-DD para consultar la base de datos
-      const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
       const reservationDate = localDate.toISOString().split('T')[0];
 
       const data = await classesService.getEnrolledStudents(cls.id, reservationDate);
@@ -55,7 +55,8 @@ export function AdminCalendarPage() {
     } finally {
       setLoadingStudents(false);
     }
-  }; const tileClassName = ({ date, view }: { date: Date, view: string }) => {
+  };
+  const tileClassName = ({ date, view }: { date: Date; view: string }) => {
     if (view === 'month') {
       if (getHolidayForDate(date)) {
         return 'react-calendar__tile--holiday';
@@ -64,11 +65,17 @@ export function AdminCalendarPage() {
     return null;
   };
 
-  const tileContent = ({ date, view }: { date: Date, view: string }) => {
+  const tileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view === 'month') {
       const holiday = getHolidayForDate(date);
       if (holiday) {
-        return <div className="holiday-dot" style={{ display: 'block', backgroundColor: 'var(--error-color)', zIndex: 100 }} title={holiday.motivo}></div>;
+        return (
+          <div
+            className="holiday-dot"
+            style={{ display: 'block', backgroundColor: 'var(--error-color)', zIndex: 100 }}
+            title={holiday.motivo}
+          ></div>
+        );
       }
     }
     return null;
@@ -79,7 +86,7 @@ export function AdminCalendarPage() {
 
   // Filtrar y ordenar las clases del día seleccionado
   const dayClasses = classes
-    .filter(c => c.day_of_week === dayOfWeek)
+    .filter((c) => c.day_of_week === dayOfWeek)
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -95,8 +102,18 @@ export function AdminCalendarPage() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
   const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre'
   ];
 
   return (
@@ -114,7 +131,9 @@ export function AdminCalendarPage() {
             onChange={handleMonthChange}
           >
             {months.map((m, i) => (
-              <option key={i} value={i}>{m}</option>
+              <option key={i} value={i}>
+                {m}
+              </option>
             ))}
           </select>
           <select
@@ -122,14 +141,23 @@ export function AdminCalendarPage() {
             value={activeStartDate.getFullYear()}
             onChange={handleYearChange}
           >
-            {years.map(y => (
-              <option key={y} value={y}>{y}</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
             ))}
           </select>
         </div>
 
         {loadingHolidays ? (
-          <div style={{ height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              height: '350px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <Loader text="Cargando fechas..." size="small" />
           </div>
         ) : (
@@ -140,13 +168,18 @@ export function AdminCalendarPage() {
             }}
             value={date}
             activeStartDate={activeStartDate}
-            onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setActiveStartDate(activeStartDate)}
+            onActiveStartDateChange={({ activeStartDate }) =>
+              activeStartDate && setActiveStartDate(activeStartDate)
+            }
             tileClassName={tileClassName}
             tileContent={tileContent}
             className="custom-calendar"
           />
         )}
-        <div className="calendar-legend" style={{ marginTop: '1rem', padding: 0, boxShadow: 'none' }}>
+        <div
+          className="calendar-legend"
+          style={{ marginTop: '1rem', padding: 0, boxShadow: 'none' }}
+        >
           <div className="legend-item" style={{ justifyContent: 'center' }}>
             <div className="legend-dot dot-holiday"></div>
             <span className="legend-text">Feriado Nacional</span>
@@ -156,9 +189,7 @@ export function AdminCalendarPage() {
 
       {/* Mitad Inferior: Grilla Dinámica del Día */}
       <div className="day-schedule-container">
-        <h2 className="schedule-title">
-          Agenda del Día
-        </h2>
+        <h2 className="schedule-title">Agenda del Día</h2>
 
         {selectedHoliday && (
           <div className="holiday-alert">
@@ -168,7 +199,9 @@ export function AdminCalendarPage() {
         )}
 
         {loading ? (
-          <div style={{ padding: '2rem' }}><Loader text="Cargando agenda..." size="medium" /></div>
+          <div style={{ padding: '2rem' }}>
+            <Loader text="Cargando agenda..." size="medium" />
+          </div>
         ) : dayClasses.length === 0 ? (
           <div className="empty-schedule">
             <p>No hay clases programadas para este día.</p>
@@ -176,9 +209,21 @@ export function AdminCalendarPage() {
         ) : (
           <div className="schedule-list">
             <div className="schedule-card">
-              <div className="schedule-card-header" onClick={() => setIsDayExpanded(!isDayExpanded)}>
+              <div
+                className="schedule-card-header"
+                onClick={() => setIsDayExpanded(!isDayExpanded)}
+              >
                 <h3 className="schedule-activity">
-                  <span style={{ transform: isDayExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block', fontSize: '0.8rem' }}>▶</span>
+                  <span
+                    style={{
+                      transform: isDayExpanded ? 'rotate(90deg)' : 'none',
+                      transition: 'transform 0.2s',
+                      display: 'inline-block',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    ▶
+                  </span>
                   {DAYS[dayOfWeek]} {date.getDate()}
                 </h3>
                 <div className="schedule-time-badge">
@@ -187,20 +232,44 @@ export function AdminCalendarPage() {
               </div>
 
               {isDayExpanded && (
-                <div className="schedule-card-body" style={{ flexDirection: 'column', gap: '1rem', alignItems: 'stretch' }}>
-                  {dayClasses.map(c => (
+                <div
+                  className="schedule-card-body"
+                  style={{ flexDirection: 'column', gap: '1rem', alignItems: 'stretch' }}
+                >
+                  {dayClasses.map((c) => (
                     <div
                       key={c.id}
-                      style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', cursor: 'pointer' }}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid var(--border-color)',
+                        paddingBottom: '0.5rem',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => openStudentsModal(c)}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         <strong style={{ color: 'var(--primary-color)' }}>{c.activity_name}</strong>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <div
+                          style={{
+                            fontSize: '0.85rem',
+                            color: 'var(--text-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}
+                        >
                           <User size={12} /> Prof: {c.profiles?.full_name || 'Sin Asignar'}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div
+                        style={{
+                          textAlign: 'right',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.25rem'
+                        }}
+                      >
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                           {c.start_time.substring(0, 5)} - {c.end_time.substring(0, 5)} hs
                         </div>

@@ -5,7 +5,7 @@ export interface EnrollmentEntity {
   reservation_date: string;
   attendance_status: 'pending' | 'attended' | 'absent' | 'cancelled';
   created_at: string;
-  
+
   // Joins
   profiles?: {
     full_name: string;

@@ -13,7 +13,12 @@ interface EnrollmentFormModalProps {
   classesList: ClassEntity[];
 }
 
-export function EnrollmentFormModal({ isOpen, onClose, onSuccess, classesList }: EnrollmentFormModalProps) {
+export function EnrollmentFormModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  classesList
+}: EnrollmentFormModalProps) {
   const { showError, showSuccess } = useAlert();
   const { students } = useUsersStore();
 
@@ -64,12 +69,7 @@ export function EnrollmentFormModal({ isOpen, onClose, onSuccess, classesList }:
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Nueva Inscripción"
-      maxWidth="500px"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Nueva Inscripción" maxWidth="500px">
       <form onSubmit={handleEnroll} className="standard-form">
         <div style={{ position: 'relative' }}>
           <Input
@@ -77,9 +77,9 @@ export function EnrollmentFormModal({ isOpen, onClose, onSuccess, classesList }:
             type="text"
             placeholder="Buscar y seleccionar alumno..."
             value={studentSearchText}
-            onChange={e => {
+            onChange={(e) => {
               setStudentSearchText(e.target.value);
-              const found = students.find(s => s.full_name === e.target.value);
+              const found = students.find((s) => s.full_name === e.target.value);
               setSelectedStudent(found ? found.id : '');
               setShowStudentDropdown(true);
             }}
@@ -88,25 +88,30 @@ export function EnrollmentFormModal({ isOpen, onClose, onSuccess, classesList }:
             required
             autoComplete="off"
           />
-          {showStudentDropdown && students.filter(s => s.full_name?.toLowerCase().includes(studentSearchText.toLowerCase())).length > 0 && (
-            <div className="autocomplete-dropdown">
-              {students
-                .filter(s => s.full_name?.toLowerCase().includes(studentSearchText.toLowerCase()))
-                .map(s => (
-                  <div
-                    key={s.id}
-                    className="autocomplete-option"
-                    onClick={() => {
-                      setStudentSearchText(s.full_name || '');
-                      setSelectedStudent(s.id);
-                      setShowStudentDropdown(false);
-                    }}
-                  >
-                    {s.full_name}
-                  </div>
-                ))}
-            </div>
-          )}
+          {showStudentDropdown &&
+            students.filter((s) =>
+              s.full_name?.toLowerCase().includes(studentSearchText.toLowerCase())
+            ).length > 0 && (
+              <div className="autocomplete-dropdown">
+                {students
+                  .filter((s) =>
+                    s.full_name?.toLowerCase().includes(studentSearchText.toLowerCase())
+                  )
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className="autocomplete-option"
+                      onClick={() => {
+                        setStudentSearchText(s.full_name || '');
+                        setSelectedStudent(s.id);
+                        setShowStudentDropdown(false);
+                      }}
+                    >
+                      {s.full_name}
+                    </div>
+                  ))}
+              </div>
+            )}
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -115,9 +120,13 @@ export function EnrollmentFormModal({ isOpen, onClose, onSuccess, classesList }:
             type="text"
             placeholder="Buscar y seleccionar clase..."
             value={classSearchText}
-            onChange={e => {
+            onChange={(e) => {
               setClassSearchText(e.target.value);
-              const found = classesList.find(c => `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)} (Capacidad: ${c.capacity})` === e.target.value);
+              const found = classesList.find(
+                (c) =>
+                  `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)} (Capacidad: ${c.capacity})` ===
+                  e.target.value
+              );
               setSelectedClass(found ? found.id : '');
               setShowClassDropdown(true);
             }}
@@ -126,39 +135,57 @@ export function EnrollmentFormModal({ isOpen, onClose, onSuccess, classesList }:
             required
             autoComplete="off"
           />
-          {showClassDropdown && classesList.filter(c => `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)}`.toLowerCase().includes(classSearchText.toLowerCase())).length > 0 && (
-            <div className="autocomplete-dropdown">
-              {classesList
-                .filter(c => `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)}`.toLowerCase().includes(classSearchText.toLowerCase()))
-                .map(c => {
-                  const labelText = `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)} (Capacidad: ${c.capacity})`;
-                  return (
-                    <div
-                      key={c.id}
-                      className="autocomplete-option"
-                      onClick={() => {
-                        setClassSearchText(labelText);
-                        setSelectedClass(c.id);
-                        setShowClassDropdown(false);
-                      }}
-                    >
-                      {labelText}
-                    </div>
-                  );
-                })}
-            </div>
-          )}
+          {showClassDropdown &&
+            classesList.filter((c) =>
+              `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)}`
+                .toLowerCase()
+                .includes(classSearchText.toLowerCase())
+            ).length > 0 && (
+              <div className="autocomplete-dropdown">
+                {classesList
+                  .filter((c) =>
+                    `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)}`
+                      .toLowerCase()
+                      .includes(classSearchText.toLowerCase())
+                  )
+                  .map((c) => {
+                    const labelText = `${c.activity_name} - ${DAYS[c.day_of_week]} ${c.start_time.substring(0, 5)} (Capacidad: ${c.capacity})`;
+                    return (
+                      <div
+                        key={c.id}
+                        className="autocomplete-option"
+                        onClick={() => {
+                          setClassSearchText(labelText);
+                          setSelectedClass(c.id);
+                          setShowClassDropdown(false);
+                        }}
+                      >
+                        {labelText}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
         </div>
 
         <Input
           label="Fecha de la Reserva"
           type="date"
           value={reservationDate}
-          onChange={e => setReservationDate(e.target.value)}
+          onChange={(e) => setReservationDate(e.target.value)}
           required
         />
 
-        <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', marginTop: '1.5rem' }}>
+        <div
+          className="form-actions"
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+            marginTop: '1.5rem'
+          }}
+        >
           <Button type="submit" variant="primary" loading={isSubmitting}>
             <Check size={20} /> {isSubmitting ? 'Inscribiendo...' : 'Inscribir'}
           </Button>

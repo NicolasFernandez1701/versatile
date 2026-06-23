@@ -74,7 +74,9 @@
   border-radius: 12px;
   color: var(--text-primary);
   font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .auth-input:focus {
@@ -112,7 +114,9 @@
   margin-top: 1rem;
   cursor: pointer;
   box-shadow: 0 4px 15px rgba(167, 148, 223, 0.3);
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
 .auth-submit-btn:active {

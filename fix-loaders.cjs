@@ -44,10 +44,10 @@ const replacements = [
   }
 ];
 
-replacements.forEach(r => {
+replacements.forEach((r) => {
   const filepath = path.join(__dirname, r.file);
   if (!fs.existsSync(filepath)) return;
-  
+
   let content = fs.readFileSync(filepath, 'utf8');
   if (!content.includes('import { Loader }')) {
     const importStatement = `import { Loader } from '${r.importPath}';`;

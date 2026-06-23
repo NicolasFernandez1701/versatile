@@ -14,21 +14,21 @@ export const HolidayService = {
     try {
       const response = await fetch(`${API_BASE}/${year}`, {
         headers: {
-          'Accept': 'application/json'
+          Accept: 'application/json'
         }
       });
-      
+
       if (!response.ok) throw new Error('Network response was not ok');
-      
+
       const data = await response.json();
-      
+
       // Mapeamos el formato de ArgentinaDatos a la interfaz local Holiday
       return data.map((item: any, index: number) => {
         // item.fecha viene como "YYYY-MM-DD"
         const parts = item.fecha.split('-');
         const month = parseInt(parts[1], 10);
         const day = parseInt(parts[2], 10);
-        
+
         return {
           id: `${year}-${month}-${day}-${index}`,
           motivo: item.nombre,
@@ -47,6 +47,6 @@ export const HolidayService = {
   isHoliday: (date: Date, holidays: Holiday[]): Holiday | undefined => {
     const day = date.getDate();
     const month = date.getMonth() + 1;
-    return holidays.find(h => h.dia === day && h.mes === month);
+    return holidays.find((h) => h.dia === day && h.mes === month);
   }
 };

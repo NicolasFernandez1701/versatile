@@ -51,7 +51,9 @@
   text-decoration: none;
   border-radius: var(--border-radius-sm);
   font-weight: 500;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .nav-item:hover {
@@ -155,7 +157,7 @@
   .admin-layout {
     display: block; /* Removemos grid para usar layout fijo móvil clásico */
   }
-  
+
   .admin-content {
     padding: 1.25rem 1rem 6rem 1rem; /* Padding bottom gigante para que no lo tape la barra */
     height: 100vh;
@@ -179,17 +181,18 @@
     border-top-left-radius: 24px;
     border-top-right-radius: 24px;
   }
-  
-  .sidebar-header, .sidebar-footer {
+
+  .sidebar-header,
+  .sidebar-footer {
     display: none; /* Ocultamos logo y logout en el navbar inferior */
   }
-  
+
   .sidebar-nav {
     flex-direction: row;
     justify-content: space-around;
     width: 100%;
   }
-  
+
   .nav-item {
     flex-direction: column;
     gap: 0.25rem;
@@ -201,8 +204,9 @@
     border-radius: 12px;
     color: var(--text-secondary);
   }
-  
-  .nav-item.active, .nav-item:hover {
+
+  .nav-item.active,
+  .nav-item:hover {
     color: var(--primary-color);
     background-color: transparent;
   }

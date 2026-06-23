@@ -45,15 +45,19 @@ export const dashboardService = {
     });
 
     if (error) throw error;
-    
+
     // Convertimos explícitamente a Number por si Postgres devuelve los agregados como Strings (muy común con NUMERIC/SUM)
     const rawData = data as any;
-    
+
     return {
       monthlyTotal: Number(rawData.monthlyTotal || 0),
       annualTotal: Number(rawData.annualTotal || 0),
-      monthlyByPlan: Object.fromEntries(Object.entries(rawData.monthlyByPlan || {}).map(([k, v]) => [k, Number(v)])),
-      annualByPlan: Object.fromEntries(Object.entries(rawData.annualByPlan || {}).map(([k, v]) => [k, Number(v)]))
+      monthlyByPlan: Object.fromEntries(
+        Object.entries(rawData.monthlyByPlan || {}).map(([k, v]) => [k, Number(v)])
+      ),
+      annualByPlan: Object.fromEntries(
+        Object.entries(rawData.annualByPlan || {}).map(([k, v]) => [k, Number(v)])
+      )
     };
   },
 
@@ -79,7 +83,7 @@ export const dashboardService = {
    */
   async getStudentDashboardData(studentId: string) {
     const today = new Date().toISOString().split('T')[0];
-    
+
     const [paymentsRes, enrollmentsRes] = await Promise.all([
       supabase
         .from('payments')

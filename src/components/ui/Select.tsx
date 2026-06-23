@@ -13,12 +13,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className={`form-group ${className}`.trim()}>
         {label && <label htmlFor={selectId}>{label}</label>}
-        <select
-          id={selectId}
-          ref={ref}
-          className={error ? 'input-error' : ''}
-          {...props}
-        >
+        <select id={selectId} ref={ref} className={error ? 'input-error' : ''} {...props}>
           {options.map((opt, i) => (
             <option key={`${opt.value}-${i}`} value={opt.value}>
               {opt.label}
@@ -26,7 +21,14 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && (
-          <span style={{ color: 'var(--error-color)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+          <span
+            style={{
+              color: 'var(--error-color)',
+              fontSize: '0.8rem',
+              marginTop: '0.25rem',
+              display: 'block'
+            }}
+          >
             {error}
           </span>
         )}

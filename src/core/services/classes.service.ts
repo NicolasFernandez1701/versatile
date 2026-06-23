@@ -29,7 +29,10 @@ export const classesService = {
     if (error) throw error;
   },
 
-  async getEnrolledStudents(classId: string, reservationDate?: string): Promise<EnrollmentEntity[]> {
+  async getEnrolledStudents(
+    classId: string,
+    reservationDate?: string
+  ): Promise<EnrollmentEntity[]> {
     let query = supabase
       .from('enrollments')
       .select('id, reservation_date, attendance_status, profiles(id, full_name, email, phone)')
@@ -51,29 +54,24 @@ export const classesService = {
   },
 
   async getTeachers(): Promise<Profile[]> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'teacher');
-      
+    const { data, error } = await supabase.from('profiles').select('*').eq('role', 'teacher');
+
     if (error) throw error;
     return data as Profile[];
   },
 
   async createClass(payload: Partial<ClassEntity>): Promise<void> {
     if (payload.activity_name) {
-      await supabase.from('specialties').upsert({ name: payload.activity_name }, { onConflict: 'name' });
+      await supabase
+        .from('specialties')
+        .upsert({ name: payload.activity_name }, { onConflict: 'name' });
     }
     const { error } = await supabase.from('classes').insert(payload);
     if (error) throw error;
   },
 
   async getClassById(id: string): Promise<ClassEntity> {
-    const { data, error } = await supabase
-      .from('classes')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('classes').select('*').eq('id', id).single();
 
     if (error) throw error;
     return data as ClassEntity;
@@ -81,12 +79,11 @@ export const classesService = {
 
   async updateClass(id: string, payload: Partial<ClassEntity>): Promise<void> {
     if (payload.activity_name) {
-      await supabase.from('specialties').upsert({ name: payload.activity_name }, { onConflict: 'name' });
+      await supabase
+        .from('specialties')
+        .upsert({ name: payload.activity_name }, { onConflict: 'name' });
     }
-    const { error } = await supabase
-      .from('classes')
-      .update(payload)
-      .eq('id', id);
+    const { error } = await supabase.from('classes').update(payload).eq('id', id);
 
     if (error) throw error;
   }

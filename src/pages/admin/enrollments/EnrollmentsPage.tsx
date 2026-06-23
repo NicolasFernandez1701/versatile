@@ -72,20 +72,28 @@ export function EnrollmentsPage() {
     {
       key: 'class',
       header: 'Clase Asignada',
-      render: (e) => <span className="text-primary" style={{ fontWeight: 'bold' }}>{e.classes?.activity_name}</span>
+      render: (e) => (
+        <span className="text-primary" style={{ fontWeight: 'bold' }}>
+          {e.classes?.activity_name}
+        </span>
+      )
     },
     {
       key: 'time',
       header: 'Día y Hora',
-      render: (e) => `${DAYS[e.classes?.day_of_week || 0]} a las ${e.classes?.start_time?.substring(0, 5)}`
+      render: (e) =>
+        `${DAYS[e.classes?.day_of_week || 0]} a las ${e.classes?.start_time?.substring(0, 5)}`
     },
     {
       key: 'status',
       header: 'Estado',
       render: (e) => {
-        if (e.attendance_status === 'attended') return <span className="badge badge-active">Presente</span>;
-        if (e.attendance_status === 'absent') return <span className="badge badge-inactive">Ausente</span>;
-        if (e.attendance_status === 'cancelled') return <span className="badge badge-inactive">Cancelado</span>;
+        if (e.attendance_status === 'attended')
+          return <span className="badge badge-active">Presente</span>;
+        if (e.attendance_status === 'absent')
+          return <span className="badge badge-inactive">Ausente</span>;
+        if (e.attendance_status === 'cancelled')
+          return <span className="badge badge-inactive">Cancelado</span>;
         return <span className="badge badge-pending">Pendiente</span>;
       }
     },
@@ -101,16 +109,21 @@ export function EnrollmentsPage() {
   ];
 
   return (
-    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)', overflow: 'hidden' }}>
+    <div
+      className="page-container"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 4rem)',
+        overflow: 'hidden'
+      }}
+    >
       <div className="page-header">
         <div>
           <h1>Historial de Reservas</h1>
           <p>Visualizá las reservas de clases.</p>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => setIsModalOpen(true)}
-        >
+        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
           <UserPlus size={20} />
           <span>Nueva Reserva Manual</span>
         </Button>

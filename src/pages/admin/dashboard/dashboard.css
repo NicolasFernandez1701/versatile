@@ -69,11 +69,24 @@
 }
 
 /* Icon Background Colors (Similar to RN Theme) */
-.bg-calendar { background-color: var(--surface-hover); }
-.bg-students { background-color: var(--badge-active-bg); }
-.bg-payments { background-color: var(--badge-pending-bg); }
-.bg-reports { background-color: var(--badge-inactive-bg); }
-.bg-plans { background-color: rgba(167, 148, 223, 0.15); }
+.bg-calendar {
+  background-color: var(--surface-hover);
+}
+.bg-students {
+  background-color: var(--badge-active-bg);
+}
+.bg-payments {
+  background-color: var(--badge-pending-bg);
+}
+.bg-reports {
+  background-color: var(--badge-inactive-bg);
+}
+.bg-plans {
+  background-color: rgba(167, 148, 223, 0.15);
+}
+.bg-teachers {
+  background-color: rgba(99, 102, 241, 0.15);
+}
 
 /* Próximas Clases */
 .today-classes-list {

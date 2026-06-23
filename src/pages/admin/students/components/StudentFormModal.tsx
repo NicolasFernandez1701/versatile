@@ -34,7 +34,7 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
       plansService.getPlans().then(setAvailablePlans).catch(console.error);
 
       if (isEditing && studentId) {
-        const student = students.find(s => s.id === studentId);
+        const student = students.find((s) => s.id === studentId);
         if (student) {
           setFullName(student.full_name || '');
           setEmail(student.email || '');
@@ -60,7 +60,9 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
       if (!isEditing) {
         // Create new
         await usersService.createUser({ email, full_name: full_name, role: 'student' });
-        showSuccess('Alumno creado con éxito (Contraseña inicial: password123). Luego podrás asignarle un plan editándolo.');
+        showSuccess(
+          'Alumno creado con éxito (Contraseña inicial: password123). Luego podrás asignarle un plan editándolo.'
+        );
       } else {
         // Update
         await usersService.updateUser(studentId!, {
@@ -86,14 +88,13 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
       maxWidth="600px"
     >
       <form onSubmit={handleSubmit} className="standard-form">
-
         <h3 style={{ marginBottom: '1rem', color: 'var(--primary-color)' }}>Datos de Acceso</h3>
 
         <Input
           label="Nombre Completo"
           type="text"
           value={full_name}
-          onChange={e => setFullName(e.target.value)}
+          onChange={(e) => setFullName(e.target.value)}
           required
         />
 
@@ -101,28 +102,37 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
           label="Correo Electrónico"
           type="email"
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           required
           disabled={isEditing}
         />
 
         {!isEditing && (
-          <p className="text-secondary" style={{ fontSize: '0.85rem', marginTop: '-0.5rem', marginBottom: '1rem' }}>
-            La contraseña se generará automáticamente como <strong>password123</strong>. El sistema obligará al alumno a cambiarla al ingresar por primera vez.
+          <p
+            className="text-secondary"
+            style={{ fontSize: '0.85rem', marginTop: '-0.5rem', marginBottom: '1rem' }}
+          >
+            La contraseña se generará automáticamente como <strong>password123</strong>. El sistema
+            obligará al alumno a cambiarla al ingresar por primera vez.
           </p>
         )}
 
         {isEditing && (
           <>
-            <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Plan y Promociones</h3>
+            <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>
+              Plan y Promociones
+            </h3>
 
             <Select
               label="Plan Asignado"
               value={planId}
-              onChange={e => setPlanId(e.target.value)}
+              onChange={(e) => setPlanId(e.target.value)}
               options={[
                 { value: '', label: 'Sin plan' },
-                ...availablePlans.map(p => ({ value: p.id, label: `${p.name} ($${p.price} / mes)` }))
+                ...availablePlans.map((p) => ({
+                  value: p.id,
+                  label: `${p.name} ($${p.price} / mes)`
+                }))
               ]}
             />
 
@@ -134,7 +144,7 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
                   min="0"
                   max="100"
                   value={promoDiscountPct}
-                  onChange={e => setPromoDiscountPct(Number(e.target.value))}
+                  onChange={(e) => setPromoDiscountPct(Number(e.target.value))}
                 />
               </div>
               <div style={{ flex: 1, marginBottom: 0 }}>
@@ -142,14 +152,23 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
                   label="Vencimiento de Promo"
                   type="date"
                   value={promoExpirationDate}
-                  onChange={e => setPromoExpirationDate(e.target.value)}
+                  onChange={(e) => setPromoExpirationDate(e.target.value)}
                 />
               </div>
             </div>
           </>
         )}
 
-        <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', marginTop: '1.5rem' }}>
+        <div
+          className="form-actions"
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+            marginTop: '1.5rem'
+          }}
+        >
           <Button type="submit" variant="primary" loading={isSubmitting}>
             <Check size={20} /> {isSubmitting ? 'Guardando...' : 'Guardar'}
           </Button>

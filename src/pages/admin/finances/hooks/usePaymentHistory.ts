@@ -13,11 +13,16 @@ export function usePaymentHistory(payments: PaymentEntity[]) {
   }, [searchTerm, methodFilter]);
 
   const filteredPayments = useMemo(() => {
-    const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const normalize = (str: string) =>
+      str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
     const searchNormalized = normalize(searchTerm);
 
-    return payments.filter(p => {
-      const matchesSearch = normalize(p.profiles?.full_name || '').includes(searchNormalized) ||
+    return payments.filter((p) => {
+      const matchesSearch =
+        normalize(p.profiles?.full_name || '').includes(searchNormalized) ||
         normalize(p.plan_details || '').includes(searchNormalized);
       const matchesMethod = methodFilter === 'all' || p.payment_method === methodFilter;
       return matchesSearch && matchesMethod;
@@ -25,12 +30,9 @@ export function usePaymentHistory(payments: PaymentEntity[]) {
   }, [payments, searchTerm, methodFilter]);
 
   const totalPages = Math.ceil(filteredPayments.length / ITEMS_PER_PAGE) || 1;
-  
+
   const paginatedPayments = useMemo(() => {
-    return filteredPayments.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE
-    );
+    return filteredPayments.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   }, [filteredPayments, currentPage]);
 
   return {

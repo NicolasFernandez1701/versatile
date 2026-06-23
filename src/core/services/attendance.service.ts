@@ -24,7 +24,8 @@ export const attendanceService = {
   async getClassEnrollments(classId: string) {
     const { data, error } = await supabase
       .from('enrollments')
-      .select(`
+      .select(
+        `
         id,
         student_id,
         class_id,
@@ -36,7 +37,8 @@ export const attendanceService = {
           phone,
           email
         )
-      `)
+      `
+      )
       .eq('class_id', classId);
 
     if (error) throw error;
@@ -49,7 +51,8 @@ export const attendanceService = {
   async getClassAttendanceByDate(classId: string, date: string): Promise<AttendanceRecord[]> {
     const { data, error } = await supabase
       .from('enrollments')
-      .select(`
+      .select(
+        `
         id,
         student_id,
         class_id,
@@ -61,13 +64,14 @@ export const attendanceService = {
           phone,
           email
         )
-      `)
+      `
+      )
       .eq('class_id', classId)
       .eq('reservation_date', date)
       .neq('attendance_status', 'cancelled'); // No mostramos a los que cancelaron
 
     if (error) throw error;
-    
+
     // Mapear al formato esperado por el frontend
     return (data || []).map((enr: any) => ({
       id: enr.id,
@@ -85,7 +89,11 @@ export const attendanceService = {
   /**
    * Marca la asistencia de un alumno (crea o actualiza el registro).
    */
-  async markAttendance(enrollmentId: string, _date: string, status: 'present' | 'absent' | 'confirmed' | 'pending'): Promise<void> {
+  async markAttendance(
+    enrollmentId: string,
+    _date: string,
+    status: 'present' | 'absent' | 'confirmed' | 'pending'
+  ): Promise<void> {
     const mappedStatus = status === 'present' ? 'attended' : status;
     const { error } = await supabase
       .from('enrollments')
@@ -101,17 +109,19 @@ export const attendanceService = {
   async getStudentAttendances(studentId: string): Promise<AttendanceRecord[]> {
     const { data, error } = await supabase
       .from('enrollments')
-      .select(`
+      .select(
+        `
         id,
         student_id,
         class_id,
         reservation_date,
         attendance_status
-      `)
+      `
+      )
       .eq('student_id', studentId);
 
     if (error) throw error;
-    
+
     return (data || []).map((enr: any) => ({
       id: enr.id,
       enrollment_id: enr.id,
@@ -127,7 +137,11 @@ export const attendanceService = {
   /**
    * Permite al alumno confirmar o cancelar su asistencia (booking).
    */
-  async toggleStudentBooking(enrollmentId: string, _date: string, newStatus: 'confirmed' | 'cancelled'): Promise<void> {
+  async toggleStudentBooking(
+    enrollmentId: string,
+    _date: string,
+    newStatus: 'confirmed' | 'cancelled'
+  ): Promise<void> {
     const mappedStatus = newStatus === 'confirmed' ? 'pending' : 'cancelled';
     const { error } = await supabase
       .from('enrollments')

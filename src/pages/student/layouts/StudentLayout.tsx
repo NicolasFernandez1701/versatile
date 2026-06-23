@@ -29,42 +29,42 @@ export function StudentLayout() {
         <div className="sidebar-header">
           <img src="/versatile-logo.png" alt="Logo" className="sidebar-logo" />
         </div>
-        
+
         <nav className="sidebar-nav">
-          <NavLink 
-            to="/student/dashboard" 
+          <NavLink
+            to="/student/dashboard"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </NavLink>
 
-          <NavLink 
-            to="/student/catalog" 
+          <NavLink
+            to="/student/catalog"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <CalendarDays size={20} />
             <span>Catálogo de Clases</span>
           </NavLink>
 
-          <NavLink 
-            to="/student/plans" 
+          <NavLink
+            to="/student/plans"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <Tag size={20} />
             <span>Nuestros Planes</span>
           </NavLink>
 
-          <NavLink 
-            to="/student/classes" 
+          <NavLink
+            to="/student/classes"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <CalendarDays size={20} />
             <span>Mis Reservas</span>
           </NavLink>
 
-          <NavLink 
-            to="/student/profile" 
+          <NavLink
+            to="/student/profile"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <User size={20} />

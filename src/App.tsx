@@ -46,7 +46,7 @@ export default function App() {
     };
 
     applyTheme();
-    
+
     // Listen for system changes if 'system' is selected
     if (theme === 'system') {
       mediaQuery.addEventListener('change', applyTheme);
@@ -56,13 +56,16 @@ export default function App() {
 
   useEffect(() => {
     // Verificar sesión inicial
-    authService.getCurrentUser()
-      .then(user => setUser(user as any))
+    authService
+      .getCurrentUser()
+      .then((user) => setUser(user as any))
       .catch(console.error)
       .finally(() => setLoading(false));
 
     // Suscribirse a cambios de sesión (login/logout/token refresh)
-    const { data: { subscription } } = authService.onAuthStateChange((session) => {
+    const {
+      data: { subscription }
+    } = authService.onAuthStateChange((session) => {
       setUser((session?.user as any) || null);
     });
 
@@ -77,13 +80,13 @@ export default function App() {
         <Routes>
           {/* Rutas Públicas */}
           <Route path="/login" element={<LoginPage />} />
-          
+
           {/* Rutas de Onboarding (Protegidas pero para cualquier rol que le falte onboarding) */}
           <Route element={<ProtectedRoute />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/teacher-onboarding" element={<TeacherOnboardingPage />} />
           </Route>
-          
+
           {/* Rutas Protegidas (Solo Admin) */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/admin" element={<AdminLayout />}>

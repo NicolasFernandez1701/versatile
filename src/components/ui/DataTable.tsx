@@ -23,7 +23,6 @@ export function DataTable<T>({
   emptyMessage = 'No hay datos disponibles.',
   keyExtractor
 }: DataTableProps<T>) {
-  
   if (loading) {
     return (
       <div className="table-container" style={{ padding: '2rem' }}>
@@ -51,11 +50,7 @@ export function DataTable<T>({
             {data.map((row) => (
               <tr key={keyExtractor(row)}>
                 {columns.map((col) => (
-                  <td 
-                    key={col.key} 
-                    data-label={col.header}
-                    className={col.className}
-                  >
+                  <td key={col.key} data-label={col.header} className={col.className}>
                     {col.render ? col.render(row) : String((row as any)[col.key] || '')}
                   </td>
                 ))}

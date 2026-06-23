@@ -2,37 +2,37 @@
 
 :root {
   color-scheme: light dark;
-  
+
   /* =========================================
      LIGHT MODE (Default Fallback)
      ========================================= */
-  --primary-color: #3E2682;
-  --primary-hover: #2A1A5A;
-  --secondary-color: #A794DF;
-  
-  --background-color: #F8F8F8;
-  --surface-color: #FFFFFF;
-  --surface-hover: #F0EFFF;
-  
-  --text-primary: #1A1A1A;
+  --primary-color: #3e2682;
+  --primary-hover: #2a1a5a;
+  --secondary-color: #a794df;
+
+  --background-color: #f8f8f8;
+  --surface-color: #ffffff;
+  --surface-hover: #f0efff;
+
+  --text-primary: #1a1a1a;
   --text-secondary: #666666;
-  
-  --border-color: #E0E0E0;
+
+  --border-color: #e0e0e0;
   --input-bg: rgba(0, 0, 0, 0.04);
-  
+
   /* Status Colors */
-  --error-color: #FF5252;
-  --success-color: #4CAF50;
-  --warning-color: #FFC107;
-  
+  --error-color: #ff5252;
+  --success-color: #4caf50;
+  --warning-color: #ffc107;
+
   /* Badges (Light) */
-  --badge-active-bg: #E8F5E9;
-  --badge-active-text: #2E7D32;
-  --badge-pending-bg: #FFF3E0;
-  --badge-pending-text: #EF6C00;
-  --badge-inactive-bg: #FFEBEE;
-  --badge-inactive-text: #FF5252;
-  
+  --badge-active-bg: #e8f5e9;
+  --badge-active-text: #2e7d32;
+  --badge-pending-bg: #fff3e0;
+  --badge-pending-text: #ef6c00;
+  --badge-inactive-bg: #ffebee;
+  --badge-inactive-text: #ff5252;
+
   /* Layout & Shadows */
   --font-family: 'Inter', system-ui, sans-serif;
   --border-radius-sm: 8px;
@@ -44,34 +44,34 @@
 }
 
 :root[data-theme='dark'] {
-    /* =========================================
+  /* =========================================
        DARK MODE (Premium Midnight Violet)
        ========================================= */
-    --primary-color: #A794DF;
-    --primary-hover: #8D76D0;
-    --secondary-color: #2A2552;
-    
-    --background-color: #0A0817;
-    --surface-color: #15132A;
-    --surface-hover: #252147;
-    
-    --text-primary: #F1EEFD;
-    --text-secondary: #9B96BF;
-    
-    --border-color: #252147;
-    --input-bg: rgba(0, 0, 0, 0.2);
-    
-    /* Badges (Dark) */
-    --badge-active-bg: #1C3E2D;
-    --badge-active-text: #66BB6A;
-    --badge-pending-bg: #3E2E1C;
-    --badge-pending-text: #FFA726;
-    --badge-inactive-bg: #3E1C1F;
-    --badge-inactive-text: #E57373;
-    
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 20px rgba(167, 148, 223, 0.15);
+  --primary-color: #a794df;
+  --primary-hover: #8d76d0;
+  --secondary-color: #2a2552;
+
+  --background-color: #0a0817;
+  --surface-color: #15132a;
+  --surface-hover: #252147;
+
+  --text-primary: #f1eefd;
+  --text-secondary: #9b96bf;
+
+  --border-color: #252147;
+  --input-bg: rgba(0, 0, 0, 0.2);
+
+  /* Badges (Dark) */
+  --badge-active-bg: #1c3e2d;
+  --badge-active-text: #66bb6a;
+  --badge-pending-bg: #3e2e1c;
+  --badge-pending-text: #ffa726;
+  --badge-inactive-bg: #3e1c1f;
+  --badge-inactive-text: #e57373;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(167, 148, 223, 0.15);
 }
 
 * {
@@ -80,7 +80,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   font-family: var(--font-family);
   background-color: var(--background-color);
   color: var(--text-primary);
@@ -93,13 +94,28 @@ html, body {
 /* =========================================
    TYPOGRAPHY
    ========================================= */
-h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.5rem; }
-h2 { font-size: 1.5rem; font-weight: 600; }
-p { color: var(--text-secondary); line-height: 1.5; }
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
+}
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+p {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
 
 @media (max-width: 768px) {
-  h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.25rem; }
+  h1 {
+    font-size: 1.5rem;
+  }
+  h2 {
+    font-size: 1.25rem;
+  }
 }
 
 /* =========================================
@@ -192,12 +208,12 @@ button {
   color: var(--text-secondary);
 }
 
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="password"],
-input[type="time"],
-input[type="date"],
+input[type='text'],
+input[type='number'],
+input[type='email'],
+input[type='password'],
+input[type='time'],
+input[type='date'],
 select {
   width: 100%;
   background: var(--input-bg);
@@ -217,7 +233,8 @@ select option {
   color: var(--text-primary);
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
@@ -237,7 +254,7 @@ input:disabled {
   font-size: 0.95rem;
 }
 
-.checkbox-group input[type="checkbox"] {
+.checkbox-group input[type='checkbox'] {
   width: 1.2rem;
   height: 1.2rem;
   accent-color: var(--primary-color);
@@ -315,7 +332,8 @@ input:disabled {
   text-align: left;
 }
 
-.data-table th, .data-table td {
+.data-table th,
+.data-table td {
   padding: 1rem;
   font-size: 0.9rem;
 }
@@ -331,14 +349,14 @@ input:disabled {
   .data-table thead {
     display: none;
   }
-  
+
   .data-table tbody,
   .data-table tr,
   .data-table td {
     display: block;
     width: 100%;
   }
-  
+
   .data-table tr {
     margin-bottom: 1rem;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -347,7 +365,7 @@ input:disabled {
     padding: 1rem 1.25rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   }
-  
+
   .data-table td {
     display: flex;
     justify-content: space-between;
@@ -356,18 +374,18 @@ input:disabled {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     text-align: right;
   }
-  
+
   .data-table td:last-child {
     border-bottom: none;
   }
-  
+
   .data-table td.empty-state-cell {
     display: block;
     width: 100%;
     text-align: center;
     border-bottom: none;
   }
-  
+
   .data-table td:not(.empty-state-cell)::before {
     content: attr(data-label);
     font-weight: 600;
@@ -399,7 +417,7 @@ input:disabled {
   .page-header {
     margin-bottom: 1.5rem;
   }
-  
+
   .page-header h1 {
     font-size: 1.5rem;
   }
@@ -411,7 +429,7 @@ input:disabled {
     height: auto;
     padding: 0.75rem 1.5rem;
   }
-  
+
   .page-header .btn-primary span {
     display: inline;
   }
@@ -557,11 +575,23 @@ input:disabled {
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tbody tr { transition: background-color 0.2s ease; }
-.data-table tbody tr:hover { background-color: rgba(255, 255, 255, 0.02); }
-.cell-flex { display: flex; align-items: center; gap: 0.75rem; }
-.text-primary { color: var(--primary-color); }
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+.data-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+.data-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+.cell-flex {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.text-primary {
+  color: var(--primary-color);
+}
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -585,14 +615,20 @@ input:disabled {
   background: var(--badge-pending-bg);
   color: var(--badge-pending-text);
 }
-.actions-flex { display: flex; gap: 0.5rem; }
+.actions-flex {
+  display: flex;
+  gap: 0.5rem;
+}
 
 /* =========================================
    MODALS
    ========================================= */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -615,8 +651,14 @@ input:disabled {
 }
 
 @keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .modal-header {
@@ -662,7 +704,11 @@ input:disabled {
   }
 
   @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
   }
 }

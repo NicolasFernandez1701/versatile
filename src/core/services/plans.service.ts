@@ -23,7 +23,10 @@ export const plansService = {
     return data as PlanEntity[];
   },
 
-  async createPlanWithActivities(planData: CreatePlanDTO, activities: CreatePlanActivityDTO[]): Promise<PlanEntity> {
+  async createPlanWithActivities(
+    planData: CreatePlanDTO,
+    activities: CreatePlanActivityDTO[]
+  ): Promise<PlanEntity> {
     // Insertamos el plan principal
     const { data: plan, error: planError } = await supabase
       .from('plans')
@@ -35,14 +38,12 @@ export const plansService = {
 
     // Si tiene actividades, las vinculamos
     if (activities.length > 0) {
-      const activitiesData = activities.map(act => ({
+      const activitiesData = activities.map((act) => ({
         ...act,
         plan_id: plan.id
       }));
 
-      const { error: actError } = await supabase
-        .from('plan_activities')
-        .insert(activitiesData);
+      const { error: actError } = await supabase.from('plan_activities').insert(activitiesData);
 
       if (actError) throw actError;
     }
@@ -51,19 +52,13 @@ export const plansService = {
   },
 
   async togglePlanStatus(planId: string, isActive: boolean): Promise<void> {
-    const { error } = await supabase
-      .from('plans')
-      .update({ is_active: isActive })
-      .eq('id', planId);
+    const { error } = await supabase.from('plans').update({ is_active: isActive }).eq('id', planId);
 
     if (error) throw error;
   },
 
   async deletePlan(planId: string): Promise<void> {
-    const { error } = await supabase
-      .from('plans')
-      .delete()
-      .eq('id', planId);
+    const { error } = await supabase.from('plans').delete().eq('id', planId);
 
     if (error) throw error;
   },
@@ -79,12 +74,13 @@ export const plansService = {
     return data as PlanEntity;
   },
 
-  async updatePlanWithActivities(planId: string, planData: CreatePlanDTO, activities: CreatePlanActivityDTO[]): Promise<void> {
+  async updatePlanWithActivities(
+    planId: string,
+    planData: CreatePlanDTO,
+    activities: CreatePlanActivityDTO[]
+  ): Promise<void> {
     // 1. Update plan
-    const { error: planError } = await supabase
-      .from('plans')
-      .update(planData)
-      .eq('id', planId);
+    const { error: planError } = await supabase.from('plans').update(planData).eq('id', planId);
 
     if (planError) throw planError;
 
@@ -98,14 +94,12 @@ export const plansService = {
 
     // 3. Insert new activities
     if (activities.length > 0) {
-      const activitiesData = activities.map(act => ({
+      const activitiesData = activities.map((act) => ({
         ...act,
         plan_id: planId
       }));
 
-      const { error: actError } = await supabase
-        .from('plan_activities')
-        .insert(activitiesData);
+      const { error: actError } = await supabase.from('plan_activities').insert(activitiesData);
 
       if (actError) throw actError;
     }

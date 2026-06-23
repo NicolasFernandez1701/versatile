@@ -7,14 +7,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
 }
 
-export function Button({ 
-  children, 
-  variant = 'primary', 
-  loading = false, 
+export function Button({
+  children,
+  variant = 'primary',
+  loading = false,
   icon,
-  className = '', 
+  className = '',
   disabled,
-  ...props 
+  ...props
 }: ButtonProps) {
   let baseClass = `btn-${variant}`;
   if (variant === 'icon') {
@@ -22,11 +22,11 @@ export function Button({
   } else if (variant === 'danger') {
     baseClass = 'icon-btn text-danger'; // For now, all danger buttons are icons in the tables. We can expand this later.
   }
-  
+
   return (
-    <button 
-      className={`${baseClass} ${className}`.trim()} 
-      disabled={loading || disabled} 
+    <button
+      className={`${baseClass} ${className}`.trim()}
+      disabled={loading || disabled}
       {...props}
     >
       {loading ? (

@@ -11,7 +11,7 @@ export function LoginForm() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
+
     try {
       await authService.login(email, password);
       // El store y el enrutador se enteran por el onAuthStateChange
@@ -25,12 +25,12 @@ export function LoginForm() {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       {error && <div className="error-message">{error}</div>}
-      
+
       <div className="form-group">
         <label htmlFor="email">Email</label>
-        <input 
+        <input
           id="email"
-          type="email" 
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -39,9 +39,9 @@ export function LoginForm() {
 
       <div className="form-group">
         <label htmlFor="password">Contraseña</label>
-        <input 
+        <input
           id="password"
-          type="password" 
+          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

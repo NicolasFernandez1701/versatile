@@ -11,7 +11,7 @@ export const useHolidays = (year: number) => {
     const fetchHolidays = async () => {
       setLoadingHolidays(true);
       const data = await HolidayService.getHolidays(year);
-      
+
       const marked: Record<string, Holiday> = {};
       data.forEach((h: Holiday) => {
         const dayStr = h.dia < 10 ? `0${h.dia}` : `${h.dia}`;
@@ -19,7 +19,7 @@ export const useHolidays = (year: number) => {
         const dateKey = `${year}-${monthStr}-${dayStr}`;
         marked[dateKey] = h;
       });
-      
+
       setMarkedDates(marked);
       setHolidays(data);
       setLoadingHolidays(false);
@@ -30,7 +30,8 @@ export const useHolidays = (year: number) => {
 
   const getHolidayForDate = (date: Date): Holiday | undefined => {
     const dayStr = date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`;
-    const monthStr = (date.getMonth() + 1) < 10 ? `0${date.getMonth() + 1}` : `${date.getMonth() + 1}`;
+    const monthStr =
+      date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : `${date.getMonth() + 1}`;
     const dateKey = `${date.getFullYear()}-${monthStr}-${dayStr}`;
     return markedDates[dateKey];
   };

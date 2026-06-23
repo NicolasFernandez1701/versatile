@@ -17,7 +17,7 @@
   padding: 0 1rem;
   margin-bottom: 1.5rem;
   border: 1px solid var(--border-color);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .search-icon {
@@ -44,22 +44,22 @@
 /* Badge styles for status */
 .badge-active {
   background-color: rgba(46, 204, 113, 0.15); /* light green */
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
-[data-theme="dark"] .badge-active {
-  background-color: #1C3E2D;
-  color: #66BB6A;
+[data-theme='dark'] .badge-active {
+  background-color: #1c3e2d;
+  color: #66bb6a;
 }
 
 .badge-pending {
   background-color: rgba(243, 156, 18, 0.15); /* light orange */
-  color: #EF6C00;
+  color: #ef6c00;
 }
 
-[data-theme="dark"] .badge-pending {
-  background-color: #3E2E1C;
-  color: #FFA726;
+[data-theme='dark'] .badge-pending {
+  background-color: #3e2e1c;
+  color: #ffa726;
 }
 
 .badge-inactive {
@@ -67,7 +67,7 @@
   color: var(--error-color);
 }
 
-[data-theme="dark"] .badge-inactive {
-  background-color: #3E1C1F;
-  color: #E57373;
+[data-theme='dark'] .badge-inactive {
+  background-color: #3e1c1f;
+  color: #e57373;
 }

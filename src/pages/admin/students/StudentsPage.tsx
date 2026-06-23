@@ -27,19 +27,30 @@ export function StudentsPage() {
     return 'Al Día';
   };
 
-  const filteredStudents = students.filter(s => 
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredStudents = students.filter(
+    (s) =>
+      s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
-    <div className="students-page" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)', overflow: 'hidden' }}>
+    <div
+      className="students-page"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 4rem)',
+        overflow: 'hidden'
+      }}
+    >
       <div className="page-header">
         <div>
           <h1>Alumnos</h1>
-          <p className="text-secondary" style={{ marginTop: '0.25rem', fontSize: '0.9rem' }}>Control de planes y pagos</p>
+          <p className="text-secondary" style={{ marginTop: '0.25rem', fontSize: '0.9rem' }}>
+            Control de planes y pagos
+          </p>
         </div>
-        <button 
+        <button
           className="btn-primary"
           onClick={() => {
             setEditingStudentId(null);
@@ -53,10 +64,17 @@ export function StudentsPage() {
       </div>
 
       <div className="student-actions-row">
-        <button 
+        <button
           className="btn-secondary"
           onClick={() => navigate('/admin/enrollments')} // Map to EnrollStudent
-          style={{ width: '100%', padding: '0.75rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
           <Bookmark size={18} className="text-primary" style={{ marginRight: '0.5rem' }} />
           Inscribir Alumno a Clase
@@ -65,10 +83,10 @@ export function StudentsPage() {
 
       <div className="search-container">
         <Search className="search-icon text-secondary" size={20} />
-        <input 
+        <input
           className="search-input"
-          type="text" 
-          placeholder="Buscar alumno..." 
+          type="text"
+          placeholder="Buscar alumno..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -76,17 +94,19 @@ export function StudentsPage() {
 
       <div className="student-list-container" style={{ flex: 1, overflowY: 'auto' }}>
         {loading ? (
-          <div style={{ padding: '2rem' }}><Loader text="Cargando alumnos..." size="medium" /></div>
+          <div style={{ padding: '2rem' }}>
+            <Loader text="Cargando alumnos..." size="medium" />
+          </div>
         ) : filteredStudents.length === 0 ? (
           <div className="empty-state">
             <p>No hay alumnos registrados.</p>
           </div>
         ) : (
-          filteredStudents.map(item => (
-            <StudentCard 
+          filteredStudents.map((item) => (
+            <StudentCard
               key={item.id}
-              name={item.full_name} 
-              plan={item.plans?.name || 'Sin Plan'} 
+              name={item.full_name}
+              plan={item.plans?.name || 'Sin Plan'}
               status={getStatus(item.plan_expiration_date, !!item.plan_id)}
               phone={item.phone}
               email={item.email}

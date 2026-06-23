@@ -4,17 +4,16 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
 
-
 import { Button } from '@/components/ui';
 import '../../features/auth/styles/auth.css';
 
 export function LoginPage() {
   const { isAuthenticated, role, isLoading } = useAuthStore();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,17 +23,31 @@ export function LoginPage() {
     if (role === 'admin') return <Navigate to="/admin" replace />;
     if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
     if (role === 'student') return <Navigate to="/student/dashboard" replace />;
-    
+
     return (
-      <div className="auth-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', textAlign: 'center', padding: '2rem' }}>
+      <div
+        className="auth-container"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          textAlign: 'center',
+          padding: '2rem'
+        }}
+      >
         <h2 style={{ color: 'var(--error-color)' }}>Cuenta sin configurar</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Tu usuario no tiene un rol asignado en la base de datos (Posiblemente fue creado a mano sin disparar el trigger de perfil).
+          Tu usuario no tiene un rol asignado en la base de datos (Posiblemente fue creado a mano
+          sin disparar el trigger de perfil).
         </p>
-        <Button onClick={async () => {
-          await authService.logout();
-          useAuthStore.getState().logout();
-        }}>
+        <Button
+          onClick={async () => {
+            await authService.logout();
+            useAuthStore.getState().logout();
+          }}
+        >
           Cerrar Sesión y Volver
         </Button>
       </div>
@@ -44,7 +57,7 @@ export function LoginPage() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Por favor completa todos los campos.');
       return;
@@ -68,19 +81,15 @@ export function LoginPage() {
         </div>
 
         <div className="auth-form-container">
-          <h2 className="auth-form-title">
-            Bienvenido de nuevo
-          </h2>
-          <p className="auth-form-subtitle">
-            Ingresá tus credenciales para continuar
-          </p>
+          <h2 className="auth-form-title">Bienvenido de nuevo</h2>
+          <p className="auth-form-subtitle">Ingresá tus credenciales para continuar</p>
 
           <form onSubmit={handleAuth} className="auth-form">
             {error && <div className="auth-error-message">{error}</div>}
 
             <div className="auth-input-group">
-              <input 
-                type="email" 
+              <input
+                type="email"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -89,19 +98,23 @@ export function LoginPage() {
             </div>
 
             <div className="auth-input-group auth-password-group">
-              <input 
-                type={showPassword ? 'text' : 'password'} 
+              <input
+                type={showPassword ? 'text' : 'password'}
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="auth-input"
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="auth-eye-btn"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? <EyeOff size={20} className="text-secondary" /> : <Eye size={20} className="text-secondary" />}
+                {showPassword ? (
+                  <EyeOff size={20} className="text-secondary" />
+                ) : (
+                  <Eye size={20} className="text-secondary" />
+                )}
               </button>
             </div>
 

@@ -43,7 +43,9 @@ export function StudentList({ students, loading, onDelete, onEdit }: StudentList
       header: 'Estado (Vencimiento)',
       render: (student) => {
         const hasPlan = !!student.plan_id;
-        const expDate = student.plan_expiration_date ? new Date(student.plan_expiration_date) : null;
+        const expDate = student.plan_expiration_date
+          ? new Date(student.plan_expiration_date)
+          : null;
         const isExpired = expDate ? expDate < new Date() : false;
 
         if (!hasPlan) {
@@ -51,16 +53,15 @@ export function StudentList({ students, loading, onDelete, onEdit }: StudentList
         }
         if (isExpired) {
           return (
-            <span className="status-badge inactive" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span
+              className="status-badge inactive"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+            >
               <AlertCircle size={14} /> Vencido
             </span>
           );
         }
-        return (
-          <span className="status-badge active">
-            Vence {expDate?.toLocaleDateString()}
-          </span>
-        );
+        return <span className="status-badge active">Vence {expDate?.toLocaleDateString()}</span>;
       }
     },
     {

@@ -17,7 +17,9 @@ export function TeacherList({ teachers, loading, onDelete }: TeacherListProps) {
         <>
           <div style={{ fontWeight: '600' }}>{teacher.full_name}</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{teacher.email}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{teacher.phone || '-'}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            {teacher.phone || '-'}
+          </div>
         </>
       )
     },
@@ -36,10 +38,7 @@ export function TeacherList({ teachers, loading, onDelete }: TeacherListProps) {
       header: 'Acciones',
       render: (teacher) => (
         <div className="actions-flex">
-          <Button 
-            variant="danger" 
-            onClick={() => onDelete(teacher.id)}
-          >
+          <Button variant="danger" onClick={() => onDelete(teacher.id)}>
             <Trash2 size={18} />
           </Button>
         </div>

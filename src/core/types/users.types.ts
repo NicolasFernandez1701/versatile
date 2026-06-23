@@ -4,14 +4,14 @@ export interface UserProfile {
   role: 'admin' | 'teacher' | 'student';
   email: string;
   phone?: string;
-  
+
   // Student Specific
   plan_id?: string;
   plan_expiration_date?: string;
   promotion_discount_pct?: number;
   promotion_expiration_date?: string;
   has_completed_onboarding?: boolean;
-  
+
   // Joins
   plans?: {
     id: string;
@@ -20,13 +20,13 @@ export interface UserProfile {
     classes_per_week: number;
   };
   student_details?: StudentDetails;
-  
+
   created_at: string;
 }
 
 export interface StudentDetails {
   profile_id: string;
-  
+
   // Paso 1
   document_id?: string;
   birth_date?: string;

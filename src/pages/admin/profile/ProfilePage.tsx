@@ -10,7 +10,7 @@ import { useState } from 'react';
 export function ProfilePage() {
   const { user, logout } = useAuthStore();
   const { theme: themeMode, setTheme } = useThemeStore();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => {
@@ -27,7 +27,7 @@ export function ProfilePage() {
     if (!name) return 'VS';
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .slice(0, 2)
       .join('')
       .toUpperCase();
@@ -43,9 +43,13 @@ export function ProfilePage() {
     <div className="page-container profile-container">
       <div className="profile-header">
         <div className="avatar-circle">
-          <span className="avatar-text">{getInitials(user?.profile?.full_name || user?.user_metadata?.full_name || '')}</span>
+          <span className="avatar-text">
+            {getInitials(user?.profile?.full_name || user?.user_metadata?.full_name || '')}
+          </span>
         </div>
-        <h2 className="user-name">{user?.profile?.full_name || user?.user_metadata?.full_name || 'Usuario Versatile'}</h2>
+        <h2 className="user-name">
+          {user?.profile?.full_name || user?.user_metadata?.full_name || 'Usuario Versatile'}
+        </h2>
         <div className="role-badge">
           <Shield size={14} />
           <span>{getRoleName(user?.profile?.role || user?.user_metadata?.role || 'student')}</span>
@@ -71,21 +75,21 @@ export function ProfilePage() {
           <div className="profile-card theme-card">
             <p className="theme-subtitle">Selecciona el tema de la interfaz:</p>
             <div className="theme-options">
-              <button 
+              <button
                 className={`theme-btn ${themeMode === 'light' ? 'active' : ''}`}
                 onClick={() => setTheme('light')}
               >
                 <Sun size={18} />
                 <span>Claro</span>
               </button>
-              <button 
+              <button
                 className={`theme-btn ${themeMode === 'dark' ? 'active' : ''}`}
                 onClick={() => setTheme('dark')}
               >
                 <Moon size={18} />
                 <span>Oscuro</span>
               </button>
-              <button 
+              <button
                 className={`theme-btn ${themeMode === 'system' ? 'active' : ''}`}
                 onClick={() => setTheme('system')}
               >

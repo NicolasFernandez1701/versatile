@@ -17,7 +17,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && <label htmlFor={inputId}>{label}</label>}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           {icon && (
-            <div style={{ position: 'absolute', left: '1rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+            <div
+              style={{
+                position: 'absolute',
+                left: '1rem',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
               {icon}
             </div>
           )}
@@ -32,13 +40,22 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightElement && (
-            <div style={{ position: 'absolute', right: '1rem', display: 'flex', alignItems: 'center' }}>
+            <div
+              style={{ position: 'absolute', right: '1rem', display: 'flex', alignItems: 'center' }}
+            >
               {rightElement}
             </div>
           )}
         </div>
         {error && (
-          <span style={{ color: 'var(--error-color)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+          <span
+            style={{
+              color: 'var(--error-color)',
+              fontSize: '0.8rem',
+              marginTop: '0.25rem',
+              display: 'block'
+            }}
+          >
             {error}
           </span>
         )}

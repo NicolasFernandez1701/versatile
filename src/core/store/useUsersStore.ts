@@ -9,7 +9,11 @@ interface UsersState {
   error: string | null;
   fetchStudents: () => Promise<void>;
   fetchTeachers: () => Promise<void>;
-  createUser: (payload: { email: string; full_name: string; role: 'student' | 'teacher' }) => Promise<void>;
+  createUser: (payload: {
+    email: string;
+    full_name: string;
+    role: 'student' | 'teacher';
+  }) => Promise<void>;
   deleteUser: (id: string, role: 'student' | 'teacher') => Promise<void>;
 }
 

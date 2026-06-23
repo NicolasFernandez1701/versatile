@@ -31,7 +31,7 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess }: TeacherFormModa
       await usersService.createUser({
         full_name,
         email,
-        role: 'teacher',
+        role: 'teacher'
       });
       showSuccess('Profesor creado con éxito. La contraseña inicial es password123.');
       onSuccess();
@@ -44,12 +44,7 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess }: TeacherFormModa
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Registrar Nuevo Profesor"
-      maxWidth="600px"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Registrar Nuevo Profesor" maxWidth="600px">
       <form onSubmit={handleSubmit} className="standard-form">
         <h3 style={{ marginBottom: '1rem', color: 'var(--primary-color)' }}>Datos de Acceso</h3>
 
@@ -57,7 +52,7 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess }: TeacherFormModa
           label="Nombre Completo"
           type="text"
           value={full_name}
-          onChange={e => setFullName(e.target.value)}
+          onChange={(e) => setFullName(e.target.value)}
           required
         />
 
@@ -65,15 +60,28 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess }: TeacherFormModa
           label="Correo Electrónico"
           type="email"
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
 
-        <p className="text-secondary" style={{ fontSize: '0.85rem', marginTop: '-0.5rem', marginBottom: '1rem' }}>
-          La contraseña se generará automáticamente como <strong>password123</strong>. El sistema obligará al profesor a cambiarla al ingresar por primera vez.
+        <p
+          className="text-secondary"
+          style={{ fontSize: '0.85rem', marginTop: '-0.5rem', marginBottom: '1rem' }}
+        >
+          La contraseña se generará automáticamente como <strong>password123</strong>. El sistema
+          obligará al profesor a cambiarla al ingresar por primera vez.
         </p>
 
-        <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', marginTop: '1.5rem' }}>
+        <div
+          className="form-actions"
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+            marginTop: '1.5rem'
+          }}
+        >
           <Button type="submit" variant="primary" loading={isSubmitting}>
             <Check size={20} /> {isSubmitting ? 'Guardando...' : 'Guardar'}
           </Button>

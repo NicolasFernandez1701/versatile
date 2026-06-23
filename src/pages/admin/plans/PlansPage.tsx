@@ -41,7 +41,7 @@ export function PlansPage() {
     if (!deletingPlanId) return;
     try {
       await plansService.deletePlan(deletingPlanId);
-      setPlans(plans.filter(p => p.id !== deletingPlanId));
+      setPlans(plans.filter((p) => p.id !== deletingPlanId));
       setIsConfirmOpen(false);
       setDeletingPlanId(null);
       showSuccess('Plan eliminado con éxito.');
@@ -54,7 +54,7 @@ export function PlansPage() {
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       await plansService.togglePlanStatus(id, !currentStatus);
-      setPlans(plans.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
+      setPlans(plans.map((p) => (p.id === id ? { ...p, is_active: !currentStatus } : p)));
     } catch (error) {
       console.error('Error al cambiar estado:', error);
     }
@@ -116,10 +116,10 @@ export function PlansPage() {
     {
       key: 'composition',
       header: 'Composición',
-      render: (plan) => (
+      render: (plan) =>
         plan.plan_activities && plan.plan_activities.length > 0 ? (
           <ul className="activity-list">
-            {plan.plan_activities.map(act => (
+            {plan.plan_activities.map((act) => (
               <li key={act.id}>
                 {act.classes_per_week}x {act.activity_name}
               </li>
@@ -128,7 +128,6 @@ export function PlansPage() {
         ) : (
           <span className="text-secondary">Genérico</span>
         )
-      )
     },
     {
       key: 'status',
@@ -151,7 +150,14 @@ export function PlansPage() {
           <Button variant="icon" onClick={() => handleOpenModal(plan)} title="Editar Plan">
             <Edit size={16} />
           </Button>
-          <Button variant="danger" onClick={() => { setDeletingPlanId(plan.id); setIsConfirmOpen(true); }} title="Eliminar Plan">
+          <Button
+            variant="danger"
+            onClick={() => {
+              setDeletingPlanId(plan.id);
+              setIsConfirmOpen(true);
+            }}
+            title="Eliminar Plan"
+          >
             <Trash2 size={16} />
           </Button>
         </div>
@@ -166,11 +172,7 @@ export function PlansPage() {
           <h1>Planes de Suscripción</h1>
           <p>Administrá los planes, precios y cantidad de clases.</p>
         </div>
-        <Button 
-          variant="primary"
-          onClick={() => handleOpenModal()}
-          title="Nuevo Plan"
-        >
+        <Button variant="primary" onClick={() => handleOpenModal()} title="Nuevo Plan">
           <Plus size={20} />
           <span>Crear Plan</span>
         </Button>

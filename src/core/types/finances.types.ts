@@ -14,7 +14,7 @@ export interface PaymentEntity {
   late_payment: boolean;
   late_fee_applied: boolean;
   created_at: string;
-  
+
   // Joins
   profiles?: Profile;
 }

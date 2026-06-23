@@ -5,7 +5,7 @@ export const authService = {
   async login(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password
     });
     if (error) throw error;
     return data;
@@ -17,7 +17,7 @@ export const authService = {
       password: params.password,
       options: {
         data: {
-          full_name: params.full_name,
+          full_name: params.full_name
         }
       }
     });
@@ -31,7 +31,10 @@ export const authService = {
   },
 
   async getCurrentUser() {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error
+    } = await supabase.auth.getSession();
     if (error) throw error;
     if (!session?.user) return null;
 

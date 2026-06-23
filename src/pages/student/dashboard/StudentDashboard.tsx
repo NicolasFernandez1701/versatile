@@ -15,7 +15,8 @@ export function StudentDashboard() {
 
   useEffect(() => {
     if (user) {
-      dashboardService.getStudentDashboardData(user.id)
+      dashboardService
+        .getStudentDashboardData(user.id)
         .then(setData)
         .catch(console.error)
         .finally(() => setLoading(false));
@@ -29,7 +30,10 @@ export function StudentDashboard() {
     overflow: 'hidden'
   };
 
-  const firstName = user?.profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Alumno';
+  const firstName =
+    user?.profile?.full_name?.split(' ')[0] ||
+    user?.user_metadata?.full_name?.split(' ')[0] ||
+    'Alumno';
 
   if (loading) {
     return (
@@ -49,33 +53,45 @@ export function StudentDashboard() {
       </div>
 
       <div className="summary-grid">
-        <SummaryCard 
+        <SummaryCard
           title="Mi Plan Activo"
-          value={data?.activePlan ? data.activePlan.plan_details : "Sin Plan Activo"}
-          subtitle={data?.activePlan ? `Vence: ${new Date(data.activePlan.expiration_date).toLocaleDateString('es-AR')}` : "Hacé click para ver planes"}
+          value={data?.activePlan ? data.activePlan.plan_details : 'Sin Plan Activo'}
+          subtitle={
+            data?.activePlan
+              ? `Vence: ${new Date(data.activePlan.expiration_date).toLocaleDateString('es-AR')}`
+              : 'Hacé click para ver planes'
+          }
           icon={CreditCard}
           onClick={() => navigate('/student/plans')}
           iconColorClass="text-primary"
         />
 
-        <SummaryCard 
+        <SummaryCard
           title="Próxima Clase"
-          value={data?.nextClass ? `${data.nextClass.classes.activity_name}` : "No tenés reservas"}
-          subtitle={data?.nextClass ? `${new Date(data.nextClass.reservation_date).toLocaleDateString('es-AR')} a las ${data.nextClass.classes.start_time.substring(0, 5)}` : "Hacé click para ver la grilla"}
+          value={data?.nextClass ? `${data.nextClass.classes.activity_name}` : 'No tenés reservas'}
+          subtitle={
+            data?.nextClass
+              ? `${new Date(data.nextClass.reservation_date).toLocaleDateString('es-AR')} a las ${data.nextClass.classes.start_time.substring(0, 5)}`
+              : 'Hacé click para ver la grilla'
+          }
           icon={CalendarDays}
           onClick={() => navigate('/student/reservations')}
-          iconColorClass={data?.nextClass ? "text-success" : "text-secondary"}
+          iconColorClass={data?.nextClass ? 'text-success' : 'text-secondary'}
         />
       </div>
 
       <div style={{ marginTop: '2rem' }}>
         <div style={cardStyle}>
-          <div style={{ padding: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+          <div
+            style={{ padding: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}
+          >
             <AlertTriangle color="var(--warning-color)" size={24} style={{ flexShrink: 0 }} />
             <div>
               <h3 style={{ marginBottom: '0.5rem' }}>Recordatorio de Reservas</h3>
               <p className="text-secondary" style={{ lineHeight: 1.5 }}>
-                Podés anotarte a las clases hasta <strong>1.30 hs antes</strong> de que comiencen. Si necesitás cancelar, tenés tiempo hasta <strong>1 hora antes</strong>. Evitá penalizaciones gestionando tus asistencias con tiempo.
+                Podés anotarte a las clases hasta <strong>1.30 hs antes</strong> de que comiencen.
+                Si necesitás cancelar, tenés tiempo hasta <strong>1 hora antes</strong>. Evitá
+                penalizaciones gestionando tus asistencias con tiempo.
               </p>
             </div>
           </div>
