@@ -190,8 +190,12 @@ describe('AdminDashboard', () => {
     expect(screen.getByText('Finanzas')).toBeInTheDocument();
     expect(screen.getByText('Alumnos')).toBeInTheDocument();
     expect(screen.getByText('Profesores')).toBeInTheDocument();
+    expect(screen.getByText('Planes')).toBeInTheDocument();
 
     // Verify navigation from quick actions
+    fireEvent.click(screen.getByText('Planes'));
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/plans');
+
     fireEvent.click(screen.getByText('Grilla'));
     expect(mockNavigate).toHaveBeenCalledWith('/admin/calendar');
 

@@ -51,6 +51,10 @@
   text-decoration: none;
   border-radius: var(--border-radius-sm);
   font-weight: 500;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
   transition:
     background-color 0.2s,
     color 0.2s;
@@ -210,4 +214,85 @@
     color: var(--primary-color);
     background-color: transparent;
   }
+}
+
+/* =========================================
+   OVERFLOW MENU (Bottom Sheet)
+   ========================================= */
+.overflow-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.overflow-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.overflow-menu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  background: var(--surface-color);
+  border-radius: 24px 24px 0 0;
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform 0.3s ease-out;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.overflow-menu.open {
+  transform: translateY(0);
+}
+
+.overflow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.overflow-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-height: 72px;
+  min-width: 72px;
+}
+
+.overflow-item:hover {
+  background: var(--surface-hover);
+}
+
+.overflow-item.active {
+  background: var(--primary-color);
+  color: var(--surface-color);
+}
+
+.overflow-item span {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.overflow-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-color);
+  margin: 0 auto;
 }

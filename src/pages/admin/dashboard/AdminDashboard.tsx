@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, TrendingUp, DollarSign, ClipboardList, BookOpen } from 'lucide-react';
+import { Users, Calendar, TrendingUp, DollarSign, ClipboardList, BookOpen, Tag } from 'lucide-react';
 import { SummaryCard } from './components/SummaryCard';
 import { dashboardService, type DashboardStats, type FinancialBalance } from '@/core/services';
 import type { ClassEntity } from '@/core/types/classes.types';
@@ -91,7 +91,8 @@ export function AdminDashboard() {
 
       <div className="dashboard-section hide-on-desktop">
         <h2 className="section-title">Acciones Rápidas</h2>
-        <div className="action-grid" style={{ justifyContent: 'space-around' }}>
+        <div className="action-grid">
+          {/* Fila 1: Gestión de Personas y Clases */}
           <button className="quick-action-btn" onClick={() => navigate('/admin/students')}>
             <div className="action-icon-wrapper bg-students">
               <Users size={24} color="#2E7D32" />
@@ -99,11 +100,11 @@ export function AdminDashboard() {
             <span>Alumnos</span>
           </button>
 
-          <button className="quick-action-btn" onClick={() => navigate('/admin/enrollments')}>
-            <div className="action-icon-wrapper bg-plans">
-              <ClipboardList size={24} color="#6C5CE7" />
+          <button className="quick-action-btn" onClick={() => navigate('/admin/teachers')}>
+            <div className="action-icon-wrapper bg-teachers">
+              <BookOpen size={24} color="#6366f1" />
             </div>
-            <span>Matrículas</span>
+            <span>Profesores</span>
           </button>
 
           <button className="quick-action-btn" onClick={() => navigate('/admin/calendar')}>
@@ -113,18 +114,26 @@ export function AdminDashboard() {
             <span>Grilla</span>
           </button>
 
+          {/* Fila 2: Gestión de Negocio y Finanzas */}
+          <button className="quick-action-btn" onClick={() => navigate('/admin/plans')}>
+            <div className="action-icon-wrapper bg-plans">
+              <Tag size={24} color="#A794DF" />
+            </div>
+            <span>Planes</span>
+          </button>
+
+          <button className="quick-action-btn" onClick={() => navigate('/admin/enrollments')}>
+            <div className="action-icon-wrapper bg-plans">
+              <ClipboardList size={24} color="#6C5CE7" />
+            </div>
+            <span>Matrículas</span>
+          </button>
+
           <button className="quick-action-btn" onClick={() => navigate('/admin/finances')}>
             <div className="action-icon-wrapper bg-payments">
               <DollarSign size={24} color="#F57F17" />
             </div>
             <span>Finanzas</span>
-          </button>
-
-          <button className="quick-action-btn" onClick={() => navigate('/admin/teachers')}>
-            <div className="action-icon-wrapper bg-teachers">
-              <BookOpen size={24} color="#6366f1" />
-            </div>
-            <span>Profesores</span>
           </button>
         </div>
       </div>

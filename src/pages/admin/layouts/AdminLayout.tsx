@@ -1,4 +1,5 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import {
@@ -11,18 +12,32 @@ import {
   BookOpen,
   ClipboardCheck,
   CalendarDays,
-  User
+  User,
+  LayoutGrid
 } from 'lucide-react';
+import { OverflowMenu } from '../components/OverflowMenu';
 import '../styles/admin.css';
 
 export function AdminLayout() {
   const { logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const overflowRoutes = ['/admin/students', '/admin/plans', '/admin/teachers', '/admin/enrollments', '/admin/profile'];
+  const isOverflowActive = overflowRoutes.some((route) =>
+    location.pathname.startsWith(route),
+  );
 
   const handleLogout = async () => {
     await authService.logout();
     logout();
     navigate('/login');
+  };
+
+  const handleOverflowNavigate = (path: string) => {
+    navigate(path);
+    setMenuOpen(false);
   };
 
   return (
@@ -65,7 +80,7 @@ export function AdminLayout() {
           </NavLink>
           <NavLink
             to="/admin/profile"
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            className={({ isActive }) => `nav-item hide-on-mobile ${isActive ? 'active' : ''}`}
           >
             <User size={20} />
             <span>Perfil</span>
@@ -100,6 +115,15 @@ export function AdminLayout() {
             <ClipboardCheck size={20} />
             <span>Matrículas</span>
           </NavLink>
+
+          {/* Más — solo visible en mobile bottom bar */}
+          <button
+            onClick={() => setMenuOpen(true)}
+            className={`nav-item hide-on-desktop${isOverflowActive ? ' active' : ''}`}
+          >
+            <LayoutGrid size={20} />
+            <span>Más</span>
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -114,6 +138,14 @@ export function AdminLayout() {
       <main className="admin-content">
         <Outlet />
       </main>
+
+      {/* Overflow menu (mobile bottom sheet) */}
+      <OverflowMenu
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onNavigate={handleOverflowNavigate}
+        currentPath={location.pathname}
+      />
     </div>
   );
 }
