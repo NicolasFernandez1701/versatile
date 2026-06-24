@@ -91,7 +91,7 @@ export function PlanForm({
     let suggested = 0;
     activities.forEach((act) => {
       const basePrice = activityCatalog.get(act.activity_name) || 0;
-      suggested += basePrice * act.classes_per_week * 4;
+      suggested += basePrice * Number(act.classes_per_week || 0) * 4;
     });
     setPrice(suggested.toString());
   };
@@ -120,7 +120,10 @@ export function PlanForm({
         classes_per_week: totalClassesPerWeek,
         is_active: isActive
       },
-      validActivities
+      validActivities.map(a => ({
+        activity_name: a.activity_name,
+        classes_per_week: Number(a.classes_per_week || 0)
+      }))
     );
   };
 

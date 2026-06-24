@@ -1,4 +1,4 @@
-import { Trash2, DollarSign, Pencil } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import type { UserProfile } from '@/core/types/users.types';
 import { DataTable, type Column, Button } from '@/components/ui';
 
