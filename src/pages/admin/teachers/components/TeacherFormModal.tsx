@@ -5,35 +5,56 @@ import { usersService } from '@/core/services';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { Modal, Input, Button } from '@/components/ui';
 
+import type { UserProfile } from '@/core/types/users.types';
+
 interface TeacherFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: UserProfile | null;
 }
 
-export function TeacherFormModal({ isOpen, onClose, onSuccess }: TeacherFormModalProps) {
+export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: TeacherFormModalProps) {
   const { showError, showSuccess } = useAlert();
   const [full_name, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setFullName('');
-      setEmail('');
+      if (initialData) {
+        setFullName(initialData.full_name);
+        setEmail(initialData.email || '');
+        setPhone(initialData.phone || '');
+      } else {
+        setFullName('');
+        setEmail('');
+        setPhone('');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await usersService.createUser({
-        full_name,
-        email,
-        role: 'teacher'
-      });
-      showSuccess('Profesor creado con éxito. La contraseña inicial es password123.');
+      if (initialData) {
+        await usersService.updateUser(initialData.id, {
+          full_name,
+          email,
+          phone
+        });
+        showSuccess('Profesor actualizado con éxito.');
+      } else {
+        await usersService.createUser({
+          full_name,
+          email,
+          phone,
+          role: 'teacher'
+        });
+        showSuccess('Profesor creado con éxito. La contraseña inicial es password123.');
+      }
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -44,7 +65,7 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess }: TeacherFormModa
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Registrar Nuevo Profesor" maxWidth="600px">
+    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Editar Profesor" : "Registrar Nuevo Profesor"} maxWidth="600px">
       <form onSubmit={handleSubmit} className="standard-form">
         <h3 style={{ marginBottom: '1rem', color: 'var(--primary-color)' }}>Datos de Acceso</h3>
 
@@ -64,13 +85,22 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess }: TeacherFormModa
           required
         />
 
-        <p
-          className="text-secondary"
-          style={{ fontSize: '0.85rem', marginTop: '-0.5rem', marginBottom: '1rem' }}
-        >
-          La contraseña se generará automáticamente como <strong>password123</strong>. El sistema
-          obligará al profesor a cambiarla al ingresar por primera vez.
-        </p>
+        <Input
+          label="Teléfono"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+
+        {!initialData && (
+          <p
+            className="text-secondary"
+            style={{ fontSize: '0.85rem', marginTop: '-0.5rem', marginBottom: '1rem' }}
+          >
+            La contraseña se generará automáticamente como <strong>password123</strong>. El sistema
+            obligará al profesor a cambiarla al ingresar por primera vez.
+          </p>
+        )}
 
         <div
           className="form-actions"

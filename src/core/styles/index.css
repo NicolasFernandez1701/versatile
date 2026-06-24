@@ -214,6 +214,7 @@ input[type='email'],
 input[type='password'],
 input[type='time'],
 input[type='date'],
+input[type='tel'],
 select {
   width: 100%;
   background: var(--input-bg);
@@ -392,6 +393,30 @@ input:disabled {
     color: var(--text-secondary);
     text-align: left;
     margin-right: 1rem;
+  }
+
+  /* Modificador para celdas que actúan como título principal de la tarjeta en móvil */
+  .data-table td.mobile-card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    padding: 1.25rem;
+    margin: -1rem -1.25rem 1rem -1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    width: calc(100% + 2.5rem);
+    background: var(--surface-hover);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+
+  .data-table td.mobile-card-header::before {
+    display: none;
+  }
+
+  .data-table td.mobile-card-header > * {
+    align-items: flex-start !important;
+    text-align: left !important;
   }
 }
 

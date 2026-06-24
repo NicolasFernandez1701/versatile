@@ -102,7 +102,7 @@ describe('PlanForm', () => {
       ).toHaveValue('Plan Premium');
     });
 
-    expect(screen.getByPlaceholderText('Valor final del plan')).toHaveValue(25000);
+    expect(screen.getByPlaceholderText('Valor final del plan')).toHaveValue('25000');
     expect(screen.getByLabelText('Plan Activo')).toBeChecked();
 
     expect(screen.getByDisplayValue('Yoga')).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe('PlanForm', () => {
     const expectedPrice = 5000 * 2 * 4 + 4000 * 1 * 4; // 40000 + 16000 = 56000
     expect(
       screen.getByPlaceholderText('Valor final del plan')
-    ).toHaveValue(expectedPrice);
+    ).toHaveValue(expectedPrice.toString());
   });
 
   it('Submit con datos válidos: llama a onSubmit con plan + activities filtradas', async () => {

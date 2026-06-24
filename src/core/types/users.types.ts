@@ -20,6 +20,10 @@ export interface UserProfile {
     classes_per_week: number;
   };
   student_details?: StudentDetails;
+  classes?: {
+    activity_name: string;
+    teacher_commission_pct: number;
+  }[];
 
   created_at: string;
 }

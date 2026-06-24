@@ -60,14 +60,14 @@ export function AdminDashboard() {
         <div className="summary-grid">
           <SummaryCard
             title="Ingresos del Mes"
-            value={`$${balance.monthlyTotal.toLocaleString()}`}
+            value={`$${balance.monthlyTotal.toLocaleString('es-AR')}`}
             icon={DollarSign}
             iconColorClass="text-success"
             onClick={() => navigate('/admin/finances')}
           />
           <SummaryCard
             title="Ingresos del Año"
-            value={`$${balance.annualTotal.toLocaleString()}`}
+            value={`$${balance.annualTotal.toLocaleString('es-AR')}`}
             icon={TrendingUp}
             iconColorClass="text-primary"
             onClick={() => navigate('/admin/finances')}

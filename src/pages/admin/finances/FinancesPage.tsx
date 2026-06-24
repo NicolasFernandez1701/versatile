@@ -69,7 +69,7 @@ export function FinancesPage() {
       header: 'Monto (Neto)',
       render: (p) => (
         <span className="text-primary" style={{ fontWeight: 'bold' }}>
-          ${p.amount}
+          ${Number(p.amount).toLocaleString('es-AR')}
         </span>
       )
     },
@@ -89,10 +89,10 @@ export function FinancesPage() {
       render: (p) => (
         <ul className="activity-list">
           {p.late_fee_applied && (
-            <li className="text-danger">Mora aplicada (+${p.surcharge_applied})</li>
+            <li className="text-danger">Mora aplicada (+${Number(p.surcharge_applied).toLocaleString('es-AR')})</li>
           )}
           {p.discount_applied > 0 && (
-            <li className="text-success">Descuento aplicado (-${p.discount_applied})</li>
+            <li className="text-success">Descuento aplicado (-${Number(p.discount_applied).toLocaleString('es-AR')})</li>
           )}
           {p.original_amount !== p.amount && !p.late_fee_applied && p.discount_applied === 0 && (
             <li>Editado manualmente</li>
@@ -214,7 +214,7 @@ export function FinancesPage() {
                               color: 'var(--success-color)'
                             }}
                           >
-                            ${(balance.monthlyByPlan[planName] || 0).toLocaleString()}
+                            ${(balance.monthlyByPlan[planName] || 0).toLocaleString('es-AR')}
                           </td>
                           <td
                             data-label="Anual"
@@ -224,7 +224,7 @@ export function FinancesPage() {
                               color: 'var(--primary-color)'
                             }}
                           >
-                            ${balance.annualByPlan[planName].toLocaleString()}
+                            ${balance.annualByPlan[planName].toLocaleString('es-AR')}
                           </td>
                         </tr>
                       ))

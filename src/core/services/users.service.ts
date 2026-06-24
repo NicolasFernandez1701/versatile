@@ -27,7 +27,7 @@ export const usersService = {
   async getTeachers(): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, classes(activity_name, teacher_commission_pct)')
       .eq('role', 'teacher')
       .order('created_at', { ascending: false });
 

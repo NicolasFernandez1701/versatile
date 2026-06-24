@@ -152,7 +152,7 @@ export function StudentPlansPage() {
                   {plan.name}
                 </h3>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-                  ${plan.price.toLocaleString()}
+                  ${plan.price.toLocaleString('es-AR')}
                 </div>
                 <div
                   className="text-secondary"

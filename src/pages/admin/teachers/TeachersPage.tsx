@@ -12,6 +12,7 @@ export function TeachersPage() {
   const { teachers, loading, fetchTeachers } = useUsersStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function TeachersPage() {
           <h1>Gestión de Profesores</h1>
           <p>Administrá al equipo docente.</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)} title="Nuevo Profesor">
+        <button className="btn-primary" onClick={() => { setEditingTeacher(null); setIsModalOpen(true); }} title="Nuevo Profesor">
           <UserPlus size={20} />
           <span>Nuevo Profesor</span>
         </button>
@@ -64,14 +65,27 @@ export function TeachersPage() {
         />
       </div>
 
-      <TeacherList teachers={filteredTeachers} loading={loading} onDelete={handleDelete} />
+      <TeacherList 
+        teachers={filteredTeachers} 
+        loading={loading} 
+        onDelete={handleDelete}
+        onEdit={(teacher) => {
+          setEditingTeacher(teacher);
+          setIsModalOpen(true);
+        }}
+      />
 
       <TeacherFormModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        initialData={editingTeacher}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTeacher(null);
+        }}
         onSuccess={() => {
           fetchTeachers();
           setIsModalOpen(false);
+          setEditingTeacher(null);
         }}
       />
 

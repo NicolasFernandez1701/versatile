@@ -187,7 +187,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               type="number"
               value={amountOverride}
               onChange={(e) => setAmountOverride(e.target.value)}
-              placeholder={`Automático: $${subtotal.toFixed(2)}`}
+              placeholder={`Automático: $${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           </div>
         </form>
@@ -200,27 +200,27 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="breakdown-row">
                 <span className="text-secondary">Plan Base ({plan.name})</span>
-                <span>${basePrice.toFixed(2)}</span>
+                <span>${basePrice.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 
               {promoDiscountPct > 0 && (
                 <div className="breakdown-row" style={{ color: 'var(--success-color)' }}>
                   <span>Promo {promoDiscountPct}% OFF</span>
-                  <span>-${promoDiscountAmount.toFixed(2)}</span>
+                  <span>-${promoDiscountAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
 
               {paymentMethod === 'efectivo' && (
                 <div className="breakdown-row" style={{ color: 'var(--success-color)' }}>
                   <span>Desc. Efectivo (15%)</span>
-                  <span>-${cashDiscountAmount.toFixed(2)}</span>
+                  <span>-${cashDiscountAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
 
               {applyLateFee && (
                 <div className="breakdown-row" style={{ color: 'var(--error-color)' }}>
                   <span>Recargo por Mora (20%)</span>
-                  <span>+${lateFeeAmount.toFixed(2)}</span>
+                  <span>+${lateFeeAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
 
@@ -228,7 +228,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
               <div className="breakdown-total">
                 <span>Total Calculado</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
 
               {amountOverride !== '' && (
@@ -237,7 +237,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                   style={{ color: 'var(--warning-color)', marginTop: '0.5rem' }}
                 >
                   <span>Total Sobreescrito</span>
-                  <span>${finalAmount.toFixed(2)}</span>
+                  <span>${finalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
             </div>

@@ -32,7 +32,7 @@ export function PlanForm({
   const [price, setPrice] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [activities, setActivities] = useState<
-    { activity_name: string; classes_per_week: number }[]
+    { activity_name: string; classes_per_week: number | string }[]
   >([]);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export function PlanForm({
     await onSubmit(
       {
         name,
-        price: Number(price),
+        price: Number(price.replace(/\./g, '').replace(/,/g, '.')),
         classes_per_week: totalClassesPerWeek,
         is_active: isActive
       },
@@ -163,7 +163,13 @@ export function PlanForm({
                 type="number"
                 min="1"
                 value={act.classes_per_week}
-                onChange={(e) => updateActivity(idx, 'classes_per_week', Number(e.target.value))}
+                onChange={(e) =>
+                  updateActivity(
+                    idx,
+                    'classes_per_week',
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
                 required
               />
               <span style={{ alignSelf: 'center' }}>clases/sem</span>
@@ -198,7 +204,8 @@ export function PlanForm({
           <label>Precio Mensual ($)</label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Valor final del plan"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
