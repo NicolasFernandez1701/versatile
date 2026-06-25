@@ -17,6 +17,12 @@ vi.mock('../services/users.service', () => ({
   },
 }));
 
+vi.mock('./useAuthStore', () => ({
+  useAuthStore: {
+    getState: vi.fn(() => ({ current_studio_id: 'studio-001' })),
+  },
+}));
+
 describe('useUsersStore', () => {
   beforeEach(() => {
     useUsersStore.setState({
@@ -56,7 +62,7 @@ describe('useUsersStore', () => {
     });
 
     it('debería mostrar loading mientras se ejecuta', async () => {
-      let resolvePromise: Function;
+      let resolvePromise: (value: unknown[]) => void;
       mockGetStudents.mockReturnValue(new Promise((r) => (resolvePromise = r)));
 
       const promise = useUsersStore.getState().fetchStudents();
@@ -108,6 +114,8 @@ describe('useUsersStore', () => {
         email: 'nuevo@test.com',
         full_name: 'Nuevo',
         role: 'student',
+        password: 'pass123',
+        studio_id: 'studio-001',
       });
 
       expect(mockCreateUser).toHaveBeenCalled();
@@ -124,6 +132,8 @@ describe('useUsersStore', () => {
         email: 'profe@test.com',
         full_name: 'Nuevo Profe',
         role: 'teacher',
+        password: 'pass123',
+        studio_id: 'studio-001',
       });
 
       expect(mockGetTeachers).toHaveBeenCalled();
@@ -138,6 +148,8 @@ describe('useUsersStore', () => {
           email: 'test@test.com',
           full_name: 'Test',
           role: 'student',
+          password: 'pass123',
+          studio_id: 'studio-001',
         }),
       ).rejects.toThrow('Error al crear');
 

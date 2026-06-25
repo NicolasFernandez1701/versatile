@@ -3,6 +3,7 @@ import { Check, AlertTriangle } from 'lucide-react';
 import { financesService } from '@/core/services';
 import { Modal } from '@/components/ui';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAuthStore } from '@/core/store/useAuthStore';
 import '../finances.css';
 
 interface RecordPaymentModalProps {
@@ -13,6 +14,7 @@ interface RecordPaymentModalProps {
 
 export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPaymentModalProps) {
   const { showError, showSuccess } = useAlert();
+  const { current_studio_id } = useAuthStore();
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [studentSearchText, setStudentSearchText] = useState('');
@@ -30,7 +32,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   useEffect(() => {
     if (isOpen) {
       financesService
-        .getStudentsWithPlans()
+        .getStudentsWithPlans(current_studio_id || '')
         .then((data) => setStudents(data))
         .catch(console.error);
 
@@ -40,7 +42,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
       setPaymentMethod('transferencia');
       setAmountOverride('');
     }
-  }, [isOpen, isAfter10th]);
+  }, [isOpen, isAfter10th, current_studio_id]);
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
   const plan = selectedStudent?.plans;

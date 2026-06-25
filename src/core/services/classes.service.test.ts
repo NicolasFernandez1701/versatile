@@ -6,6 +6,8 @@ import type { ClassEntity } from '../types/classes.types';
 // 1. Datos de prueba
 // ──────────────────────────────────────────────
 
+const STUDIO_ID = 'studio-001';
+
 const mockClasses: ClassEntity[] = [
   {
     id: 'cls-001',
@@ -33,7 +35,7 @@ const mockClasses: ClassEntity[] = [
   },
 ];
 
-const mockEnrollments: any[] = [
+const mockEnrollments: unknown[] = [
   {
     id: 'enr-001',
     reservation_date: '2024-06-15',
@@ -42,7 +44,7 @@ const mockEnrollments: any[] = [
   },
 ];
 
-const mockTeachers: any[] = [
+const mockTeachers: unknown[] = [
   { id: 'tea-001', full_name: 'Laura Martínez', email: 'laura@test.com', role: 'teacher' },
 ];
 
@@ -58,23 +60,32 @@ vi.mock('./supabase', () => ({
   supabase: { from: mockFrom },
 }));
 
+// Mock the auth store so write operations can read current_studio_id
+vi.mock('../store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID })),
+  },
+}));
+
 describe('classesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   // ────────────────────────────────────────────
-  // getClasses
+  // getClasses (filtered by studioId)
   // ────────────────────────────────────────────
   describe('getClasses', () => {
-    it('debería devolver la lista de clases ordenadas por día', async () => {
+    it('debería devolver la lista de clases filtradas por studio', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
-          order: vi.fn().mockResolvedValue({ data: mockClasses, error: null }),
+          eq: vi.fn(() => ({
+            order: vi.fn().mockResolvedValue({ data: mockClasses, error: null }),
+          })),
         })),
       });
 
-      const result = await classesService.getClasses();
+      const result = await classesService.getClasses(STUDIO_ID);
 
       expect(result).toEqual(mockClasses);
       expect(mockFrom).toHaveBeenCalledWith('classes');
@@ -83,11 +94,13 @@ describe('classesService', () => {
     it('debería lanzar error si Supabase falla', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
-          order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error de conexión') }),
+          eq: vi.fn(() => ({
+            order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error de conexión') }),
+          })),
         })),
       });
 
-      await expect(classesService.getClasses()).rejects.toThrow('Error de conexión');
+      await expect(classesService.getClasses(STUDIO_ID)).rejects.toThrow('Error de conexión');
     });
   });
 
@@ -252,7 +265,7 @@ describe('classesService', () => {
   });
 
   // ────────────────────────────────────────────
-  // createClass
+  // createClass — injects studio_id from store
   // ────────────────────────────────────────────
   describe('createClass', () => {
     const payload = {
@@ -281,7 +294,7 @@ describe('classesService', () => {
     });
 
     it('debería crear una clase sin upsert si no tiene activity_name', async () => {
-      const { activity_name, ...payloadWithoutActivity } = payload;
+      const { activity_name: _a, ...payloadWithoutActivity } = payload;
 
       mockFrom.mockReturnValue({
         insert: vi.fn().mockResolvedValue({ error: null }),
@@ -314,6 +327,13 @@ describe('classesService', () => {
       });
 
       await expect(classesService.createClass(payload)).rejects.toThrow('Error al crear clase');
+    });
+
+    it('debería lanzar error si no hay studio activo', async () => {
+      const { useAuthStore } = await import('../store/useAuthStore');
+      vi.mocked(useAuthStore.getState).mockReturnValueOnce({ current_studio_id: null } as ReturnType<typeof useAuthStore.getState>);
+
+      await expect(classesService.createClass(payload)).rejects.toThrow('No active studio');
     });
   });
 
@@ -350,7 +370,7 @@ describe('classesService', () => {
   });
 
   // ────────────────────────────────────────────
-  // updateClass
+  // updateClass — injects studio_id from store
   // ────────────────────────────────────────────
   describe('updateClass', () => {
     const payload = {
@@ -409,6 +429,13 @@ describe('classesService', () => {
 
       await expect(classesService.updateClass('cls-001', payload)).resolves.toBeUndefined();
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'classes');
+    });
+
+    it('debería lanzar error si no hay studio activo', async () => {
+      const { useAuthStore } = await import('../store/useAuthStore');
+      vi.mocked(useAuthStore.getState).mockReturnValueOnce({ current_studio_id: null } as ReturnType<typeof useAuthStore.getState>);
+
+      await expect(classesService.updateClass('cls-001', payload)).rejects.toThrow('No active studio');
     });
   });
 });

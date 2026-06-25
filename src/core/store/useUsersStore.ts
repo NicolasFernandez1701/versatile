@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { UserProfile } from '../types/users.types';
 import { usersService } from '../services/users.service';
+import { useAuthStore } from './useAuthStore';
 
 interface UsersState {
   students: UserProfile[];
@@ -13,6 +14,8 @@ interface UsersState {
     email: string;
     full_name: string;
     role: 'student' | 'teacher';
+    password: string;
+    studio_id: string;
   }) => Promise<void>;
   deleteUser: (id: string, role: 'student' | 'teacher') => Promise<void>;
 }
@@ -24,22 +27,32 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   error: null,
 
   fetchStudents: async () => {
+    const studioId = useAuthStore.getState().current_studio_id;
+    if (!studioId) {
+      set({ error: 'No active studio', loading: false });
+      return;
+    }
     set({ loading: true, error: null });
     try {
-      const data = await usersService.getStudents();
+      const data = await usersService.getStudents(studioId);
       set({ students: data, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err: unknown) {
+      set({ error: err instanceof Error ? err.message : 'Error desconocido', loading: false });
     }
   },
 
   fetchTeachers: async () => {
+    const studioId = useAuthStore.getState().current_studio_id;
+    if (!studioId) {
+      set({ error: 'No active studio', loading: false });
+      return;
+    }
     set({ loading: true, error: null });
     try {
-      const data = await usersService.getTeachers();
+      const data = await usersService.getTeachers(studioId);
       set({ teachers: data, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err: unknown) {
+      set({ error: err instanceof Error ? err.message : 'Error desconocido', loading: false });
     }
   },
 
@@ -50,8 +63,8 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       if (payload.role === 'student') await get().fetchStudents();
       if (payload.role === 'teacher') await get().fetchTeachers();
       set({ loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err: unknown) {
+      set({ error: err instanceof Error ? err.message : 'Error desconocido', loading: false });
       throw err;
     }
   },
@@ -63,8 +76,8 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       if (role === 'student') await get().fetchStudents();
       if (role === 'teacher') await get().fetchTeachers();
       set({ loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err: unknown) {
+      set({ error: err instanceof Error ? err.message : 'Error desconocido', loading: false });
       throw err;
     }
   }

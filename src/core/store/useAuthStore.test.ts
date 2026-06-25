@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import type { AppUser, StudioMembership } from '../types/auth.types';
 import { useAuthStore } from './useAuthStore';
 
 describe('useAuthStore', () => {
@@ -6,6 +7,8 @@ describe('useAuthStore', () => {
     useAuthStore.setState({
       user: null,
       role: null,
+      current_studio_id: null,
+      membership: null,
       isAuthenticated: false,
       isLoading: true,
     });
@@ -15,30 +18,59 @@ describe('useAuthStore', () => {
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
     expect(state.role).toBeNull();
+    expect(state.current_studio_id).toBeNull();
+    expect(state.membership).toBeNull();
     expect(state.isAuthenticated).toBe(false);
     expect(state.isLoading).toBe(true);
   });
 
-  it('setUser debería actualizar usuario, rol y auth state', () => {
+  it('setUser debería actualizar usuario, rol y auth state desde profile', () => {
     const mockUser = {
       id: '1',
       email: 'test@test.com',
-      profile: { role: 'admin' as const },
-    };
+      profile: { role: 'admin' as const, has_completed_onboarding: true },
+    } as AppUser;
 
-    useAuthStore.getState().setUser(mockUser as any);
+    useAuthStore.getState().setUser(mockUser);
 
     const state = useAuthStore.getState();
     expect(state.user).toEqual(mockUser);
     expect(state.isAuthenticated).toBe(true);
     expect(state.role).toBe('admin');
+    expect(state.current_studio_id).toBeNull();
+    expect(state.membership).toBeNull();
   });
 
-  it('setUser con null debería desautenticar', () => {
+  it('setUser con membership debería derivar role y current_studio_id desde membership', () => {
+    const mockMembership: StudioMembership = {
+      studio_id: 'studio-abc',
+      studio_name: 'Studio ABC',
+      role: 'teacher',
+    };
+    const mockUser = {
+      id: '2',
+      email: 'teacher@test.com',
+      profile: { role: 'student' as const, has_completed_onboarding: false },
+      membership: mockMembership,
+    } as AppUser;
+
+    useAuthStore.getState().setUser(mockUser);
+
+    const state = useAuthStore.getState();
+    // membership.role takes priority over profile.role
+    expect(state.role).toBe('teacher');
+    expect(state.current_studio_id).toBe('studio-abc');
+    expect(state.membership).toEqual(mockMembership);
+    expect(state.isAuthenticated).toBe(true);
+  });
+
+  it('setUser con null debería desautenticar y limpiar studio', () => {
     useAuthStore.setState({
-      user: { id: '1' } as any,
+      user: { id: '1' } as AppUser,
       isAuthenticated: true,
       role: 'admin',
+      current_studio_id: 'studio-xyz',
+      membership: { studio_id: 'studio-xyz', studio_name: 'Studio XYZ', role: 'admin' },
     });
 
     useAuthStore.getState().setUser(null);
@@ -47,16 +79,18 @@ describe('useAuthStore', () => {
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
     expect(state.role).toBeNull();
+    expect(state.current_studio_id).toBeNull();
+    expect(state.membership).toBeNull();
   });
 
-  it('debería obtener rol de user_metadata si no hay profile', () => {
+  it('debería obtener rol de user_metadata si no hay profile ni membership', () => {
     const mockUser = {
       id: '1',
       email: 'test@test.com',
       user_metadata: { role: 'teacher' },
-    };
+    } as unknown as AppUser;
 
-    useAuthStore.getState().setUser(mockUser as any);
+    useAuthStore.getState().setUser(mockUser);
 
     expect(useAuthStore.getState().role).toBe('teacher');
   });
@@ -71,11 +105,13 @@ describe('useAuthStore', () => {
     expect(useAuthStore.getState().isLoading).toBe(false);
   });
 
-  it('logout debería limpiar todo', () => {
+  it('logout debería limpiar todo incluyendo studio', () => {
     useAuthStore.setState({
-      user: { id: '1' } as any,
+      user: { id: '1' } as AppUser,
       role: 'admin',
       isAuthenticated: true,
+      current_studio_id: 'studio-xyz',
+      membership: { studio_id: 'studio-xyz', studio_name: 'Studio XYZ', role: 'admin' },
     });
 
     useAuthStore.getState().logout();
@@ -84,5 +120,16 @@ describe('useAuthStore', () => {
     expect(state.user).toBeNull();
     expect(state.role).toBeNull();
     expect(state.isAuthenticated).toBe(false);
+    expect(state.current_studio_id).toBeNull();
+    expect(state.membership).toBeNull();
+  });
+
+  it('getCurrentStudioId debería devolver el current_studio_id del estado', () => {
+    useAuthStore.setState({ current_studio_id: 'studio-123' });
+    expect(useAuthStore.getState().getCurrentStudioId()).toBe('studio-123');
+  });
+
+  it('getCurrentStudioId debería devolver null cuando no hay studio activo', () => {
+    expect(useAuthStore.getState().getCurrentStudioId()).toBeNull();
   });
 });

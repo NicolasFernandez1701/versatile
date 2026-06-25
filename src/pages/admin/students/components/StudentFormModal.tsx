@@ -5,6 +5,7 @@ import { usersService, plansService } from '@/core/services';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import type { PlanEntity } from '@/core/types/plans.types';
 import { Modal, Input, Select, Button } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
 
 interface StudentFormModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface StudentFormModalProps {
 }
 
 export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: StudentFormModalProps) {
+  const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
   const isEditing = !!studentId;
   const { students } = useUsersStore();
@@ -59,7 +61,13 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
     try {
       if (!isEditing) {
         // Create new
-        await usersService.createUser({ email, full_name: full_name, role: 'student' });
+        await usersService.createUser({
+          email,
+          full_name,
+          role: 'student',
+          password: 'password123',
+          studio_id: current_studio_id || ''
+        });
         showSuccess(
           'Alumno creado con éxito (Contraseña inicial: password123). Luego podrás asignarle un plan editándolo.'
         );

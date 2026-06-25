@@ -5,8 +5,10 @@ import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
 import { usePaymentHistory } from './hooks/usePaymentHistory';
 import { DataTable, type Column, Button, Loader, Select, Input } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
 
 export function FinancesPage() {
+  const { current_studio_id } = useAuthStore();
   const [payments, setPayments] = useState<PaymentEntity[]>([]);
   const [balance, setBalance] = useState<FinancialBalance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,15 +31,18 @@ export function FinancesPage() {
   } = usePaymentHistory(payments);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (current_studio_id) {
+      loadData();
+    }
+  }, [current_studio_id]);
 
   const loadData = async () => {
+    if (!current_studio_id) return;
     try {
       setLoading(true);
       const [paymentsData, balanceData] = await Promise.all([
-        financesService.getPayments(),
-        dashboardService.getFinancialBalance()
+        financesService.getPayments(current_studio_id),
+        dashboardService.getFinancialBalance(current_studio_id)
       ]);
       setPayments(paymentsData);
       setBalance(balanceData);
@@ -48,7 +53,7 @@ export function FinancesPage() {
     }
   };
 
-  const columns: Column<any>[] = [
+  const columns: Column<PaymentEntity>[] = [
     {
       key: 'date',
       header: 'Fecha',

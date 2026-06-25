@@ -5,7 +5,9 @@ import { financesService } from './finances.service';
 // 1. Datos de prueba
 // ──────────────────────────────────────────────
 
-const mockPayments: any[] = [
+const STUDIO_ID = 'studio-001';
+
+const mockPayments: unknown[] = [
   {
     id: 'pay-001',
     student_id: 'stu-001',
@@ -24,7 +26,7 @@ const mockPayments: any[] = [
   },
 ];
 
-const mockStudentsWithPlans: any[] = [
+const mockStudentsWithPlans: unknown[] = [
   {
     id: 'stu-001',
     full_name: 'María García',
@@ -51,23 +53,31 @@ vi.mock('./supabase', () => ({
   supabase: { from: mockFrom },
 }));
 
+vi.mock('../store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID })),
+  },
+}));
+
 describe('financesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   // ────────────────────────────────────────────
-  // getPayments
+  // getPayments (filtered by studioId)
   // ────────────────────────────────────────────
   describe('getPayments', () => {
-    it('debería devolver todos los pagos ordenados', async () => {
+    it('debería devolver todos los pagos del studio ordenados', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
-          order: vi.fn().mockResolvedValue({ data: mockPayments, error: null }),
+          eq: vi.fn(() => ({
+            order: vi.fn().mockResolvedValue({ data: mockPayments, error: null }),
+          })),
         })),
       });
 
-      const result = await financesService.getPayments();
+      const result = await financesService.getPayments(STUDIO_ID);
 
       expect(result).toEqual(mockPayments);
       expect(mockFrom).toHaveBeenCalledWith('payments');
@@ -76,26 +86,30 @@ describe('financesService', () => {
     it('debería lanzar error si la consulta falla', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
-          order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error al obtener pagos') }),
+          eq: vi.fn(() => ({
+            order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error al obtener pagos') }),
+          })),
         })),
       });
 
-      await expect(financesService.getPayments()).rejects.toThrow('Error al obtener pagos');
+      await expect(financesService.getPayments(STUDIO_ID)).rejects.toThrow('Error al obtener pagos');
     });
   });
 
   // ────────────────────────────────────────────
-  // getStudentsWithPlans
+  // getStudentsWithPlans (filtered by studioId)
   // ────────────────────────────────────────────
   describe('getStudentsWithPlans', () => {
-    it('debería devolver alumnos con sus planes', async () => {
+    it('debería devolver alumnos del studio con sus planes', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ data: mockStudentsWithPlans, error: null }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ data: mockStudentsWithPlans, error: null }),
+          })),
         })),
       });
 
-      const result = await financesService.getStudentsWithPlans();
+      const result = await financesService.getStudentsWithPlans(STUDIO_ID);
 
       expect(result).toEqual(mockStudentsWithPlans);
       expect(mockFrom).toHaveBeenCalledWith('profiles');
@@ -104,16 +118,18 @@ describe('financesService', () => {
     it('debería lanzar error si la consulta falla', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ data: null, error: new Error('Error DB') }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ data: null, error: new Error('Error DB') }),
+          })),
         })),
       });
 
-      await expect(financesService.getStudentsWithPlans()).rejects.toThrow('Error DB');
+      await expect(financesService.getStudentsWithPlans(STUDIO_ID)).rejects.toThrow('Error DB');
     });
   });
 
   // ────────────────────────────────────────────
-  // recordPayment (insert + update)
+  // recordPayment — injects studio_id from store
   // ────────────────────────────────────────────
   describe('recordPayment', () => {
     const payload = {
@@ -130,7 +146,7 @@ describe('financesService', () => {
       late_fee_applied: false,
     };
 
-    it('debería registrar un pago y actualizar la fecha de expiración', async () => {
+    it('debería registrar un pago con studio_id y actualizar la fecha de expiración', async () => {
       mockFrom.mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: null }),
       });
@@ -144,6 +160,13 @@ describe('financesService', () => {
 
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
+    });
+
+    it('debería lanzar error si no hay studio activo', async () => {
+      const { useAuthStore } = await import('../store/useAuthStore');
+      vi.mocked(useAuthStore.getState).mockReturnValueOnce({ current_studio_id: null } as ReturnType<typeof useAuthStore.getState>);
+
+      await expect(financesService.recordPayment(payload)).rejects.toThrow('No active studio');
     });
 
     it('debería lanzar error si el insert del pago falla', async () => {

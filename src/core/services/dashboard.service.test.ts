@@ -5,6 +5,8 @@ import { dashboardService } from './dashboard.service';
 // 1. Datos de prueba
 // ──────────────────────────────────────────────
 
+const STUDIO_ID = 'studio-001';
+
 const mockFinancialData = {
   monthlyTotal: '250000',
   annualTotal: '3000000',
@@ -19,7 +21,7 @@ const mockFinancialDataParsed = {
   annualByPlan: { 'Plan Mensual': 1800000, 'Plan Premium': 1200000 },
 };
 
-const mockTodayClasses: any[] = [
+const mockTodayClasses: unknown[] = [
   {
     id: 'cls-001',
     activity_name: 'Ballet',
@@ -69,22 +71,28 @@ describe('dashboardService', () => {
   });
 
   // ────────────────────────────────────────────
-  // getDashboardStats (Promise.all con count queries)
+  // getDashboardStats — now requires studioId
   // ────────────────────────────────────────────
   describe('getDashboardStats', () => {
-    it('debería devolver estadísticas con ambos contadores', async () => {
+    it('debería devolver estadísticas del studio con ambos contadores', async () => {
+      // students: .eq('role').eq('studio_id')
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: 25, error: null }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: 25, error: null }),
+          })),
         })),
       });
+      // classes: .eq('is_active').eq('studio_id')
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: 10, error: null }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: 10, error: null }),
+          })),
         })),
       });
 
-      const result = await dashboardService.getDashboardStats();
+      const result = await dashboardService.getDashboardStats(STUDIO_ID);
 
       expect(result).toEqual({ totalStudents: 25, activeClasses: 10 });
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'profiles');
@@ -94,72 +102,84 @@ describe('dashboardService', () => {
     it('debería usar 0 como fallback si count es null', async () => {
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: null, error: null }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: null, error: null }),
+          })),
         })),
       });
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: null, error: null }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: null, error: null }),
+          })),
         })),
       });
 
-      const result = await dashboardService.getDashboardStats();
+      const result = await dashboardService.getDashboardStats(STUDIO_ID);
 
       expect(result).toEqual({ totalStudents: 0, activeClasses: 0 });
     });
 
     it('debería lanzar error si la query de students falla', async () => {
-      // Promise.all requiere mock para AMBAS queries
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: null, error: new Error('Error DB students') }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: null, error: new Error('Error DB students') }),
+          })),
         })),
       });
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: 0, error: null }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: 0, error: null }),
+          })),
         })),
       });
 
-      await expect(dashboardService.getDashboardStats()).rejects.toThrow('Error DB students');
+      await expect(dashboardService.getDashboardStats(STUDIO_ID)).rejects.toThrow('Error DB students');
     });
 
     it('debería lanzar error si la query de classes falla', async () => {
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: 25, error: null }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: 25, error: null }),
+          })),
         })),
       });
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ count: null, error: new Error('Error DB classes') }),
+          eq: vi.fn(() => ({
+            eq: vi.fn().mockResolvedValue({ count: null, error: new Error('Error DB classes') }),
+          })),
         })),
       });
 
-      await expect(dashboardService.getDashboardStats()).rejects.toThrow('Error DB classes');
+      await expect(dashboardService.getDashboardStats(STUDIO_ID)).rejects.toThrow('Error DB classes');
     });
   });
 
   // ────────────────────────────────────────────
-  // getFinancialBalance (RPC + parseo de números)
+  // getFinancialBalance — now passes p_studio_id
   // ────────────────────────────────────────────
   describe('getFinancialBalance', () => {
-    it('debería obtener y parsear el balance financiero', async () => {
+    it('debería obtener y parsear el balance financiero con p_studio_id', async () => {
       mockRpc.mockResolvedValue({ data: mockFinancialData, error: null });
 
-      const result = await dashboardService.getFinancialBalance();
+      const result = await dashboardService.getFinancialBalance(STUDIO_ID);
 
       expect(result).toEqual(mockFinancialDataParsed);
       expect(mockRpc).toHaveBeenCalledWith('get_financial_balance', {
         query_year: new Date().getFullYear(),
         query_month: new Date().getMonth() + 1,
+        p_studio_id: STUDIO_ID,
       });
     });
 
     it('debería convertir valores string a number correctamente', async () => {
       mockRpc.mockResolvedValue({ data: mockFinancialData, error: null });
 
-      const result = await dashboardService.getFinancialBalance();
+      const result = await dashboardService.getFinancialBalance(STUDIO_ID);
 
       expect(typeof result.monthlyTotal).toBe('number');
       expect(typeof result.annualTotal).toBe('number');
@@ -173,7 +193,7 @@ describe('dashboardService', () => {
         error: null,
       });
 
-      const result = await dashboardService.getFinancialBalance();
+      const result = await dashboardService.getFinancialBalance(STUDIO_ID);
 
       expect(result).toEqual({
         monthlyTotal: 0,
@@ -186,7 +206,7 @@ describe('dashboardService', () => {
     it('debería lanzar error si el RPC falla', async () => {
       mockRpc.mockResolvedValue({ data: null, error: new Error('Error RPC') });
 
-      await expect(dashboardService.getFinancialBalance()).rejects.toThrow('Error RPC');
+      await expect(dashboardService.getFinancialBalance(STUDIO_ID)).rejects.toThrow('Error RPC');
     });
   });
 
@@ -235,7 +255,6 @@ describe('dashboardService', () => {
     const studentId = 'stu-001';
 
     it('debería devolver el plan activo y la próxima clase', async () => {
-      // Payments query: select().eq().gte().order().limit()
       const mockPaymentsOrder = vi.fn(() => ({
         limit: vi.fn().mockResolvedValue({ data: [mockActivePlan], error: null }),
       }));
@@ -250,7 +269,6 @@ describe('dashboardService', () => {
         })),
       });
 
-      // Enrollments query: select().eq().gte().order().limit()
       const mockEnrollmentsOrder = vi.fn(() => ({
         limit: vi.fn().mockResolvedValue({ data: [mockNextClass], error: null }),
       }));
@@ -276,7 +294,6 @@ describe('dashboardService', () => {
     });
 
     it('debería devolver null si no hay plan activo ni próxima clase', async () => {
-      // Payments query returns empty array
       const mockPaymentsOrder = vi.fn(() => ({
         limit: vi.fn().mockResolvedValue({ data: [], error: null }),
       }));
@@ -291,7 +308,6 @@ describe('dashboardService', () => {
         })),
       });
 
-      // Enrollments query returns empty array
       const mockEnrollmentsOrder = vi.fn(() => ({
         limit: vi.fn().mockResolvedValue({ data: [], error: null }),
       }));
@@ -315,7 +331,6 @@ describe('dashboardService', () => {
     });
 
     it('debería lanzar error si la query de payments falla', async () => {
-      // Promise.all requiere mock para AMBAS queries
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -327,7 +342,6 @@ describe('dashboardService', () => {
           })),
         })),
       });
-      // Mock para enrollments (debe ser válido para no interferir)
       const mockEnrollmentsOrder = vi.fn(() => ({
         limit: vi.fn().mockResolvedValue({ data: [], error: null }),
       }));

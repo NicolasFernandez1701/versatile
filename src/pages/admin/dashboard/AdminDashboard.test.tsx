@@ -27,6 +27,12 @@ vi.mock('@/core/services', () => ({
   },
 }));
 
+vi.mock('@/core/store/useAuthStore', () => ({
+  useAuthStore: () => ({
+    current_studio_id: 'studio-123',
+  }),
+}));
+
 // --- Test utilities ---
 
 function renderDashboard() {

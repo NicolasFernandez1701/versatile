@@ -16,6 +16,8 @@ const menuItems = [
 ];
 
 export function OverflowMenu({ isOpen, onClose, onNavigate, currentPath }: OverflowMenuProps) {
+  if (!isOpen) return null;
+
   const isActive = (path: string) => {
     if (path === '/admin/profile') {
       return currentPath.startsWith('/admin/profile');

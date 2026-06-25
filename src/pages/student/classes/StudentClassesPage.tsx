@@ -19,7 +19,7 @@ const DAYS_MAP: Record<number, string> = {
 };
 
 export function StudentClassesPage() {
-  const { user } = useAuthStore();
+  const { user, current_studio_id } = useAuthStore();
   const { showSuccess, showError } = useAlert();
 
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export function StudentClassesPage() {
       setLoading(true);
 
       // Traer TODAS las clases del gimnasio
-      const cData = await classesService.getClasses();
+      const cData = await classesService.getClasses(current_studio_id || '');
       setClassesList(cData.filter((c) => c.is_active !== false));
 
       // Traer las reservas del alumno

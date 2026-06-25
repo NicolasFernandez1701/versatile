@@ -8,10 +8,12 @@ import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStu
 import { User } from 'lucide-react';
 import './calendar.css';
 import { Loader } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 export function AdminCalendarPage() {
+  const { current_studio_id } = useAuthStore();
   const [classes, setClasses] = useState<ClassEntity[]>([]);
   const [date, setDate] = useState<Date>(new Date());
   const [activeStartDate, setActiveStartDate] = useState<Date>(new Date());
@@ -26,8 +28,9 @@ export function AdminCalendarPage() {
   const { loadingHolidays, getHolidayForDate } = useHolidays(activeStartDate.getFullYear());
 
   const fetchClasses = async () => {
+    if (!current_studio_id) return;
     try {
-      const data = await classesService.getClasses();
+      const data = await classesService.getClasses(current_studio_id);
       setClasses(data);
     } catch (error) {
       console.error(error);
@@ -38,7 +41,7 @@ export function AdminCalendarPage() {
 
   useEffect(() => {
     fetchClasses();
-  }, []);
+  }, [current_studio_id]);
 
   const openStudentsModal = async (cls: ClassEntity) => {
     setViewingStudentsClass(cls);

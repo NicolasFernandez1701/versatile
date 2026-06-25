@@ -1,15 +1,17 @@
 import { supabase } from './supabase';
+import { useAuthStore } from '../store/useAuthStore';
 import type { ClassEntity, EnrollmentEntity, Profile } from '../types/classes.types';
 
 export const classesService = {
-  async getClasses(): Promise<ClassEntity[]> {
+  async getClasses(studioId: string): Promise<ClassEntity[]> {
     const { data, error } = await supabase
       .from('classes')
       .select('*, profiles(full_name), enrollments(count)')
+      .eq('studio_id', studioId)
       .order('day_of_week', { ascending: true });
 
     if (error) throw error;
-    return data as any; // Typecasting for complex joins
+    return data as ClassEntity[];
   },
 
   async getClassesByTeacher(teacherId: string): Promise<ClassEntity[]> {
@@ -21,7 +23,7 @@ export const classesService = {
       .order('start_time', { ascending: true });
 
     if (error) throw error;
-    return data as any;
+    return data as ClassEntity[];
   },
 
   async deleteClass(id: string): Promise<void> {
@@ -45,7 +47,7 @@ export const classesService = {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data as any;
+    return data as unknown as EnrollmentEntity[];
   },
 
   async cancelEnrollment(enrollmentId: string): Promise<void> {
@@ -61,12 +63,15 @@ export const classesService = {
   },
 
   async createClass(payload: Partial<ClassEntity>): Promise<void> {
+    const studioId = useAuthStore.getState().current_studio_id;
+    if (!studioId) throw new Error('No active studio');
+
     if (payload.activity_name) {
       await supabase
         .from('specialties')
-        .upsert({ name: payload.activity_name }, { onConflict: 'name' });
+        .upsert({ name: payload.activity_name, studio_id: studioId }, { onConflict: 'name,studio_id' });
     }
-    const { error } = await supabase.from('classes').insert(payload);
+    const { error } = await supabase.from('classes').insert({ ...payload, studio_id: studioId });
     if (error) throw error;
   },
 
@@ -78,10 +83,13 @@ export const classesService = {
   },
 
   async updateClass(id: string, payload: Partial<ClassEntity>): Promise<void> {
+    const studioId = useAuthStore.getState().current_studio_id;
+    if (!studioId) throw new Error('No active studio');
+
     if (payload.activity_name) {
       await supabase
         .from('specialties')
-        .upsert({ name: payload.activity_name }, { onConflict: 'name' });
+        .upsert({ name: payload.activity_name, studio_id: studioId }, { onConflict: 'name,studio_id' });
     }
     const { error } = await supabase.from('classes').update(payload).eq('id', id);
 

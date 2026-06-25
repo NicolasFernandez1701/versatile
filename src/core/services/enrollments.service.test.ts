@@ -44,6 +44,12 @@ vi.mock('./supabase', () => ({
   supabase: { from: mockFrom },
 }));
 
+vi.mock('../store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: vi.fn(() => ({ current_studio_id: 'studio-001' })),
+  },
+}));
+
 describe('enrollmentsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();

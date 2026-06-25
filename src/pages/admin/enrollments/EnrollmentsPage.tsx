@@ -7,8 +7,10 @@ import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { EnrollmentFormModal } from './components/EnrollmentFormModal';
 import { ConfirmModal } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
 
 export function EnrollmentsPage() {
+  const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
   const { fetchStudents } = useUsersStore();
 
@@ -19,16 +21,19 @@ export function EnrollmentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
-    fetchStudents();
-  }, []);
+    if (current_studio_id) {
+      loadData();
+      fetchStudents();
+    }
+  }, [current_studio_id]);
 
   const loadData = async () => {
+    if (!current_studio_id) return;
     setLoading(true);
     try {
       const [eData, cData] = await Promise.all([
         enrollmentsService.getEnrollments(),
-        classesService.getClasses()
+        classesService.getClasses(current_studio_id)
       ]);
       setEnrollments(eData);
       setClassesList(cData);

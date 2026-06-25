@@ -8,9 +8,11 @@ import { ClassCard } from '@/features/classes/components/ClassCard';
 import { ClassForm } from '@/features/classes/components/ClassForm';
 import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStudentsModal';
 import { Modal, ConfirmModal, Loader } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
 import '../../../features/classes/styles/classes.css';
 
 export function ClassesPage() {
+  const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
   const [classes, setClasses] = useState<ClassEntity[]>([]);
   const [teachers, setTeachers] = useState<Profile[]>([]);
@@ -30,9 +32,10 @@ export function ClassesPage() {
   const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
 
   const fetchClasses = async () => {
+    if (!current_studio_id) return;
     try {
       setLoading(true);
-      const data = await classesService.getClasses();
+      const data = await classesService.getClasses(current_studio_id);
       setClasses(data);
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -42,9 +45,11 @@ export function ClassesPage() {
   };
 
   useEffect(() => {
-    fetchClasses();
-    classesService.getTeachers().then(setTeachers).catch(console.error);
-  }, []);
+    if (current_studio_id) {
+      fetchClasses();
+      classesService.getTeachers().then(setTeachers).catch(console.error);
+    }
+  }, [current_studio_id]);
 
   const handleDeleteClick = (id: string) => {
     setDeletingClassId(id);

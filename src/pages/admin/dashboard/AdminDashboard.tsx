@@ -5,10 +5,12 @@ import { SummaryCard } from './components/SummaryCard';
 import { dashboardService, type DashboardStats, type FinancialBalance } from '@/core/services';
 import type { ClassEntity } from '@/core/types/classes.types';
 import { Loader } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
 import './dashboard.css';
 
 export function AdminDashboard() {
   const navigate = useNavigate();
+  const { current_studio_id } = useAuthStore();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [balance, setBalance] = useState<FinancialBalance | null>(null);
@@ -16,15 +18,18 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (current_studio_id) {
+      loadDashboardData();
+    }
+  }, [current_studio_id]);
 
   const loadDashboardData = async () => {
+    if (!current_studio_id) return;
     try {
       setLoading(true);
       const [s, b, c] = await Promise.all([
-        dashboardService.getDashboardStats(),
-        dashboardService.getFinancialBalance(),
+        dashboardService.getDashboardStats(current_studio_id),
+        dashboardService.getFinancialBalance(current_studio_id),
         dashboardService.getTodayClasses()
       ]);
       setStats(s);

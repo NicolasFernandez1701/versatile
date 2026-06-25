@@ -6,6 +6,7 @@ import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { Modal, Input, Button } from '@/components/ui';
 
 import type { UserProfile } from '@/core/types/users.types';
+import { useAuthStore } from '@/core/store/useAuthStore';
 
 interface TeacherFormModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface TeacherFormModalProps {
 }
 
 export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: TeacherFormModalProps) {
+  const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
   const [full_name, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -51,7 +53,9 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: Te
           full_name,
           email,
           phone,
-          role: 'teacher'
+          role: 'teacher',
+          password: 'password123',
+          studio_id: current_studio_id || ''
         });
         showSuccess('Profesor creado con éxito. La contraseña inicial es password123.');
       }

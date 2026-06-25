@@ -13,22 +13,24 @@ const authClient = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 export const usersService = {
-  async getStudents(): Promise<UserProfile[]> {
+  async getStudents(studioId: string): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*, plans(*)')
       .eq('role', 'student')
+      .eq('studio_id', studioId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data as UserProfile[];
   },
 
-  async getTeachers(): Promise<UserProfile[]> {
+  async getTeachers(studioId: string): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*, classes(activity_name, teacher_commission_pct)')
       .eq('role', 'teacher')
+      .eq('studio_id', studioId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -40,17 +42,19 @@ export const usersService = {
     full_name: string;
     phone?: string;
     role: 'student' | 'teacher';
-    password?: string;
+    password: string;
+    studio_id: string;
   }): Promise<void> {
     // 1. Crear en Auth (esto dispara el trigger handle_new_user en la DB)
     const { data, error } = await authClient.auth.signUp({
       email: payload.email,
-      password: payload.password || 'password123', // Contraseña genérica por defecto o la provista
+      password: payload.password,
       options: {
         data: {
           full_name: payload.full_name,
           phone: payload.phone,
-          role: payload.role
+          role: payload.role,
+          studio_id: payload.studio_id
         }
       }
     });
@@ -70,7 +74,7 @@ export const usersService = {
     if (authError) throw authError;
   },
 
-  async saveOnboardingDetails(profileId: string, details: any): Promise<void> {
+  async saveOnboardingDetails(profileId: string, details: Record<string, unknown>): Promise<void> {
     // 1. Insert Student Details
     const { error: detailsError } = await supabase
       .from('student_details')
@@ -78,7 +82,7 @@ export const usersService = {
 
     if (detailsError) throw detailsError;
 
-    // 3. Mark Onboarding as Completed in Profiles
+    // 2. Mark Onboarding as Completed in Profiles
     const { error: profileError } = await supabase
       .from('profiles')
       .update({ has_completed_onboarding: true })
@@ -86,7 +90,8 @@ export const usersService = {
 
     if (profileError) throw profileError;
   },
-  async saveTeacherOnboardingDetails(profileId: string, details: any): Promise<void> {
+
+  async saveTeacherOnboardingDetails(profileId: string, details: Record<string, unknown>): Promise<void> {
     const { error: detailsError } = await supabase
       .from('teacher_details')
       .insert([{ profile_id: profileId, ...details }]);

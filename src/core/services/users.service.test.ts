@@ -39,11 +39,10 @@ const mockSpecialties = [
   { id: 'spec-002', name: 'Hip Hop' },
 ];
 
+const STUDIO_ID = 'studio-001';
+
 // ──────────────────────────────────────────────
 // 2. Mock de Supabase
-//    Cada grupo de tests (describe) va a configurar
-//    su propia cadena de llamadas según lo que
-//    necesite el método que testea.
 // ──────────────────────────────────────────────
 
 const { mockFrom } = vi.hoisted(() => ({
@@ -80,21 +79,23 @@ describe('usersService', () => {
   });
 
   // ────────────────────────────────────────────
-  // getStudents
+  // getStudents (requires studioId)
   // ────────────────────────────────────────────
   describe('getStudents', () => {
     beforeEach(() => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: mockStudents, error: null }),
+            eq: vi.fn(() => ({
+              order: vi.fn().mockResolvedValue({ data: mockStudents, error: null }),
+            })),
           })),
         })),
       });
     });
 
-    it('debería devolver la lista de alumnos', async () => {
-      const result = await usersService.getStudents();
+    it('debería devolver la lista de alumnos filtrados por studio', async () => {
+      const result = await usersService.getStudents(STUDIO_ID);
 
       expect(result).toEqual(mockStudents);
       expect(result).toHaveLength(2);
@@ -105,31 +106,35 @@ describe('usersService', () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error de conexión') }),
+            eq: vi.fn(() => ({
+              order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error de conexión') }),
+            })),
           })),
         })),
       });
 
-      await expect(usersService.getStudents()).rejects.toThrow('Error de conexión');
+      await expect(usersService.getStudents(STUDIO_ID)).rejects.toThrow('Error de conexión');
     });
   });
 
   // ────────────────────────────────────────────
-  // getTeachers
+  // getTeachers (requires studioId)
   // ────────────────────────────────────────────
   describe('getTeachers', () => {
     beforeEach(() => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: mockTeachers, error: null }),
+            eq: vi.fn(() => ({
+              order: vi.fn().mockResolvedValue({ data: mockTeachers, error: null }),
+            })),
           })),
         })),
       });
     });
 
-    it('debería devolver la lista de profesores', async () => {
-      const result = await usersService.getTeachers();
+    it('debería devolver la lista de profesores filtrados por studio', async () => {
+      const result = await usersService.getTeachers(STUDIO_ID);
 
       expect(result).toEqual(mockTeachers);
       expect(result).toHaveLength(1);
@@ -140,12 +145,14 @@ describe('usersService', () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error DB') }),
+            eq: vi.fn(() => ({
+              order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error DB') }),
+            })),
           })),
         })),
       });
 
-      await expect(usersService.getTeachers()).rejects.toThrow('Error DB');
+      await expect(usersService.getTeachers(STUDIO_ID)).rejects.toThrow('Error DB');
     });
   });
 
@@ -181,7 +188,7 @@ describe('usersService', () => {
   });
 
   // ────────────────────────────────────────────
-  // createUser (usa authClient, NO supabase.from)
+  // createUser — requires explicit password + studio_id
   // ────────────────────────────────────────────
   describe('createUser', () => {
     const payload = {
@@ -189,9 +196,10 @@ describe('usersService', () => {
       full_name: 'Nuevo Usuario',
       role: 'student' as const,
       password: 'pass123',
+      studio_id: STUDIO_ID,
     };
 
-    it('debería crear un usuario en Auth', async () => {
+    it('debería crear un usuario en Auth con studio_id en options.data', async () => {
       mockSignUp.mockResolvedValue({
         data: { user: { id: 'new-001' } },
         error: null,
@@ -207,22 +215,10 @@ describe('usersService', () => {
             full_name: payload.full_name,
             phone: undefined,
             role: payload.role,
+            studio_id: STUDIO_ID,
           },
         },
       });
-    });
-
-    it('debería usar contraseña por defecto si no se provee', async () => {
-      mockSignUp.mockResolvedValue({
-        data: { user: { id: 'new-002' } },
-        error: null,
-      });
-
-      await usersService.createUser({ ...payload, password: undefined });
-
-      expect(mockSignUp).toHaveBeenCalledWith(
-        expect.objectContaining({ password: 'password123' }),
-      );
     });
 
     it('debería lanzar error si Auth falla', async () => {
@@ -330,7 +326,6 @@ describe('usersService', () => {
     beforeEach(() => {
       mockFrom.mockReturnValue({
         insert: vi.fn(() => ({
-          // Primer llamado: insert → sin error
           then: undefined,
         })),
         update: vi.fn(() => ({
@@ -340,7 +335,6 @@ describe('usersService', () => {
     });
 
     it('debería guardar detalles y marcar onboarding como completo', async () => {
-      // Config: insert exitoso
       mockFrom.mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: null }),
       });

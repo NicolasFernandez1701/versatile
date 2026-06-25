@@ -1,5 +1,37 @@
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
+import type { StudioMembership } from '../types/auth.types';
+
+interface ProfileRow {
+  has_completed_onboarding: boolean;
+  role: 'admin' | 'teacher' | 'student';
+  full_name: string | null;
+}
+
+interface StudioMemberRow {
+  studio_id: string;
+  role: 'admin' | 'teacher' | 'student';
+  studios: {
+    name: string;
+  } | null;
+}
+
+async function fetchMembership(userId: string): Promise<StudioMembership | null> {
+  const { data } = await supabase
+    .from('studio_members')
+    .select('studio_id, role, studios(name)')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  const row = data as unknown as StudioMemberRow;
+  return {
+    studio_id: row.studio_id,
+    studio_name: row.studios?.name ?? '',
+    role: row.role
+  };
+}
 
 export const authService = {
   async login(email: string, password: string) {
@@ -45,9 +77,12 @@ export const authService = {
       .eq('id', session.user.id)
       .maybeSingle();
 
+    const membership = await fetchMembership(session.user.id);
+
     return {
       ...session.user,
-      profile: profile || null
+      profile: (profile as ProfileRow | null) || null,
+      membership
     };
   },
 
@@ -66,11 +101,14 @@ export const authService = {
         .eq('id', session.user.id)
         .maybeSingle();
 
+      const membership = await fetchMembership(session.user.id);
+
       const enrichedSession = {
         ...session,
         user: {
           ...session.user,
-          profile: profile || null
+          profile: (profile as ProfileRow | null) || null,
+          membership
         }
       };
 

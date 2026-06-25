@@ -7,8 +7,10 @@ import type { PlanEntity } from '@/core/types/plans.types';
 import type { ClassEntity } from '@/core/types/classes.types';
 import { PlanForm } from '@/features/plans/components/PlanForm';
 import { Modal, ConfirmModal, DataTable, type Column, Button } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
 
 export function PlansPage() {
+  const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
   const [plans, setPlans] = useState<PlanEntity[]>([]);
   const [availableClasses, setAvailableClasses] = useState<ClassEntity[]>([]);
@@ -22,9 +24,11 @@ export function PlansPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    loadPlans();
-    classesService.getClasses().then(setAvailableClasses).catch(console.error);
-  }, []);
+    if (current_studio_id) {
+      loadPlans();
+      classesService.getClasses(current_studio_id).then(setAvailableClasses).catch(console.error);
+    }
+  }, [current_studio_id]);
 
   const loadPlans = async () => {
     try {

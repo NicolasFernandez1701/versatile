@@ -13,14 +13,29 @@ export interface FinancialBalance {
   annualByPlan: Record<string, number>;
 }
 
+interface RpcFinancialBalanceRow {
+  monthlyTotal: number | string | null;
+  annualTotal: number | string | null;
+  monthlyByPlan: Record<string, number | string> | null;
+  annualByPlan: Record<string, number | string> | null;
+}
+
 export const dashboardService = {
   /**
-   * Obtiene estadísticas generales
+   * Obtiene estadísticas generales del studio
    */
-  async getDashboardStats(): Promise<DashboardStats> {
+  async getDashboardStats(studioId: string): Promise<DashboardStats> {
     const [studentsCount, classesCount] = await Promise.all([
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
-      supabase.from('classes').select('id', { count: 'exact', head: true }).eq('is_active', true)
+      supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'student')
+        .eq('studio_id', studioId),
+      supabase
+        .from('classes')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_active', true)
+        .eq('studio_id', studioId)
     ]);
 
     if (studentsCount.error) throw studentsCount.error;
@@ -33,21 +48,22 @@ export const dashboardService = {
   },
 
   /**
-   * Obtiene el balance financiero usando la función RPC de Supabase
+   * Obtiene el balance financiero del studio usando la función RPC de Supabase
    */
-  async getFinancialBalance(): Promise<FinancialBalance> {
+  async getFinancialBalance(studioId: string): Promise<FinancialBalance> {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1; // 1-12 para SQL
 
     const { data, error } = await supabase.rpc('get_financial_balance', {
       query_year: currentYear,
-      query_month: currentMonth
+      query_month: currentMonth,
+      p_studio_id: studioId
     });
 
     if (error) throw error;
 
     // Convertimos explícitamente a Number por si Postgres devuelve los agregados como Strings (muy común con NUMERIC/SUM)
-    const rawData = data as any;
+    const rawData = data as RpcFinancialBalanceRow;
 
     return {
       monthlyTotal: Number(rawData.monthlyTotal || 0),

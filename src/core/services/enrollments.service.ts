@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { useAuthStore } from '../store/useAuthStore';
 import type { EnrollmentEntity } from '../types/enrollments.types';
 
 export const enrollmentsService = {
@@ -9,7 +10,7 @@ export const enrollmentsService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as any;
+    return data as EnrollmentEntity[];
   },
 
   async enrollStudent(studentId: string, classId: string, reservationDate: string): Promise<void> {
@@ -40,7 +41,7 @@ export const enrollmentsService = {
     if (countMonthlyError) throw countMonthlyError;
 
     // TODO: La base de datos guarda 'classes_per_week', en muchos gimnasios el cupo mensual es x4
-    const classesPerMonth = (profile.plans as any)?.classes_per_week * 4 || 0;
+    const classesPerMonth = ((profile.plans as { classes_per_week?: number } | null)?.classes_per_week ?? 0) * 4;
 
     if (monthlyCount !== null && monthlyCount >= classesPerMonth) {
       throw new Error(
@@ -71,9 +72,12 @@ export const enrollmentsService = {
     }
 
     // 3. Inscribir (Reservar)
+    const studioId = useAuthStore.getState().current_studio_id;
+    if (!studioId) throw new Error('No active studio');
+
     const { error } = await supabase
       .from('enrollments')
-      .insert({ student_id: studentId, class_id: classId, reservation_date: reservationDate });
+      .insert({ student_id: studentId, class_id: classId, reservation_date: reservationDate, studio_id: studioId });
 
     if (error) {
       if (error.code === '23505')

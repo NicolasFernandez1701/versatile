@@ -5,16 +5,9 @@ import { authService } from './auth.service';
 // Mock: reemplazamos supabase.auth.* y supabase.from
 // ──────────────────────────────────────────────
 
-const { mockFrom, mockSingle, mockAuth } = vi.hoisted(() => {
-  const mockSingle = vi.fn();
-
-  const mockFrom = vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        maybeSingle: mockSingle,
-      })),
-    })),
-  }));
+const { mockFrom, mockAuth } = vi.hoisted(() => {
+  // mockFrom returns profile chain on first call, membership chain on second call
+  const mockFrom = vi.fn();
 
   const mockAuth = {
     signInWithPassword: vi.fn(),
@@ -24,7 +17,7 @@ const { mockFrom, mockSingle, mockAuth } = vi.hoisted(() => {
     onAuthStateChange: vi.fn(),
   };
 
-  return { mockFrom, mockSingle, mockAuth };
+  return { mockFrom, mockAuth };
 });
 
 vi.mock('./supabase', () => ({
@@ -33,6 +26,29 @@ vi.mock('./supabase', () => ({
     auth: mockAuth,
   },
 }));
+
+// Helper: set up the sequential from mocks for profile + membership
+function setupFromMocks(
+  profileData: object | null,
+  membershipData: object | null
+) {
+  // First call → profiles
+  mockFrom.mockReturnValueOnce({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        maybeSingle: vi.fn().mockResolvedValue({ data: profileData, error: null }),
+      })),
+    })),
+  });
+  // Second call → studio_members
+  mockFrom.mockReturnValueOnce({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        maybeSingle: vi.fn().mockResolvedValue({ data: membershipData, error: null }),
+      })),
+    })),
+  });
+}
 
 describe('authService', () => {
   beforeEach(() => {
@@ -126,28 +142,52 @@ describe('authService', () => {
 
   // ────────────────────────────────────────────
   // getCurrentUser
-  //   1. Obtiene la sesión actual
-  //   2. Si hay usuario, busca el perfil en profiles
   // ────────────────────────────────────────────
   describe('getCurrentUser', () => {
-    it('debería devolver el usuario autenticado con su perfil', async () => {
+    it('debería devolver el usuario con perfil y membresía cargados', async () => {
       const mockUser = { id: '1', email: 'test@test.com' };
       const mockProfile = { has_completed_onboarding: true, role: 'admin', full_name: 'Admin' };
+      const mockMembership = {
+        studio_id: 'studio-001',
+        role: 'admin',
+        studios: { name: 'Studio Principal' },
+      };
 
       mockAuth.getSession.mockResolvedValue({
         data: { session: { user: mockUser } },
         error: null,
       });
-      mockSingle.mockResolvedValue({ data: mockProfile, error: null });
+      setupFromMocks(mockProfile, mockMembership);
 
       const result = await authService.getCurrentUser();
 
       expect(result).toMatchObject({
         ...mockUser,
         profile: mockProfile,
+        membership: {
+          studio_id: 'studio-001',
+          studio_name: 'Studio Principal',
+          role: 'admin',
+        },
       });
       expect(mockAuth.getSession).toHaveBeenCalledOnce();
       expect(mockFrom).toHaveBeenCalledWith('profiles');
+      expect(mockFrom).toHaveBeenCalledWith('studio_members');
+    });
+
+    it('debería devolver membership null si el usuario no pertenece a ningún studio', async () => {
+      const mockUser = { id: '1', email: 'test@test.com' };
+      const mockProfile = { has_completed_onboarding: false, role: 'student', full_name: null };
+
+      mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: mockUser } },
+        error: null,
+      });
+      setupFromMocks(mockProfile, null);
+
+      const result = await authService.getCurrentUser();
+
+      expect(result?.membership).toBeNull();
     });
 
     it('debería devolver null si no hay sesión activa', async () => {
@@ -166,7 +206,7 @@ describe('authService', () => {
         data: { session: { user: { id: '1', email: 'test@test.com' } } },
         error: null,
       });
-      mockSingle.mockResolvedValue({ data: null, error: null });
+      setupFromMocks(null, null);
 
       const result = await authService.getCurrentUser();
 
@@ -174,6 +214,7 @@ describe('authService', () => {
         id: '1',
         email: 'test@test.com',
         profile: null,
+        membership: null,
       });
     });
 
@@ -188,12 +229,11 @@ describe('authService', () => {
   });
 
   // ────────────────────────────────────────────
-  // onAuthStateChange (susbscription)
+  // onAuthStateChange (subscription)
   // ────────────────────────────────────────────
   describe('onAuthStateChange', () => {
     it('debería llamar al callback con null si no hay sesión', () => {
-      mockAuth.onAuthStateChange.mockImplementation((callback: Function) => {
-        // Simulamos que el evento se dispara con session null
+      mockAuth.onAuthStateChange.mockImplementation((callback: (event: string, session: null) => void) => {
         callback('SIGNED_OUT', null);
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       });
@@ -204,18 +244,22 @@ describe('authService', () => {
       expect(callback).toHaveBeenCalledWith(null);
     });
 
-    it('debería enriquecer el usuario con el perfil al iniciar sesión', async () => {
+    it('debería enriquecer el usuario con perfil y membresía al iniciar sesión', async () => {
       const mockSession = {
         user: { id: '1', email: 'test@test.com' },
         access_token: 'abc',
       };
       const mockProfile = { has_completed_onboarding: true, role: 'student', full_name: 'Alumno' };
+      const mockMembership = {
+        studio_id: 'studio-001',
+        role: 'student',
+        studios: { name: 'Studio Principal' },
+      };
 
-      mockSingle.mockResolvedValue({ data: mockProfile, error: null });
+      setupFromMocks(mockProfile, mockMembership);
 
-      // Disparamos la callback y esperamos a que el handler async termine
       let handlerDone: Promise<void>;
-      mockAuth.onAuthStateChange.mockImplementation((cb: Function) => {
+      mockAuth.onAuthStateChange.mockImplementation((cb: (event: string, session: typeof mockSession) => Promise<void>) => {
         handlerDone = cb('SIGNED_IN', mockSession);
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       });
@@ -223,7 +267,6 @@ describe('authService', () => {
       const callback = vi.fn();
       authService.onAuthStateChange(callback);
 
-      // Esperamos a que el handler async procese el perfil
       await handlerDone!;
 
       expect(callback).toHaveBeenCalledWith(
@@ -231,6 +274,40 @@ describe('authService', () => {
           user: expect.objectContaining({
             id: '1',
             profile: mockProfile,
+            membership: {
+              studio_id: 'studio-001',
+              studio_name: 'Studio Principal',
+              role: 'student',
+            },
+          }),
+        }),
+      );
+    });
+
+    it('debería enriquecer con membership null si no pertenece a studio', async () => {
+      const mockSession = {
+        user: { id: '2', email: 'newuser@test.com' },
+        access_token: 'def',
+      };
+      const mockProfile = { has_completed_onboarding: false, role: 'student', full_name: null };
+
+      setupFromMocks(mockProfile, null);
+
+      let handlerDone: Promise<void>;
+      mockAuth.onAuthStateChange.mockImplementation((cb: (event: string, session: typeof mockSession) => Promise<void>) => {
+        handlerDone = cb('SIGNED_IN', mockSession);
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      });
+
+      const callback = vi.fn();
+      authService.onAuthStateChange(callback);
+
+      await handlerDone!;
+
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user: expect.objectContaining({
+            membership: null,
           }),
         }),
       );

@@ -7,6 +7,8 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+  // `role` is derived from `studio_members.role` (via membership) in the auth store.
+  // `profiles.role` is kept as a fallback during the migration period only.
   const { isAuthenticated, role, isLoading, user } = useAuthStore();
 
   if (isLoading) {
