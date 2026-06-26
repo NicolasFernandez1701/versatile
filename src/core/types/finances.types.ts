@@ -13,6 +13,7 @@ export interface PaymentEntity {
   surcharge_applied: number;
   late_payment: boolean;
   late_fee_applied: boolean;
+  is_first_payment: boolean;
   created_at: string;
 
   // Joins
@@ -31,4 +32,5 @@ export interface RecordPaymentPayload {
   surcharge_applied: number;
   late_payment: boolean;
   late_fee_applied: boolean;
+  is_first_payment: boolean;
 }
