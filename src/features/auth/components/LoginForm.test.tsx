@@ -1,10 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginForm } from './LoginForm';
 
 const mockLogin = vi.hoisted(() => vi.fn());
+const mockIsValidEmail = vi.hoisted(() => vi.fn((email: string) => {
+  const trimmed = email.trim();
+  if (trimmed.length === 0) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}));
+const mockIsError = vi.hoisted(() => vi.fn((value: unknown): value is Error => value instanceof Error));
+
 vi.mock('@/core/services', () => ({
   authService: { login: mockLogin },
+}));
+
+vi.mock('@/core/utils/validation', () => ({
+  isValidEmail: mockIsValidEmail,
+  isError: mockIsError,
 }));
 
 describe('LoginForm', () => {
@@ -96,5 +108,50 @@ describe('LoginForm', () => {
 
     expect(emailInput).toHaveValue('user@example.com');
     expect(passwordInput).toHaveValue('mypassword');
+  });
+
+  it('Email inválido: NO llama al API y muestra error', async () => {
+    const { container } = render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'not-an-email' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
+      target: { value: 'secret123' },
+    });
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(await screen.findByText('Ingresá un email válido.')).toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it('Email vacío: NO llama al API y muestra error', async () => {
+    const { container } = render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
+      target: { value: 'secret123' },
+    });
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(await screen.findByText('Ingresá un email válido.')).toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it('Email con solo whitespace: NO llama al API y muestra error', async () => {
+    const { container } = render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: '   ' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
+      target: { value: 'secret123' },
+    });
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(await screen.findByText('Ingresá un email válido.')).toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
   });
 });

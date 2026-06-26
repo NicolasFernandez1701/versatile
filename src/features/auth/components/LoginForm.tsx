@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { authService } from '@/core/services';
+import { isValidEmail, isError } from '@/core/utils/validation';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -10,13 +11,20 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!isValidEmail(email)) {
+      setError('Ingresá un email válido.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       await authService.login(email, password);
       // El store y el enrutador se enteran por el onAuthStateChange
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+    } catch (err) {
+      const message = isError(err) && err.message ? err.message : 'Error al iniciar sesión';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -32,7 +40,10 @@ export function LoginForm() {
           id="email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (error) setError('');
+          }}
           required
         />
       </div>
