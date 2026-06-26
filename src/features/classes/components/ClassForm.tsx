@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ClassEntity, Profile } from '@/core/types/classes.types';
 import { usersService } from '@/core/services';
+import { isTimeRangeValid } from '@/core/utils/validation';
 
 interface Props {
   teachers: Profile[];
@@ -22,6 +23,7 @@ const days = [
 export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
   const [specialties, setSpecialties] = useState<{ id: string; name: string }[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [timeError, setTimeError] = useState('');
   const [formData, setFormData] = useState({
     activity_name: initialData?.activity_name || '',
     teacher_id: initialData?.teacher_id || '',
@@ -54,6 +56,13 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTimeError('');
+
+    if (!isTimeRangeValid(formData.start_time, formData.end_time)) {
+      setTimeError('La hora de fin debe ser posterior a la de inicio.');
+      return;
+    }
+
     await onSubmit(formData);
   };
 
@@ -133,7 +142,10 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
             type="time"
             required
             value={formData.start_time}
-            onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, start_time: e.target.value });
+              if (timeError) setTimeError('');
+            }}
           />
         </div>
         <div className="form-group">
@@ -142,10 +154,14 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
             type="time"
             required
             value={formData.end_time}
-            onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, end_time: e.target.value });
+              if (timeError) setTimeError('');
+            }}
           />
         </div>
       </div>
+      {timeError && <div className="error-message">{timeError}</div>}
 
       <div className="form-group">
         <label>Capacidad</label>

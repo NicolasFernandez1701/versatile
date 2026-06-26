@@ -1,11 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ClassForm } from './ClassForm';
 import type { Profile, ClassEntity } from '@/core/types/classes.types';
 
 const mockGetSpecialties = vi.hoisted(() => vi.fn());
+const mockIsTimeRangeValid = vi.hoisted(() => vi.fn((start: string, end: string) => end > start));
+
 vi.mock('@/core/services', () => ({
   usersService: { getSpecialties: mockGetSpecialties },
+}));
+
+vi.mock('@/core/utils/validation', () => ({
+  isTimeRangeValid: mockIsTimeRangeValid,
 }));
 
 const mockTeachers: Profile[] = [
@@ -222,5 +228,71 @@ describe('ClassForm', () => {
     const commission = screen.getByDisplayValue('50');
     fireEvent.change(commission, { target: { value: 30 } });
     expect(commission).toHaveValue(30);
+  });
+
+  it('end_time antes que start_time: rechaza submit y muestra error', async () => {
+    const onSubmit = vi.fn();
+    mockGetSpecialties.mockResolvedValueOnce([]);
+    const { container } = renderForm({ onSubmit: onSubmit as (payload: Partial<ClassEntity>) => Promise<void> });
+
+    fireEvent.change(screen.getByDisplayValue('18:00'), {
+      target: { value: '14:00' },
+    });
+    fireEvent.change(screen.getByDisplayValue('19:00'), {
+      target: { value: '10:00' },
+    });
+
+    fireEvent.submit(container.querySelector('form')!);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('La hora de fin debe ser posterior a la de inicio.')
+      ).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('end_time igual a start_time: rechaza submit y muestra error', async () => {
+    const onSubmit = vi.fn();
+    mockGetSpecialties.mockResolvedValueOnce([]);
+    const { container } = renderForm({ onSubmit: onSubmit as (payload: Partial<ClassEntity>) => Promise<void> });
+
+    fireEvent.change(screen.getByDisplayValue('18:00'), {
+      target: { value: '10:00' },
+    });
+    fireEvent.change(screen.getByDisplayValue('19:00'), {
+      target: { value: '10:00' },
+    });
+
+    fireEvent.submit(container.querySelector('form')!);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('La hora de fin debe ser posterior a la de inicio.')
+      ).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('midnight boundary (23:00 → 00:30): rechaza submit', async () => {
+    const onSubmit = vi.fn();
+    mockGetSpecialties.mockResolvedValueOnce([]);
+    const { container } = renderForm({ onSubmit: onSubmit as (payload: Partial<ClassEntity>) => Promise<void> });
+
+    fireEvent.change(screen.getByDisplayValue('18:00'), {
+      target: { value: '23:00' },
+    });
+    fireEvent.change(screen.getByDisplayValue('19:00'), {
+      target: { value: '00:30' },
+    });
+
+    fireEvent.submit(container.querySelector('form')!);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('La hora de fin debe ser posterior a la de inicio.')
+      ).toBeInTheDocument();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

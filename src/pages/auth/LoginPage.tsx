@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
+import { isValidEmail, isError } from '@/core/utils/validation';
 
 import { Button } from '@/components/ui';
 import '../../features/auth/styles/auth.css';
@@ -63,11 +64,16 @@ export function LoginPage() {
       return;
     }
 
+    if (!isValidEmail(email)) {
+      setError('Ingresá un email válido.');
+      return;
+    }
+
     setLoading(true);
     try {
       await authService.login(email, password);
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+    } catch (err) {
+      setError(isError(err) ? err.message : 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -92,7 +98,10 @@ export function LoginPage() {
                 type="email"
                 placeholder="Email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError('');
+                }}
                 className="auth-input"
               />
             </div>
