@@ -72,6 +72,7 @@ CREATE TABLE public.profiles (
     role                       VARCHAR(20) CHECK (role IN ('admin', 'teacher', 'student')) DEFAULT NULL,
     email                      VARCHAR(255),         -- Synced from Auth
     phone                      VARCHAR(30),          -- Contact / WhatsApp
+    studio_id                  UUID         NOT NULL REFERENCES public.studios(id) ON DELETE CASCADE,
 
     -- Active subscription control for students
     plan_id                    UUID         REFERENCES public.plans(id) ON DELETE SET NULL,
@@ -108,6 +109,7 @@ CREATE INDEX idx_studio_members_user ON public.studio_members(user_id);
 -- Stores medical, personal, and lifestyle data collected during Onboarding
 CREATE TABLE public.student_details (
     profile_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    studio_id  UUID NOT NULL REFERENCES public.studios(id) ON DELETE CASCADE,
 
     -- Step 1: Personal Data
     document_id              VARCHAR(50),
@@ -167,6 +169,7 @@ CREATE TABLE public.specialties (
 -- ==========================================
 CREATE TABLE public.teacher_details (
     profile_id  UUID         PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    studio_id   UUID         NOT NULL REFERENCES public.studios(id) ON DELETE CASCADE,
     address     VARCHAR(255),
     birth_date  DATE,
     specialties UUID[]       DEFAULT '{}',  -- Array of IDs from the specialties table
@@ -272,25 +275,29 @@ DECLARE
     v_studio_id UUID;
     v_role      VARCHAR(20);
 BEGIN
+    -- Require studio_id — every user MUST belong to a studio
     v_studio_id := (NEW.raw_user_meta_data->>'studio_id')::UUID;
+    IF v_studio_id IS NULL THEN
+        RAISE EXCEPTION 'studio_id is required in raw_user_meta_data';
+    END IF;
+
     v_role      := COALESCE(NEW.raw_user_meta_data->>'role', 'student');
 
     -- Create the public profile (role kept for backward-compat during transition)
-    INSERT INTO public.profiles (id, full_name, role, email, phone)
+    INSERT INTO public.profiles (id, full_name, role, email, phone, studio_id)
     VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
         v_role,
         NEW.email,
-        NEW.raw_user_meta_data->>'phone'
+        NEW.raw_user_meta_data->>'phone',
+        v_studio_id
     );
 
-    -- Create the studio membership if studio_id was provided
-    IF v_studio_id IS NOT NULL THEN
-        INSERT INTO public.studio_members (studio_id, user_id, role)
-        VALUES (v_studio_id, NEW.id, v_role)
-        ON CONFLICT (studio_id, user_id) DO NOTHING;
-    END IF;
+    -- Create studio membership
+    INSERT INTO public.studio_members (studio_id, user_id, role)
+    VALUES (v_studio_id, NEW.id, v_role)
+    ON CONFLICT (studio_id, user_id) DO NOTHING;
 
     RETURN NEW;
 END;
@@ -365,6 +372,18 @@ CREATE POLICY profiles_select ON public.profiles
 CREATE POLICY profiles_update_own ON public.profiles
     FOR UPDATE TO authenticated
     USING (id = auth.uid());
+
+CREATE POLICY profiles_update_admin ON public.profiles
+    FOR UPDATE TO authenticated
+    USING (
+        studio_id = ANY(SELECT public.auth_studio_ids())
+        AND EXISTS (
+            SELECT 1 FROM public.studio_members
+            WHERE studio_id = profiles.studio_id
+              AND user_id = auth.uid()
+              AND role = 'admin'
+        )
+    );
 
 -- plans
 ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
@@ -640,3 +659,10 @@ BEGIN
     RETURN result;
 END;
 $$;
+
+-- ==========================================
+-- BOOTSTRAP — Default studio for fresh installs
+-- ==========================================
+INSERT INTO public.studios (name, slug)
+VALUES ('Mi Estudio', 'mi-estudio')
+ON CONFLICT (slug) DO NOTHING;
