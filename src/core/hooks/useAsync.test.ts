@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useAsync } from './useAsync';
 
 describe('useAsync', () => {
@@ -21,7 +21,7 @@ describe('useAsync', () => {
   });
 
   it('successful execution: data populated, loading false, error null', async () => {
-    const asyncFn = vi.fn().mockImplementation(
+    const asyncFn = vi.fn<() => Promise<string>>().mockImplementation(
       () => new Promise<string>((resolve) => setTimeout(() => resolve('ok'), 100))
     );
     const { result } = renderHook(() => useAsync(asyncFn));
@@ -44,7 +44,7 @@ describe('useAsync', () => {
   });
 
   it('failed execution: error populated, loading false, data null', async () => {
-    const asyncFn = vi.fn().mockImplementation(
+    const asyncFn = vi.fn<() => Promise<string>>().mockImplementation(
       () => new Promise((_, reject) => setTimeout(() => reject(new Error('Network error')), 100))
     );
     const { result } = renderHook(() => useAsync(asyncFn));
