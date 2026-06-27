@@ -115,4 +115,15 @@ describe('calculatePayment', () => {
     expect(result.total).toBeCloseTo(1000, 2);
     expect(result.expirationDate).toBe('2024-06-30');
   });
+
+  it('applies 20% late fee to recurring payments when enabled', () => {
+    const result = calculatePayment({
+      ...baseArgs,
+      isFirstPayment: false,
+      applyLateFee: true,
+    });
+
+    expect(result.lateFeeAmount).toBeCloseTo(200, 2); // 20% of 1000
+    expect(result.total).toBeCloseTo(1200, 2);
+  });
 });
