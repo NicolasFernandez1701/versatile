@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 import { financesService } from '@/core/services';
+import { usePaymentCalculation } from '@/core/hooks/usePaymentCalculation';
 import { Modal } from '@/components/ui';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { useAuthStore } from '@/core/store/useAuthStore';
@@ -47,58 +48,61 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
   const plan = selectedStudent?.plans;
 
-  // Calculos Financieros en Vivo
-  let basePrice = plan ? Number(plan.price) : 0;
-  let promoDiscountPct = 0;
-
-  if (selectedStudent?.promotion_expiration_date) {
-    const promoExp = new Date(selectedStudent.promotion_expiration_date);
-    if (promoExp >= today) {
-      promoDiscountPct = Number(selectedStudent.promotion_discount_pct || 0);
+  const promoDiscountPct = useMemo(() => {
+    if (selectedStudent?.promotion_expiration_date) {
+      const promoExp = new Date(selectedStudent.promotion_expiration_date);
+      if (promoExp >= today) {
+        return Number(selectedStudent.promotion_discount_pct || 0);
+      }
     }
-  }
+    return 0;
+  }, [selectedStudent, today]);
 
-  const promoDiscountAmount = (basePrice * promoDiscountPct) / 100;
-  let subtotal = basePrice - promoDiscountAmount;
+  const planInfo = useMemo(
+    () =>
+      plan
+        ? {
+            id: plan.id,
+            price: Number(plan.price),
+            name: plan.name,
+          }
+        : null,
+    [plan]
+  );
 
-  let cashDiscountAmount = 0;
-  if (paymentMethod === 'efectivo') {
-    cashDiscountAmount = subtotal * 0.15;
-    subtotal -= cashDiscountAmount;
-  }
+  const { calculation, loading: calculationLoading, isFirstPayment } = usePaymentCalculation({
+      studentId: selectedStudentId || null,
+      plan: planInfo,
+      paymentMethod,
+      promoDiscountPct,
+      applyLateFee,
+    });
 
-  let lateFeeAmount = 0;
-  if (applyLateFee) {
-    lateFeeAmount = basePrice * 0.2;
-    subtotal += lateFeeAmount;
-  }
-
-  const finalAmount = amountOverride !== '' ? Number(amountOverride) : subtotal;
+  const finalAmount =
+    amountOverride !== '' ? Number(amountOverride) : (calculation?.total ?? 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent || !plan) {
+    if (!selectedStudent || !plan || !calculation) {
       showError('Seleccione un alumno con plan activo.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const nextExp = new Date();
-      nextExp.setMonth(nextExp.getMonth() + 1);
-
       await financesService.recordPayment({
         student_id: selectedStudentId,
         plan_id: plan.id,
         amount: finalAmount,
-        expiration_date: nextExp.toISOString().split('T')[0],
+        expiration_date: calculation.expirationDate,
         plan_details: `${plan.name} - $${plan.price}`,
         payment_method: paymentMethod,
-        original_amount: basePrice,
-        discount_applied: promoDiscountAmount + cashDiscountAmount,
-        surcharge_applied: lateFeeAmount,
+        original_amount: calculation.proratedBase,
+        discount_applied: calculation.promoDiscountAmount + calculation.cashDiscountAmount,
+        surcharge_applied: calculation.lateFeeAmount,
         late_payment: isAfter10th,
-        late_fee_applied: applyLateFee
+        late_fee_applied: applyLateFee,
+        is_first_payment: isFirstPayment,
       });
       showSuccess('Pago registrado con éxito.');
       onSuccess();
@@ -189,40 +193,70 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               type="number"
               value={amountOverride}
               onChange={(e) => setAmountOverride(e.target.value)}
-              placeholder={`Automático: $${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              placeholder={
+                calculation
+                  ? `Automático: $${calculation.total.toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : ''
+              }
             />
           </div>
         </form>
 
         {/* Panel de Desglose (Preview) */}
-        {selectedStudentId && plan ? (
+        {selectedStudentId && plan && calculation ? (
           <div className="breakdown-panel">
             <h3 className="breakdown-title">Desglose Financiero</h3>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="breakdown-row">
                 <span className="text-secondary">Plan Base ({plan.name})</span>
-                <span>${basePrice.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>
+                  ${calculation.proratedBase.toLocaleString('es-AR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
               </div>
 
               {promoDiscountPct > 0 && (
                 <div className="breakdown-row" style={{ color: 'var(--success-color)' }}>
                   <span>Promo {promoDiscountPct}% OFF</span>
-                  <span>-${promoDiscountAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>
+                    -$
+                    {calculation.promoDiscountAmount.toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
               )}
 
               {paymentMethod === 'efectivo' && (
                 <div className="breakdown-row" style={{ color: 'var(--success-color)' }}>
                   <span>Desc. Efectivo (15%)</span>
-                  <span>-${cashDiscountAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>
+                    -$
+                    {calculation.cashDiscountAmount.toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
               )}
 
               {applyLateFee && (
                 <div className="breakdown-row" style={{ color: 'var(--error-color)' }}>
                   <span>Recargo por Mora (20%)</span>
-                  <span>+${lateFeeAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>
+                    +$
+                    {calculation.lateFeeAmount.toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
               )}
 
@@ -230,7 +264,12 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
               <div className="breakdown-total">
                 <span>Total Calculado</span>
-                <span>${subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>
+                  ${calculation.total.toLocaleString('es-AR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
               </div>
 
               {amountOverride !== '' && (
@@ -239,7 +278,12 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                   style={{ color: 'var(--warning-color)', marginTop: '0.5rem' }}
                 >
                   <span>Total Sobreescrito</span>
-                  <span>${finalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>
+                    ${finalAmount.toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
               )}
             </div>
@@ -254,7 +298,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               opacity: 0.6,
               border: '2px dashed var(--border-color)',
               minHeight: '300px',
-              textAlign: 'center'
+              textAlign: 'center',
             }}
           >
             <p style={{ marginBottom: '0.5rem' }}>
@@ -272,14 +316,14 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           display: 'flex',
           justifyContent: 'flex-end',
           paddingTop: '1rem',
-          borderTop: '1px solid var(--border-color)'
+          borderTop: '1px solid var(--border-color)',
         }}
       >
         <button
           type="submit"
           form="record-payment-form"
           className="btn-primary"
-          disabled={!plan || isSubmitting}
+          disabled={!plan || !calculation || calculationLoading || isSubmitting}
           style={{ minWidth: '200px', justifyContent: 'center' }}
         >
           <Check size={20} /> {isSubmitting ? 'Registrando...' : 'Registrar Pago'}
