@@ -129,22 +129,63 @@ describe('financesService', () => {
   });
 
   // ────────────────────────────────────────────
+  // hasExistingPayments
+  // ────────────────────────────────────────────
+  describe('hasExistingPayments', () => {
+    it('debería devolver true cuando el alumno tiene pagos previos', async () => {
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ count: 1, error: null }),
+        })),
+      });
+
+      const result = await financesService.hasExistingPayments('stu-001');
+
+      expect(result).toBe(true);
+      expect(mockFrom).toHaveBeenCalledWith('payments');
+    });
+
+    it('debería devolver false cuando el alumno no tiene pagos previos', async () => {
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ count: 0, error: null }),
+        })),
+      });
+
+      const result = await financesService.hasExistingPayments('stu-001');
+
+      expect(result).toBe(false);
+    });
+
+    it('debería lanzar error si la consulta falla', async () => {
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ count: null, error: new Error('Error DB') }),
+        })),
+      });
+
+      await expect(financesService.hasExistingPayments('stu-001')).rejects.toThrow('Error DB');
+    });
+  });
+
+  // ────────────────────────────────────────────
   // recordPayment — injects studio_id from store
   // ────────────────────────────────────────────
   describe('recordPayment', () => {
     const payload = {
       student_id: 'stu-001',
-      plan_id: 'plan-001',
-      amount: 25000,
-      expiration_date: '2024-07-01',
-      plan_details: 'Plan Mensual',
-      payment_method: 'efectivo' as const,
-      original_amount: 25000,
-      discount_applied: 0,
-      surcharge_applied: 0,
-      late_payment: false,
-      late_fee_applied: false,
-    };
+    plan_id: 'plan-001',
+    amount: 25000,
+    expiration_date: '2024-07-01',
+    plan_details: 'Plan Mensual',
+    payment_method: 'efectivo' as const,
+    original_amount: 25000,
+    discount_applied: 0,
+    surcharge_applied: 0,
+    late_payment: false,
+    late_fee_applied: false,
+    is_first_payment: false,
+  };
 
     it('debería registrar un pago con studio_id y actualizar la fecha de expiración', async () => {
       mockFrom.mockReturnValueOnce({

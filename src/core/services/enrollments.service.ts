@@ -14,6 +14,26 @@ export const enrollmentsService = {
   },
 
   async enrollStudent(studentId: string, classId: string, reservationDate: string): Promise<void> {
+    // 0. Validar período de gracia: días 1-10 permiten inscripción sin pago del mes actual
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+    const paymentFirstDay = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+    const paymentLastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
+
+    const { count: currentMonthPaymentCount, error: paymentError } = await supabase
+      .from('payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .gte('payment_date', paymentFirstDay)
+      .lte('payment_date', paymentLastDay);
+
+    if (paymentError) throw paymentError;
+
+    if ((currentMonthPaymentCount ?? 0) === 0 && today.getDate() > 10) {
+      throw new Error('El alumno debe abonar la cuota del mes actual antes de inscribirse.');
+    }
+
     // 1. Validar límite mensual del alumno
     // Obtenemos el perfil y su plan para saber cuántas clases tiene por semana
     const { data: profile, error: profileError } = await supabase

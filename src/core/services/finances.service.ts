@@ -25,6 +25,16 @@ export const financesService = {
     return data;
   },
 
+  async hasExistingPayments(studentId: string): Promise<boolean> {
+    const { count, error } = await supabase
+      .from('payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId);
+
+    if (error) throw error;
+    return (count ?? 0) > 0;
+  },
+
   async recordPayment(payload: RecordPaymentPayload): Promise<void> {
     const studioId = useAuthStore.getState().current_studio_id;
     if (!studioId) throw new Error('No active studio');
