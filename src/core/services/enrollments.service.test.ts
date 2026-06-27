@@ -32,6 +32,18 @@ const mockClassWithCapacity = {
   capacity: 15,
 };
 
+function mockPaymentCount(count: number) {
+  return mockFrom.mockReturnValueOnce({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        gte: vi.fn(() => ({
+          lte: vi.fn().mockResolvedValue({ count, error: null }),
+        })),
+      })),
+    })),
+  });
+}
+
 // ──────────────────────────────────────────────
 // 2. Mock de Supabase
 // ──────────────────────────────────────────────
@@ -92,6 +104,8 @@ describe('enrollmentsService', () => {
     const reservationDate = '2024-06-15';
 
     it('debería inscribir a un alumno exitosamente', async () => {
+      // Paso 0: Verificar pago del mes actual (count = 1 para saltear el período de gracia)
+      mockPaymentCount(1);
       // Paso 1: Obtener perfil con plan
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
@@ -137,15 +151,17 @@ describe('enrollmentsService', () => {
 
       await enrollmentsService.enrollStudent(studentId, classId, reservationDate);
 
-      expect(mockFrom).toHaveBeenCalledTimes(5);
-      expect(mockFrom).toHaveBeenNthCalledWith(1, 'profiles');
-      expect(mockFrom).toHaveBeenNthCalledWith(2, 'enrollments');
+      expect(mockFrom).toHaveBeenCalledTimes(6);
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
       expect(mockFrom).toHaveBeenNthCalledWith(3, 'enrollments');
-      expect(mockFrom).toHaveBeenNthCalledWith(4, 'classes');
-      expect(mockFrom).toHaveBeenNthCalledWith(5, 'enrollments');
+      expect(mockFrom).toHaveBeenNthCalledWith(4, 'enrollments');
+      expect(mockFrom).toHaveBeenNthCalledWith(5, 'classes');
+      expect(mockFrom).toHaveBeenNthCalledWith(6, 'enrollments');
     });
 
     it('debería lanzar error si falla la consulta del perfil', async () => {
+      mockPaymentCount(1);
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -158,6 +174,7 @@ describe('enrollmentsService', () => {
     });
 
     it('debería lanzar error si el alumno no tiene plan activo', async () => {
+      mockPaymentCount(1);
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -172,6 +189,7 @@ describe('enrollmentsService', () => {
     });
 
     it('debería lanzar error si se excede el límite mensual', async () => {
+      mockPaymentCount(1);
       // Perfil con plan (classes_per_week = 3 → límite = 12)
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
@@ -199,6 +217,7 @@ describe('enrollmentsService', () => {
     });
 
     it('debería lanzar error si falla el conteo mensual', async () => {
+      mockPaymentCount(1);
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -224,6 +243,7 @@ describe('enrollmentsService', () => {
     });
 
     it('debería lanzar error si la clase está al máximo de capacidad', async () => {
+      mockPaymentCount(1);
       // Perfil ok
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
@@ -268,6 +288,7 @@ describe('enrollmentsService', () => {
     });
 
     it('debería dar mensaje especial para error de duplicado (code 23505)', async () => {
+      mockPaymentCount(1);
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -313,6 +334,7 @@ describe('enrollmentsService', () => {
     });
 
     it('debería lanzar error genérico si el insert falla con otro código', async () => {
+      mockPaymentCount(1);
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -352,6 +374,94 @@ describe('enrollmentsService', () => {
       });
 
       await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).rejects.toThrow('Error de red');
+    });
+  });
+
+  // ────────────────────────────────────────────
+  // grace period payment check
+  // ────────────────────────────────────────────
+  describe('grace period payment check', () => {
+    const studentId = 'stu-001';
+    const classId = 'cls-001';
+    const reservationDate = '2024-06-15';
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function setupSuccessfulEnrollment(paymentCount: number) {
+      mockPaymentCount(paymentCount);
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: mockProfileWithPlan, error: null }),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              lte: vi.fn(() => ({
+                neq: vi.fn().mockResolvedValue({ count: 0, error: null }),
+              })),
+            })),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              neq: vi.fn().mockResolvedValue({ count: 0, error: null }),
+            })),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: mockClassWithCapacity, error: null }),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      });
+    }
+
+    it('allows enrollment on day 1 without current month payment', async () => {
+      vi.setSystemTime(new Date(2024, 5, 1));
+      setupSuccessfulEnrollment(0);
+
+      await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).resolves.toBeUndefined();
+    });
+
+    it('allows enrollment on day 10 without current month payment', async () => {
+      vi.setSystemTime(new Date(2024, 5, 10));
+      setupSuccessfulEnrollment(0);
+
+      await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).resolves.toBeUndefined();
+    });
+
+    it('blocks enrollment on day 11 without current month payment', async () => {
+      vi.setSystemTime(new Date(2024, 5, 11));
+      mockPaymentCount(0);
+
+      await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).rejects.toThrow(
+        'El alumno debe abonar la cuota del mes actual antes de inscribirse.'
+      );
+    });
+
+    it('allows enrollment after day 10 with current month payment', async () => {
+      vi.setSystemTime(new Date(2024, 5, 15));
+      setupSuccessfulEnrollment(1);
+
+      await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).resolves.toBeUndefined();
     });
   });
 
