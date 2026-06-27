@@ -48,6 +48,12 @@ const mockNextClass = {
   classes: { activity_name: 'Ballet', start_time: '10:00', end_time: '11:00' },
 };
 
+const mockProfileWithPlan = {
+  plan_id: 'plan-001',
+  plan_expiration_date: '2026-07-31',
+  plans: { name: 'Plan Mensual' },
+};
+
 // ──────────────────────────────────────────────
 // 2. Mock de Supabase (from + rpc)
 // ──────────────────────────────────────────────
@@ -283,6 +289,14 @@ describe('dashboardService', () => {
         })),
       });
 
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          })),
+        })),
+      });
+
       const result = await dashboardService.getStudentDashboardData(studentId);
 
       expect(result).toEqual({
@@ -291,6 +305,7 @@ describe('dashboardService', () => {
       });
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'enrollments');
+      expect(mockFrom).toHaveBeenNthCalledWith(3, 'profiles');
     });
 
     it('debería devolver null si no hay plan activo ni próxima clase', async () => {
@@ -322,12 +337,23 @@ describe('dashboardService', () => {
         })),
       });
 
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          })),
+        })),
+      });
+
       const result = await dashboardService.getStudentDashboardData(studentId);
 
       expect(result).toEqual({
         activePlan: null,
         nextClass: null,
       });
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'enrollments');
+      expect(mockFrom).toHaveBeenNthCalledWith(3, 'profiles');
     });
 
     it('debería lanzar error si la query de payments falla', async () => {
@@ -351,6 +377,13 @@ describe('dashboardService', () => {
             gte: vi.fn(() => ({
               order: mockEnrollmentsOrder,
             })),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
           })),
         })),
       });
@@ -385,7 +418,67 @@ describe('dashboardService', () => {
         })),
       });
 
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          })),
+        })),
+      });
+
       await expect(dashboardService.getStudentDashboardData(studentId)).rejects.toThrow('Error en enrollments');
+    });
+
+    it('debería usar el plan del perfil como fallback si no hay pago', async () => {
+      const mockPaymentsOrder = vi.fn(() => ({
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }));
+
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              order: mockPaymentsOrder,
+            })),
+          })),
+        })),
+      });
+
+      const mockEnrollmentsOrder = vi.fn(() => ({
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }));
+
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              order: mockEnrollmentsOrder,
+            })),
+          })),
+        })),
+      });
+
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: mockProfileWithPlan, error: null }),
+          })),
+        })),
+      });
+
+      const result = await dashboardService.getStudentDashboardData(studentId);
+
+      expect(result).toEqual({
+        activePlan: {
+          plan_id: 'plan-001',
+          plan_details: 'Plan Mensual',
+          expiration_date: '2026-07-31',
+        },
+        nextClass: null,
+      });
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'enrollments');
+      expect(mockFrom).toHaveBeenNthCalledWith(3, 'profiles');
     });
   });
 });

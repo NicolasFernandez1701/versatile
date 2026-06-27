@@ -73,9 +73,16 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
         );
       } else {
         // Update
+        const expirationDate = planId
+          ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+              .toISOString()
+              .split('T')[0]
+          : undefined;
+
         await usersService.updateUser(studentId!, {
           full_name,
           plan_id: planId || undefined,
+          plan_expiration_date: expirationDate,
           promotion_discount_pct: promoDiscountPct,
           promotion_expiration_date: promoExpirationDate || undefined
         });

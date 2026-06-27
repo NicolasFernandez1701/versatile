@@ -100,7 +100,7 @@ export const dashboardService = {
   async getStudentDashboardData(studentId: string) {
     const today = new Date().toISOString().split('T')[0];
 
-    const [paymentsRes, enrollmentsRes] = await Promise.all([
+    const [paymentsRes, enrollmentsRes, profileRes] = await Promise.all([
       supabase
         .from('payments')
         .select('plan_id, plan_details, expiration_date')
@@ -114,14 +114,34 @@ export const dashboardService = {
         .eq('student_id', studentId)
         .gte('reservation_date', today)
         .order('reservation_date', { ascending: true })
-        .limit(1)
+        .limit(1),
+      supabase
+        .from('profiles')
+        .select('plan_id, plan_expiration_date, plans(name)')
+        .eq('id', studentId)
+        .single()
     ]);
 
     if (paymentsRes.error) throw paymentsRes.error;
     if (enrollmentsRes.error) throw enrollmentsRes.error;
 
+    // Prefer payment plan; fallback to profile-assigned plan
+    let activePlan = paymentsRes.data?.[0] || null;
+    if (
+      !activePlan &&
+      profileRes.data?.plan_id &&
+      profileRes.data.plan_expiration_date &&
+      profileRes.data.plan_expiration_date >= today
+    ) {
+      activePlan = {
+        plan_id: profileRes.data.plan_id,
+        plan_details: (profileRes.data.plans as any)?.name || 'Plan Asignado',
+        expiration_date: profileRes.data.plan_expiration_date
+      };
+    }
+
     return {
-      activePlan: paymentsRes.data?.[0] || null,
+      activePlan,
       nextClass: enrollmentsRes.data?.[0] || null
     };
   }
