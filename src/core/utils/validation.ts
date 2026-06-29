@@ -25,3 +25,25 @@ export function isTimeRangeValid(startTime: string, endTime: string): boolean {
 export function isError(value: unknown): value is Error {
   return value instanceof Error;
 }
+
+/**
+ * Validates that a class booking action (enroll or cancel) meets the
+ * minimum advance-time requirement of 1 hour before class start.
+ */
+export function validateBookingWindow(
+  startTime: string,
+  classDate: Date
+): { allowed: boolean; reason?: string } {
+  const now = new Date();
+  const classDateTime = new Date(classDate);
+  const [hours, minutes] = startTime.split(':');
+  classDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+
+  const diffHours = (classDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours < 1.0) {
+    return { allowed: false, reason: 'No podés realizar esta acción con menos de 1 hora de anticipación.' };
+  }
+
+  return { allowed: true };
+}

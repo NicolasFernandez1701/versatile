@@ -36,7 +36,7 @@ export function StudentPlansPage() {
 
   const handleRequestPlan = (planName: string) => {
     const phone = '5491162676855'; // Número proporcionado por el usuario
-    const message = `Hola Versatile Studio! 🌟\n\nQuiero solicitar el *${planName}* que vi en la app.\n¿Me pasan la info para realizar el pago por favor?`;
+    const message = `Hola Versatile Studio! 🌟\n\nQuiero solicitar el plan *${planName}* que vi en la app.\n¿Me pasan la info para realizar el pago por favor?`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };

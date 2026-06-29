@@ -154,5 +154,45 @@ export const dashboardService = {
       activePlan,
       nextClass: rawNextClass || null
     };
+  },
+
+  /**
+   * Obtiene el límite mensual de clases del alumno.
+   * Prioriza el plan del pago activo; si no hay, usa el plan del perfil.
+   */
+  async getStudentClassLimit(studentId: string): Promise<{ limit: number; classesPerWeek: number }> {
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Buscar pago activo
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('plan_id, plans(classes_per_week)')
+      .eq('student_id', studentId)
+      .gte('expiration_date', today)
+      .order('expiration_date', { ascending: false })
+      .limit(1);
+
+    const activePayment = payments?.[0] as
+      | { plans: { classes_per_week: number } | null }
+      | undefined;
+
+    let classesPerWeek = activePayment?.plans?.classes_per_week;
+
+    // 2. Fallback al plan del perfil
+    if (!classesPerWeek) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan_id, plans(classes_per_week)')
+        .eq('id', studentId)
+        .single();
+
+      const profilePlan = (profile as { plans: { classes_per_week: number } | null } | null)?.plans;
+      classesPerWeek = profilePlan?.classes_per_week || 0;
+    }
+
+    return {
+      limit: (classesPerWeek || 0) * 4,
+      classesPerWeek: classesPerWeek || 0
+    };
   }
 };

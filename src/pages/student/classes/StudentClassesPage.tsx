@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { supabase } from '@/core/services/supabase';
-import { classesService, attendanceService, enrollmentsService } from '@/core/services';
+import { classesService, attendanceService, enrollmentsService, dashboardService } from '@/core/services';
+import type { AttendanceRecord } from '@/core/services/attendance.service';
 import { Loader, Button } from '@/components/ui';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { validateBookingWindow } from '@/core/utils/validation';
 import type { ClassEntity } from '@/core/types/classes.types';
-import '@/pages/admin/dashboard/dashboard.css';
 
 const DAYS_MAP: Record<number, string> = {
   0: 'Domingo',
@@ -24,7 +24,7 @@ export function StudentClassesPage() {
 
   const [loading, setLoading] = useState(true);
   const [classesList, setClassesList] = useState<ClassEntity[]>([]);
-  const [reservations, setReservations] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<AttendanceRecord[]>([]);
   const [planLimits, setPlanLimits] = useState({ limit: 0, consumed: 0 });
 
   // Para simular la semana actual y las fechas de las clases
@@ -56,18 +56,8 @@ export function StudentClassesPage() {
       const resData = await attendanceService.getStudentAttendances(user.id);
       setReservations(resData);
 
-      // Traer información del plan activo desde los pagos
-      const today = new Date().toISOString().split('T')[0];
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('plan_id, plans(classes_per_week)')
-        .eq('student_id', user.id)
-        .gte('expiration_date', today)
-        .order('expiration_date', { ascending: false })
-        .limit(1);
-
-      const activePayment = payments?.[0];
-      const limit = ((activePayment?.plans as any)?.classes_per_week || 0) * 4;
+      // Traer límite mensual del plan (pago activo → fallback perfil)
+      const { limit } = await dashboardService.getStudentClassLimit(user.id);
 
       // Contar consumos del mes actual
       const now = new Date();
@@ -77,8 +67,9 @@ export function StudentClassesPage() {
       ).length;
 
       setPlanLimits({ limit, consumed });
-    } catch (error: any) {
-      showError('Error cargando los datos: ' + error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      showError('Error cargando los datos: ' + message);
     } finally {
       setLoading(false);
     }
@@ -98,22 +89,10 @@ export function StudentClassesPage() {
     existingReservationId?: string
   ) => {
     try {
-      // Validación estricta de tiempo simulada en front
-      const now = new Date();
-      const classDateTime = new Date(classDate);
-      const [hours, minutes] = startTime.split(':');
-      classDateTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-
-      const diffMs = classDateTime.getTime() - now.getTime();
-      const diffHours = diffMs / (1000 * 60 * 60);
-
-      if (action === 'enroll' && diffHours < 1.0) {
-        showError('No podés anotarte con menos de 1 hora de anticipación.');
-        return;
-      }
-
-      if (action === 'cancel' && diffHours < 1.0) {
-        showError('No podés cancelar con menos de 1 hora de anticipación.');
+      // Validar ventana de tiempo mínima (1 hora antes de la clase)
+      const window = validateBookingWindow(startTime, classDate);
+      if (!window.allowed) {
+        showError(window.reason!);
         return;
       }
 
@@ -127,15 +106,14 @@ export function StudentClassesPage() {
         await enrollmentsService.enrollStudent(user!.id, classId, dateStr);
         showSuccess('¡Lugar reservado con éxito!');
       } else if (action === 'cancel' && existingReservationId) {
-        // En Paradigma 2, cancelar es borrar el registro (o ponerlo en cancelled)
-        // Usamos unenrollStudent para liberar el cupo.
         await enrollmentsService.unenrollStudent(existingReservationId);
         showSuccess('Reserva cancelada. Cupo liberado.');
       }
 
       loadData(); // Recargar datos para reflejar estado real
-    } catch (error: any) {
-      showError('Error al procesar reserva: ' + error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      showError('Error al procesar reserva: ' + message);
     }
   };
 
@@ -288,7 +266,7 @@ export function StudentClassesPage() {
                                 gap: '0.5rem'
                               }}
                             >
-                              {reservation?.status === 'attended' ? (
+                              {reservation?.status === 'present' ? (
                                 <>
                                   <CheckCircle size={18} color="var(--success-color)" /> Asististe
                                 </>
