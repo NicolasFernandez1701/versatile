@@ -278,7 +278,7 @@ describe('plansService', () => {
     const planData = { name: 'Plan Actualizado', price: 35000, classes_per_week: 4 };
     const activities = [{ activity_name: 'Spinning', classes_per_week: 2 }];
 
-    it('debería actualizar plan, eliminar actividades viejas e insertar nuevas', async () => {
+    it('debería actualizar plan, eliminar actividades viejas e insertar nuevas con studio_id', async () => {
       mockFrom.mockReturnValueOnce({
         update: vi.fn(() => ({
           eq: vi.fn().mockResolvedValue({ error: null }),
@@ -289,12 +289,14 @@ describe('plansService', () => {
           eq: vi.fn().mockResolvedValue({ error: null }),
         })),
       });
-      mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
-      });
+      const insertFn = vi.fn().mockResolvedValue({ error: null });
+      mockFrom.mockReturnValueOnce({ insert: insertFn });
 
       await plansService.updatePlanWithActivities('plan-001', planData, activities);
 
+      expect(insertFn).toHaveBeenCalledWith([
+        expect.objectContaining({ plan_id: 'plan-001', studio_id: STUDIO_ID }),
+      ]);
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'plans');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'plan_activities');
       expect(mockFrom).toHaveBeenNthCalledWith(3, 'plan_activities');

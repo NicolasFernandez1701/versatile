@@ -67,6 +67,12 @@ vi.mock('./supabase', () => ({
   },
 }));
 
+vi.mock('../store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID })),
+  },
+}));
+
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     auth: { signUp: mockSignUp, updateUser: mockUpdateUser },
@@ -334,10 +340,9 @@ describe('usersService', () => {
       });
     });
 
-    it('debería guardar detalles y marcar onboarding como completo', async () => {
-      mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
-      });
+    it('debería guardar detalles con studio_id y marcar onboarding como completo', async () => {
+      const insertFn = vi.fn().mockResolvedValue({ error: null });
+      mockFrom.mockReturnValueOnce({ insert: insertFn });
       mockFrom.mockReturnValueOnce({
         update: vi.fn(() => ({
           eq: vi.fn().mockResolvedValue({ error: null }),
@@ -346,6 +351,9 @@ describe('usersService', () => {
 
       await usersService.saveOnboardingDetails('stu-001', { birth_date: '2000-01-01' });
 
+      expect(insertFn).toHaveBeenCalledWith([
+        expect.objectContaining({ profile_id: 'stu-001', studio_id: STUDIO_ID }),
+      ]);
       expect(mockFrom).toHaveBeenCalledTimes(2);
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'student_details');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
@@ -381,10 +389,9 @@ describe('usersService', () => {
   // saveTeacherOnboardingDetails (insert + update)
   // ────────────────────────────────────────────
   describe('saveTeacherOnboardingDetails', () => {
-    it('debería guardar detalles del profesor y marcar onboarding completo', async () => {
-      mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
-      });
+    it('debería guardar detalles del profesor con studio_id y marcar onboarding completo', async () => {
+      const insertFn = vi.fn().mockResolvedValue({ error: null });
+      mockFrom.mockReturnValueOnce({ insert: insertFn });
       mockFrom.mockReturnValueOnce({
         update: vi.fn(() => ({
           eq: vi.fn().mockResolvedValue({ error: null }),
@@ -393,6 +400,9 @@ describe('usersService', () => {
 
       await usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] });
 
+      expect(insertFn).toHaveBeenCalledWith([
+        expect.objectContaining({ profile_id: 'tea-001', studio_id: STUDIO_ID }),
+      ]);
       expect(mockFrom).toHaveBeenCalledTimes(2);
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'teacher_details');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');

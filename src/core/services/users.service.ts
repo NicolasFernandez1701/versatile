@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { createClient } from '@supabase/supabase-js';
+import { useAuthStore } from '../store/useAuthStore';
 import type { UserProfile } from '../types/users.types';
 
 // Cliente secundario para no pisar la sesión del administrador al crear usuarios
@@ -75,10 +76,12 @@ export const usersService = {
   },
 
   async saveOnboardingDetails(profileId: string, details: Record<string, unknown>): Promise<void> {
+    const studioId = useAuthStore.getState().current_studio_id;
+
     // 1. Insert Student Details
     const { error: detailsError } = await supabase
       .from('student_details')
-      .insert([{ profile_id: profileId, ...details }]);
+      .insert([{ profile_id: profileId, studio_id: studioId, ...details }]);
 
     if (detailsError) throw detailsError;
 
@@ -92,9 +95,11 @@ export const usersService = {
   },
 
   async saveTeacherOnboardingDetails(profileId: string, details: Record<string, unknown>): Promise<void> {
+    const studioId = useAuthStore.getState().current_studio_id;
+
     const { error: detailsError } = await supabase
       .from('teacher_details')
-      .insert([{ profile_id: profileId, ...details }]);
+      .insert([{ profile_id: profileId, studio_id: studioId, ...details }]);
 
     if (detailsError) throw detailsError;
 

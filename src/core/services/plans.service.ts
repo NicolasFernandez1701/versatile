@@ -96,11 +96,13 @@ export const plansService = {
 
     if (deleteError) throw deleteError;
 
-    // 3. Insert new activities
+    // 3. Insert new activities with studio_id
     if (activities.length > 0) {
+      const studioId = useAuthStore.getState().current_studio_id;
       const activitiesData = activities.map((act) => ({
         ...act,
-        plan_id: planId
+        plan_id: planId,
+        studio_id: studioId
       }));
 
       const { error: actError } = await supabase.from('plan_activities').insert(activitiesData);
