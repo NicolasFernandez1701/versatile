@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { useAuthStore } from '../store/useAuthStore';
 import type { PlanEntity, CreatePlanDTO, CreatePlanActivityDTO } from '../types/plans.types';
 
 export const plansService = {
@@ -27,20 +28,23 @@ export const plansService = {
     planData: CreatePlanDTO,
     activities: CreatePlanActivityDTO[]
   ): Promise<PlanEntity> {
-    // Insertamos el plan principal
+    const studioId = useAuthStore.getState().current_studio_id;
+
+    // Insertamos el plan principal con studio_id
     const { data: plan, error: planError } = await supabase
       .from('plans')
-      .insert([planData])
+      .insert([{ ...planData, studio_id: studioId }])
       .select()
       .single();
 
     if (planError) throw planError;
 
-    // Si tiene actividades, las vinculamos
+    // Si tiene actividades, las vinculamos con studio_id
     if (activities.length > 0) {
       const activitiesData = activities.map((act) => ({
         ...act,
-        plan_id: plan.id
+        plan_id: plan.id,
+        studio_id: studioId
       }));
 
       const { error: actError } = await supabase.from('plan_activities').insert(activitiesData);

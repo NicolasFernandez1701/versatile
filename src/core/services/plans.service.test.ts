@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { plansService } from './plans.service';
 import type { PlanEntity } from '../types/plans.types';
 
+const STUDIO_ID = 'studio-001';
+
 // ──────────────────────────────────────────────
 // 1. Datos de prueba
 // ──────────────────────────────────────────────
@@ -41,6 +43,12 @@ const { mockFrom } = vi.hoisted(() => ({
 
 vi.mock('./supabase', () => ({
   supabase: { from: mockFrom },
+}));
+
+vi.mock('../store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID })),
+  },
 }));
 
 describe('plansService', () => {
@@ -115,14 +123,13 @@ describe('plansService', () => {
     const planData = { name: 'Plan Nuevo', price: 30000, classes_per_week: 2 };
     const activities = [{ activity_name: 'Yoga', classes_per_week: 1 }];
 
-    it('debería crear un plan con actividades', async () => {
-      mockFrom.mockReturnValueOnce({
-        insert: vi.fn(() => ({
-          select: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: mockNewPlan, error: null }),
-          })),
+    it('debería crear un plan con studio_id y actividades', async () => {
+      const insertPlanFn = vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({ data: mockNewPlan, error: null }),
         })),
-      });
+      }));
+      mockFrom.mockReturnValueOnce({ insert: insertPlanFn });
       mockFrom.mockReturnValueOnce({
         insert: vi.fn().mockResolvedValue({ error: null }),
       });
@@ -130,6 +137,7 @@ describe('plansService', () => {
       const result = await plansService.createPlanWithActivities(planData, activities);
 
       expect(result).toEqual(mockNewPlan);
+      expect(insertPlanFn).toHaveBeenCalledWith([{ ...planData, studio_id: STUDIO_ID }]);
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'plans');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'plan_activities');
     });
