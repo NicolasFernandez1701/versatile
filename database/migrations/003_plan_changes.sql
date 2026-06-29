@@ -25,6 +25,34 @@ CREATE TABLE IF NOT EXISTS public.plan_changes (
 );
 
 -- ==========================================
+-- SECTION 1b — RLS for plan_changes
+-- ==========================================
+
+ALTER TABLE public.plan_changes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS plan_changes_tenant_select ON public.plan_changes;
+CREATE POLICY plan_changes_tenant_select ON public.plan_changes
+    FOR SELECT TO authenticated
+    USING (
+        profile_id IN (
+            SELECT sm.user_id
+            FROM   public.studio_members sm
+            WHERE  sm.studio_id = ANY(SELECT public.auth_studio_ids())
+        )
+    );
+
+DROP POLICY IF EXISTS plan_changes_tenant_insert ON public.plan_changes;
+CREATE POLICY plan_changes_tenant_insert ON public.plan_changes
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        profile_id IN (
+            SELECT sm.user_id
+            FROM   public.studio_members sm
+            WHERE  sm.studio_id = ANY(SELECT public.auth_studio_ids())
+        )
+    );
+
+-- ==========================================
 -- SECTION 2 — Add plan_id to enrollments
 -- ==========================================
 
