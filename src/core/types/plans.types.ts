@@ -17,6 +17,30 @@ export interface PlanEntity {
   plan_activities?: PlanActivityEntity[];
 }
 
+export type PlanWithActivities = PlanEntity & {
+  plan_activities: PlanActivityEntity[];
+};
+
+export interface PlanChange {
+  id: string;
+  profile_id: string;
+  old_plan_id: string | null;
+  new_plan_id: string;
+  changed_at: string;
+  changed_by: string;
+  payment_id: string | null;
+}
+
+export interface ActivityQuota {
+  activity_id: string;
+  activity_name: string;
+  total: number;
+  consumed: number;
+  remaining: number;
+}
+
+export type QuotaMap = Record<string, ActivityQuota>;
+
 export interface CreatePlanDTO {
   name: string;
   price: number;

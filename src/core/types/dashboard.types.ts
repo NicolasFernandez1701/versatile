@@ -1,3 +1,5 @@
+import type { QuotaMap } from './plans.types';
+
 export interface StudentActivePlan {
   plan_id: string;
   plan_details: string;
@@ -16,4 +18,10 @@ export interface StudentNextClass {
 export interface StudentDashboardData {
   activePlan: StudentActivePlan | null;
   nextClass: StudentNextClass | null;
+}
+
+export interface StudentClassLimit {
+  limit: number;
+  classesPerWeek: number;
+  perActivity: QuotaMap;
 }

@@ -5,6 +5,8 @@ export interface EnrollmentEntity {
   reservation_date: string;
   attendance_status: 'pending' | 'attended' | 'absent' | 'cancelled';
   created_at: string;
+  plan_id?: string;
+  activity_id?: string;
 
   // Joins
   profiles?: {
