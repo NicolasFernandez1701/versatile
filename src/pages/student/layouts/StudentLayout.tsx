@@ -44,7 +44,7 @@ export function StudentLayout() {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <CalendarDays size={20} />
-            <span>Catálogo de Clases</span>
+            <span>Grilla</span>
           </NavLink>
 
           <NavLink
@@ -52,7 +52,7 @@ export function StudentLayout() {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <Tag size={20} />
-            <span>Nuestros Planes</span>
+            <span>Planes</span>
           </NavLink>
 
           <NavLink
@@ -60,7 +60,7 @@ export function StudentLayout() {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <CalendarDays size={20} />
-            <span>Mis Reservas</span>
+            <span>Reservas</span>
           </NavLink>
 
           <NavLink

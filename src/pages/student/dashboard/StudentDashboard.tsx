@@ -4,13 +4,14 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { CreditCard, CalendarDays, AlertTriangle } from 'lucide-react';
 import { SummaryCard } from '@/pages/admin/dashboard/components/SummaryCard';
 import { dashboardService } from '@/core/services';
+import type { StudentDashboardData } from '@/core/types/dashboard.types';
 import { Loader } from '@/components/ui';
 import '@/pages/admin/dashboard/dashboard.css';
 
 export function StudentDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const [data, setData] = useState<{ activePlan: any; nextClass: any } | null>(null);
+  const [data, setData] = useState<StudentDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,15 +69,15 @@ export function StudentDashboard() {
 
         <SummaryCard
           title="Próxima Clase"
-          value={data?.nextClass ? `${data.nextClass.classes.activity_name}` : 'No tenés reservas'}
+          value={data?.nextClass?.classes ? `${data.nextClass.classes.activity_name}` : 'No tenés reservas'}
           subtitle={
-            data?.nextClass
+            data?.nextClass?.classes
               ? `${new Date(data.nextClass.reservation_date).toLocaleDateString('es-AR')} a las ${data.nextClass.classes.start_time.substring(0, 5)}`
               : 'Hacé click para ver la grilla'
           }
           icon={CalendarDays}
           onClick={() => navigate('/student/classes')}
-          iconColorClass={data?.nextClass ? 'text-success' : 'text-secondary'}
+          iconColorClass={data?.nextClass?.classes ? 'text-success' : 'text-secondary'}
         />
       </div>
 

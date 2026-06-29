@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { ClassEntity } from '../types/classes.types';
+import type { StudentDashboardData, StudentActivePlan } from '../types/dashboard.types';
 
 export interface DashboardStats {
   totalStudents: number;
@@ -97,7 +98,7 @@ export const dashboardService = {
   /**
    * Obtiene la información del dashboard del alumno
    */
-  async getStudentDashboardData(studentId: string) {
+  async getStudentDashboardData(studentId: string): Promise<StudentDashboardData> {
     const today = new Date().toISOString().split('T')[0];
 
     const [paymentsRes, enrollmentsRes, profileRes] = await Promise.all([
@@ -126,23 +127,32 @@ export const dashboardService = {
     if (enrollmentsRes.error) throw enrollmentsRes.error;
 
     // Prefer payment plan; fallback to profile-assigned plan
-    let activePlan = paymentsRes.data?.[0] || null;
+    let activePlan: StudentActivePlan | null =
+      (paymentsRes.data?.[0] as StudentActivePlan | undefined) || null;
+
     if (
       !activePlan &&
       profileRes.data?.plan_id &&
       profileRes.data.plan_expiration_date &&
       profileRes.data.plan_expiration_date >= today
     ) {
+      const profilePlan = (
+        profileRes.data as unknown as { plans: { name: string } | null }
+      ).plans;
       activePlan = {
         plan_id: profileRes.data.plan_id,
-        plan_details: (profileRes.data.plans as any)?.name || 'Plan Asignado',
+        plan_details: profilePlan?.name || 'Plan Asignado',
         expiration_date: profileRes.data.plan_expiration_date
       };
     }
 
+    const rawNextClass = enrollmentsRes.data?.[0] as unknown as
+      | { reservation_date: string; classes: { activity_name: string; start_time: string; end_time: string } }
+      | undefined;
+
     return {
       activePlan,
-      nextClass: enrollmentsRes.data?.[0] || null
+      nextClass: rawNextClass || null
     };
   }
 };
