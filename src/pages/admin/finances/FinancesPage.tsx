@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Wallet, Plus, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { financesService, dashboardService, type FinancialBalance } from '@/core/services';
+import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
 import { usePaymentHistory } from './hooks/usePaymentHistory';
@@ -74,7 +75,7 @@ export function FinancesPage() {
       header: 'Monto (Neto)',
       render: (p) => (
         <span className="text-primary" style={{ fontWeight: 'bold' }}>
-          ${Number(p.amount).toLocaleString('es-AR')}
+          {formatCurrency(p.amount)}
         </span>
       )
     },
@@ -94,10 +95,10 @@ export function FinancesPage() {
       render: (p) => (
         <ul className="activity-list">
           {p.late_fee_applied && (
-            <li className="text-danger">Mora aplicada (+${Number(p.surcharge_applied).toLocaleString('es-AR')})</li>
+            <li className="text-danger">Mora aplicada (+{formatCurrency(p.surcharge_applied)})</li>
           )}
           {p.discount_applied > 0 && (
-            <li className="text-success">Descuento aplicado (-${Number(p.discount_applied).toLocaleString('es-AR')})</li>
+            <li className="text-success">Descuento aplicado (-{formatCurrency(p.discount_applied)})</li>
           )}
           {p.original_amount !== p.amount && !p.late_fee_applied && p.discount_applied === 0 && (
             <li>Editado manualmente</li>
@@ -219,7 +220,7 @@ export function FinancesPage() {
                               color: 'var(--success-color)'
                             }}
                           >
-                            ${(balance.monthlyByPlan[planName] || 0).toLocaleString('es-AR')}
+                            {formatCurrency(balance.monthlyByPlan[planName] || 0)}
                           </td>
                           <td
                             data-label="Anual"
@@ -229,7 +230,7 @@ export function FinancesPage() {
                               color: 'var(--primary-color)'
                             }}
                           >
-                            ${balance.annualByPlan[planName].toLocaleString('es-AR')}
+                            {formatCurrency(balance.annualByPlan[planName])}
                           </td>
                         </tr>
                       ))

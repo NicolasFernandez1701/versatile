@@ -75,7 +75,7 @@ export function StudentDashboard() {
               : 'Hacé click para ver la grilla'
           }
           icon={CalendarDays}
-          onClick={() => navigate('/student/reservations')}
+          onClick={() => navigate('/student/classes')}
           iconColorClass={data?.nextClass ? 'text-success' : 'text-secondary'}
         />
       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, TrendingUp, DollarSign, ClipboardList, BookOpen, Tag } from 'lucide-react';
 import { SummaryCard } from './components/SummaryCard';
+import { formatCurrency } from '@/core/utils/formatCurrency';
 import { dashboardService, type DashboardStats, type FinancialBalance } from '@/core/services';
 import type { ClassEntity } from '@/core/types/classes.types';
 import { Loader } from '@/components/ui';
@@ -65,14 +66,14 @@ export function AdminDashboard() {
         <div className="summary-grid">
           <SummaryCard
             title="Ingresos del Mes"
-            value={`$${balance.monthlyTotal.toLocaleString('es-AR')}`}
+            value={formatCurrency(balance.monthlyTotal)}
             icon={DollarSign}
             iconColorClass="text-success"
             onClick={() => navigate('/admin/finances')}
           />
           <SummaryCard
             title="Ingresos del Año"
-            value={`$${balance.annualTotal.toLocaleString('es-AR')}`}
+            value={formatCurrency(balance.annualTotal)}
             icon={TrendingUp}
             iconColorClass="text-primary"
             onClick={() => navigate('/admin/finances')}

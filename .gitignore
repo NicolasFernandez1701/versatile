@@ -13,6 +13,9 @@ coverage
 dist-ssr
 *.local
 
+# AI agent artifact directories
+.atl/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

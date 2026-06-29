@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
 import { financesService } from '@/core/services';
 import { usePaymentCalculation } from '@/core/hooks/usePaymentCalculation';
+import { formatCurrency } from '@/core/utils/formatCurrency';
 import { Modal } from '@/components/ui';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { useAuthStore } from '@/core/store/useAuthStore';
@@ -95,7 +96,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         plan_id: plan.id,
         amount: finalAmount,
         expiration_date: calculation.expirationDate,
-        plan_details: `${plan.name} - $${plan.price}`,
+        plan_details: `${plan.name} - ${formatCurrency(plan.price)}`,
         payment_method: paymentMethod,
         original_amount: calculation.proratedBase,
         discount_applied: calculation.promoDiscountAmount + calculation.cashDiscountAmount,
@@ -195,10 +196,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               onChange={(e) => setAmountOverride(e.target.value)}
               placeholder={
                 calculation
-                  ? `Automático: $${calculation.total.toLocaleString('es-AR', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}`
+                  ? `Automático: ${formatCurrency(calculation.total)}`
                   : ''
               }
             />
@@ -213,50 +211,27 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="breakdown-row">
                 <span className="text-secondary">Plan Base ({plan.name})</span>
-                <span>
-                  ${calculation.proratedBase.toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+                <span>{formatCurrency(calculation.proratedBase)}</span>
               </div>
 
               {promoDiscountPct > 0 && (
                 <div className="breakdown-row" style={{ color: 'var(--success-color)' }}>
                   <span>Promo {promoDiscountPct}% OFF</span>
-                  <span>
-                    -$
-                    {calculation.promoDiscountAmount.toLocaleString('es-AR', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
+                  <span>-{formatCurrency(calculation.promoDiscountAmount)}</span>
                 </div>
               )}
 
               {paymentMethod === 'efectivo' && (
                 <div className="breakdown-row" style={{ color: 'var(--success-color)' }}>
                   <span>Desc. Efectivo (15%)</span>
-                  <span>
-                    -$
-                    {calculation.cashDiscountAmount.toLocaleString('es-AR', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
+                  <span>-{formatCurrency(calculation.cashDiscountAmount)}</span>
                 </div>
               )}
 
               {applyLateFee && (
                 <div className="breakdown-row" style={{ color: 'var(--error-color)' }}>
                   <span>Recargo por Mora (20%)</span>
-                  <span>
-                    +$
-                    {calculation.lateFeeAmount.toLocaleString('es-AR', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
+                  <span>+{formatCurrency(calculation.lateFeeAmount)}</span>
                 </div>
               )}
 
@@ -264,12 +239,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
               <div className="breakdown-total">
                 <span>Total Calculado</span>
-                <span>
-                  ${calculation.total.toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+                <span>{formatCurrency(calculation.total)}</span>
               </div>
 
               {amountOverride !== '' && (
@@ -278,12 +248,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                   style={{ color: 'var(--warning-color)', marginTop: '0.5rem' }}
                 >
                   <span>Total Sobreescrito</span>
-                  <span>
-                    ${finalAmount.toLocaleString('es-AR', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
+                  <span>{formatCurrency(finalAmount)}</span>
                 </div>
               )}
             </div>

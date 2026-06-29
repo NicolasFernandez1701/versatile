@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { plansService, dashboardService } from '@/core/services';
+import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PlanEntity } from '@/core/types/plans.types';
 import { Loader, Button } from '@/components/ui';
 import { Check, Star, CheckCircle } from 'lucide-react';
@@ -152,7 +153,7 @@ export function StudentPlansPage() {
                   {plan.name}
                 </h3>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-                  ${plan.price.toLocaleString('es-AR')}
+                  {formatCurrency(plan.price)}
                 </div>
                 <div
                   className="text-secondary"

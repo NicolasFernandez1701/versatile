@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Tag, Plus, Trash2, Edit } from 'lucide-react';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { formatCurrency } from '@/core/utils/formatCurrency';
 import { plansService, classesService } from '@/core/services';
 import type { PlanEntity } from '@/core/types/plans.types';
 import type { ClassEntity } from '@/core/types/classes.types';
@@ -110,7 +111,7 @@ export function PlansPage() {
     {
       key: 'price',
       header: 'Precio Mensual',
-      render: (plan) => `$${plan.price}`
+      render: (plan) => formatCurrency(plan.price)
     },
     {
       key: 'classes',
