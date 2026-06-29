@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { ClassEntity } from '../types/classes.types';
-import type { StudentDashboardData, StudentActivePlan } from '../types/dashboard.types';
+import type { StudentDashboardData, StudentActivePlan, StudentClassLimit } from '../types/dashboard.types';
 
 export interface DashboardStats {
   totalStudents: number;
@@ -160,7 +160,7 @@ export const dashboardService = {
    * Obtiene el límite mensual de clases del alumno.
    * Prioriza el plan del pago activo; si no hay, usa el plan del perfil.
    */
-  async getStudentClassLimit(studentId: string): Promise<{ limit: number; classesPerWeek: number }> {
+  async getStudentClassLimit(studentId: string): Promise<StudentClassLimit> {
     const today = new Date().toISOString().split('T')[0];
 
     // 1. Buscar pago activo
@@ -192,7 +192,8 @@ export const dashboardService = {
 
     return {
       limit: (classesPerWeek || 0) * 4,
-      classesPerWeek: classesPerWeek || 0
+      classesPerWeek: classesPerWeek || 0,
+      perActivity: {},
     };
   }
 };

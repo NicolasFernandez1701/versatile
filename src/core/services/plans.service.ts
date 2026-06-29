@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 import { useAuthStore } from '../store/useAuthStore';
-import type { PlanEntity, CreatePlanDTO, CreatePlanActivityDTO } from '../types/plans.types';
+import type { PlanEntity, CreatePlanDTO, CreatePlanActivityDTO, PlanChange } from '../types/plans.types';
+
+export type { PlanChange };
 
 export const plansService = {
   async getPlans(): Promise<PlanEntity[]> {
