@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# Versatile
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Plataforma SaaS/B2B para gestión integral de gimnasios, academias y centros de entrenamiento.
 
-Currently, two official plugins are available:
+Centraliza administración de usuarios (alumnos, profesores), grilla de clases, control de asistencia, facturación y gestión de planes con cupos por actividad.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- **Frontend:** React 19 + TypeScript 6 (strict) + Vite 8
+- **Estado:** Zustand 5
+- **Routing:** React Router DOM 7
+- **Backend:** Supabase (PostgreSQL + Auth)
+- **Estilos:** Vanilla CSS con custom properties (sin frameworks)
+- **Testing:** Vitest 4 + React Testing Library (Strict TDD)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Arquitectura
 
-## Expanding the ESLint configuration
+Screaming Architecture por features con Clean Architecture:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname
-      }
-      // other options...
-    }
-  }
-]);
+```
+src/
+├── core/           # Lógica fundacional
+│   ├── services/   # Capa de acceso a datos (Supabase)
+│   ├── store/      # Estado global (Zustand)
+│   ├── hooks/      # Hooks reutilizables
+│   ├── types/      # Interfaces y tipos
+│   └── utils/      # Utilidades puras (quotaTracker, paymentCalculator)
+├── components/ui/  # Sistema de diseño (Botones, Modales, Inputs)
+├── features/       # Componentes de dominio (PlanForm, LoginForm)
+└── pages/          # Vistas ruteables por rol (admin, student, teacher)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Documentación
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+| Documento | Para quién |
+|-----------|------------|
+| [`BUSINESS_RULES.md`](./BUSINESS_RULES.md) | Dueños de negocio, Product Managers — reglas comerciales y decisiones de dominio |
+| [`TECHNICAL_DOCUMENTATION.md`](./TECHNICAL_DOCUMENTATION.md) | Arquitectos, Tech Leads — ADRs, modelo de datos, stack |
+| [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md) | Desarrolladores — filosofía de código, servicios, testing |
+| [`AGENTS.md`](./AGENTS.md) | AI Agents — reglas de code review automatizado |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname
-      }
-      // other options...
-    }
-  }
-]);
+## Desarrollo
+
+```bash
+npm install
+npm run dev        # Desarrollo
+npm test           # Tests (Vitest)
+npx tsc --noEmit   # Type check
 ```

@@ -61,7 +61,39 @@ Se documentan a continuación las decisiones técnicas críticas tomadas durante
 
 ---
 
-## 4. Módulos y Roles de la Plataforma
+## 4. ADRs (Continuación)
+
+### ADR-004: Prorrateo de Pagos y Período de Gracia
+**Contexto:** Un alumno que se inscribe a mitad de mes no debería pagar el 100% de la cuota. Además, los alumnos recurrentes necesitan unos días de margen para renovar sin perder el acceso a clases.
+**Decisión:** Se implementó un sistema de prorrateo de pagos con tres componentes:
+1. **`paymentCalculator`** — utilidad pura que calcula `ceil(basePrice × daysRemaining / daysInMonth)`, aplica descuentos (efectivo -15%, promocional configurable) y recargos (mora +20% post día 10).
+2. **Período de gracia de 10 días:** Los alumnos con pago vencido pueden seguir anotándose a clases durante los primeros 10 días del mes. Pasado ese umbral, el sistema bloquea nuevas inscripciones hasta que registren el pago.
+3. **Hook `usePaymentCalculation`** — encapsula la lógica de fetching del historial de pagos (para determinar `isFirstPayment`) y el cálculo prorrateado, exponiendo `{ calculation, loading, error, isFirstPayment }`.
+**Justificación:** Separar el cálculo (puro) del fetching (async) permite testear la fórmula de prorrateo de forma aislada y reutilizar el hook en cualquier modal de cobro. El período de gracia evita que alumnos regulares pierdan clases por demoras administrativas en el pago.
+**Archivos:** `src/core/utils/paymentCalculator.ts`, `src/core/hooks/usePaymentCalculation.ts`, `src/core/services/finances.service.ts`
+
+### ADR-005: Cupos por Actividad y Cambio de Plan a Mitad de Mes
+**Contexto:** Los planes definen cupos por actividad (ej. "2 boxeo + 1 yoga por semana"), no una bolsa general de clases. Cuando un alumno cambia de plan a mitad de mes, sus cupos deben prorratearse según los días restantes y reconciliarse con lo ya consumido.
+**Decisión:** Se implementaron tres mecanismos:
+1. **`quotaTracker`** — utilidad pura que calcula `ceil(clases_per_week × 4 × daysRemaining / daysInMonth)` por actividad y reconcilia con `max(0, newProratedQuota − oldConsumed)`. Sigue el mismo patrón de `paymentCalculator` (funciones puras + fetcher async separado).
+2. **Tabla `plan_changes`** — registra cada cambio de plan con `old_plan_id`, `new_plan_id`, `changed_at`, `changed_by` y `payment_id`. No se pisa el plan sin auditoría.
+3. **Flujo atómico payment + plan change** — `financesService.recordPayment()` acepta un parámetro opcional `planChange`. Si está presente, tras insertar el pago exitosamente, registra el cambio en `plan_changes` y actualiza `profiles.plan_id`.
+4. **Índice `enrollments(student_id, reservation_date)`** — optimiza las consultas del `quotaTracker` que agrupan consumos por actividad en el mes corriente.
+**Justificación:** Activar `plan_activities` como fuente de verdad evita que un alumno con plan "2 boxeo + 1 yoga" consuma 12 clases de yoga. El patrón de utilities puras + services garantiza testeabilidad y evita lógica de negocio en componentes UI.
+**Archivos:** `src/core/utils/quotaTracker.ts`, `src/core/services/enrollments.service.ts`, `src/core/services/dashboard.service.ts`, `database/migrations/003_plan_changes.sql`
+
+### ADR-006: Flujo de Trabajo SDD con Feature-Branch-Chain
+**Contexto:** Cambios de +400 líneas requieren dividirse en PRs revisables sin sacrificar la integridad del feature completo.
+**Decisión:** Se adoptó el flujo **feature-branch-chain** para features grandes:
+1. **Tracker branch** (`feat/nombre-feature`) — acumula todos los PRs del feature. Solo este branch mergea a `main`.
+2. **PR branches** (`feat/nombre-feature-foundation`, `feat/nombre-feature-enforcement`) — cada uno implementa una fase independiente y mergea al tracker.
+3. **Work-unit commits** — cada commit representa una unidad lógica de trabajo con tests propios.
+**Justificación:** El tracker branch permite rollback atómico de todo el feature sin afectar `main`. Los PRs individuales mantienen diffs revisables (<400 líneas). Las fases son autónomas (Foundation puede deployarse sin romper nada; Enforcement activa el nuevo comportamiento).
+**Convención:** Fase 1 (Foundation: schema + types + utilities) → Fase 2 (Services) → Fase 3 (UI). El tracker solo se mergea cuando todas las fases están completas y verificadas.
+
+---
+
+## 5. Módulos y Roles de la Plataforma
 
 La lógica de negocio está fuertemente dividida por el `role` del usuario activo.
 
@@ -78,7 +110,7 @@ La lógica de negocio está fuertemente dividida por el `role` del usuario activ
 
 ---
 
-## 5. Estándares y Convenciones de Desarrollo
+## 6. Estándares y Convenciones de Desarrollo
 
 Cualquier nuevo desarrollo debe alinearse a las siguientes convenciones:
 
