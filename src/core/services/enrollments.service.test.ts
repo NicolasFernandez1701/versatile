@@ -5,6 +5,25 @@ import { enrollmentsService } from './enrollments.service';
 // 1. Datos de prueba
 // ──────────────────────────────────────────────
 
+const mockPlanWithActivities = {
+  id: 'plan-001',
+  name: 'Plan Mensual',
+  price: 25000,
+  classes_per_week: 3,
+  is_active: true,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  plan_activities: [
+    { id: 'pa-001', plan_id: 'plan-001', activity_name: 'Boxeo', classes_per_week: 2, created_at: '2024-01-01T00:00:00Z' },
+    { id: 'pa-002', plan_id: 'plan-001', activity_name: 'Yoga', classes_per_week: 1, created_at: '2024-01-01T00:00:00Z' },
+  ],
+};
+
+const mockQuotaMap = (overrides: Record<string, { total: number; consumed: number; remaining: number }> = {}) => ({
+  Boxeo: { activity_id: 'pa-001', activity_name: 'Boxeo', total: 8, consumed: 3, remaining: 5, ...overrides.Boxeo },
+  Yoga: { activity_id: 'pa-002', activity_name: 'Yoga', total: 4, consumed: 1, remaining: 3, ...overrides.Yoga },
+});
+
 const mockEnrollments: any[] = [
   {
     id: 'enr-001',
@@ -45,15 +64,33 @@ function mockPaymentCount(count: number) {
 }
 
 // ──────────────────────────────────────────────
-// 2. Mock de Supabase
+// 2. Mock de dependencias
 // ──────────────────────────────────────────────
 
 const { mockFrom } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
 }));
 
+const { mockGetPlanById } = vi.hoisted(() => ({
+  mockGetPlanById: vi.fn(),
+}));
+
+const { mockGetRemainingQuota } = vi.hoisted(() => ({
+  mockGetRemainingQuota: vi.fn(),
+}));
+
 vi.mock('./supabase', () => ({
   supabase: { from: mockFrom },
+}));
+
+vi.mock('./plans.service', () => ({
+  plansService: {
+    getPlanById: mockGetPlanById,
+  },
+}));
+
+vi.mock('../utils/quotaTracker', () => ({
+  getRemainingQuota: mockGetRemainingQuota,
 }));
 
 vi.mock('../store/useAuthStore', () => ({
@@ -65,6 +102,9 @@ vi.mock('../store/useAuthStore', () => ({
 describe('enrollmentsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFrom.mockReset();
+    mockGetPlanById.mockReset();
+    mockGetRemainingQuota.mockReset();
   });
 
   // ────────────────────────────────────────────
@@ -96,16 +136,24 @@ describe('enrollmentsService', () => {
   });
 
   // ────────────────────────────────────────────
-  // enrollStudent (complejo — 7 pasos)
+  // enrollStudent (per-activity quota enforcement)
   // ────────────────────────────────────────────
   describe('enrollStudent', () => {
     const studentId = 'stu-001';
     const classId = 'cls-001';
     const reservationDate = '2024-06-15';
 
-    it('debería inscribir a un alumno exitosamente', async () => {
-      // Paso 0: Verificar pago del mes actual (count = 1 para saltear el período de gracia)
-      mockPaymentCount(1);
+    function setupQuotaCheck(remainingByActivity: Record<string, number> = {}) {
+      mockGetPlanById.mockResolvedValue(mockPlanWithActivities);
+      mockGetRemainingQuota.mockResolvedValue(mockQuotaMap({
+        Boxeo: { total: 8, consumed: 8 - (remainingByActivity.Boxeo ?? 5), remaining: remainingByActivity.Boxeo ?? 5 },
+        Yoga: { total: 4, consumed: 4 - (remainingByActivity.Yoga ?? 3), remaining: remainingByActivity.Yoga ?? 3 },
+      }));
+    }
+
+    function setupSuccessfulEnrollment(paymentCount: number, activityName = 'Boxeo') {
+      // Paso 0: Verificar pago del mes actual
+      mockPaymentCount(paymentCount);
       // Paso 1: Obtener perfil con plan
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
@@ -114,50 +162,53 @@ describe('enrollmentsService', () => {
           })),
         })),
       });
-      // Paso 2: Contar reservas del mes (monthlyCount = 5, límite = 12)
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              lte: vi.fn(() => ({
-                neq: vi.fn().mockResolvedValue({ count: 5, error: null }),
-              })),
-            })),
-          })),
-        })),
-      });
-      // Paso 3: Contar inscriptos en la clase (enrolledCount = 3, capacity = 15)
+      // Paso 2: Plan con actividades + quotaTracker
+      setupQuotaCheck();
+      return setupClassAndInsert(activityName);
+    }
+
+    function setupClassAndInsert(activityName = 'Boxeo', enrolledCount = 3) {
+      // Paso 3: Contar inscriptos en la clase
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              neq: vi.fn().mockResolvedValue({ count: 3, error: null }),
+              neq: vi.fn().mockResolvedValue({ count: enrolledCount, error: null }),
             })),
           })),
         })),
       });
-      // Paso 4: Obtener capacidad de la clase
+      // Paso 4: Obtener capacidad y actividad de la clase
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: mockClassWithCapacity, error: null }),
+            single: vi.fn().mockResolvedValue({
+              data: { ...mockClassWithCapacity, activity_name: activityName },
+              error: null,
+            }),
           })),
         })),
       });
       // Paso 5: Insertar enrollment
-      mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
-      });
+      const insertMock = vi.fn().mockResolvedValue({ error: null });
+      mockFrom.mockReturnValueOnce({ insert: insertMock });
+      return insertMock;
+    }
+
+    it('debería inscribir a un alumno exitosamente', async () => {
+      const insertMock = setupSuccessfulEnrollment(1);
 
       await enrollmentsService.enrollStudent(studentId, classId, reservationDate);
 
-      expect(mockFrom).toHaveBeenCalledTimes(6);
+      expect(mockGetPlanById).toHaveBeenCalledWith('plan-001');
+      expect(mockGetRemainingQuota).toHaveBeenCalled();
+      expect(insertMock).toHaveBeenCalled();
+      expect(mockFrom).toHaveBeenCalledTimes(5);
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
       expect(mockFrom).toHaveBeenNthCalledWith(3, 'enrollments');
-      expect(mockFrom).toHaveBeenNthCalledWith(4, 'enrollments');
-      expect(mockFrom).toHaveBeenNthCalledWith(5, 'classes');
-      expect(mockFrom).toHaveBeenNthCalledWith(6, 'enrollments');
+      expect(mockFrom).toHaveBeenNthCalledWith(4, 'classes');
+      expect(mockFrom).toHaveBeenNthCalledWith(5, 'enrollments');
     });
 
     it('debería lanzar error si falla la consulta del perfil', async () => {
@@ -188,9 +239,8 @@ describe('enrollmentsService', () => {
       );
     });
 
-    it('debería lanzar error si se excede el límite mensual', async () => {
+    it('debería lanzar error si no queda cupo para la actividad', async () => {
       mockPaymentCount(1);
-      // Perfil con plan (classes_per_week = 3 → límite = 12)
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -198,53 +248,24 @@ describe('enrollmentsService', () => {
           })),
         })),
       });
-      // Monthly count = 12, ya igual al límite → error
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              lte: vi.fn(() => ({
-                neq: vi.fn().mockResolvedValue({ count: 12, error: null }),
-              })),
-            })),
-          })),
-        })),
-      });
+      setupQuotaCheck({ Boxeo: 0 });
+      setupClassAndInsert('Boxeo');
 
       await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).rejects.toThrow(
-        'Límite mensual excedido'
+        'Límite de cupos de Boxeo excedido'
       );
     });
 
-    it('debería lanzar error si falla el conteo mensual', async () => {
-      mockPaymentCount(1);
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: mockProfileWithPlan, error: null }),
-          })),
-        })),
-      });
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              lte: vi.fn(() => ({
-                neq: vi.fn().mockResolvedValue({ count: null, error: new Error('Error en conteo mensual') }),
-              })),
-            })),
-          })),
-        })),
-      });
+    it('debería inscribir en actividad con cupo disponible aunque otra esté agotada', async () => {
+      setupSuccessfulEnrollment(1, 'Yoga');
+      // Override quota so Boxeo is exhausted but Yoga has room
+      setupQuotaCheck({ Boxeo: 0, Yoga: 3 });
 
-      await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).rejects.toThrow(
-        'Error en conteo mensual'
-      );
+      await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).resolves.toBeUndefined();
     });
 
     it('debería lanzar error si la clase está al máximo de capacidad', async () => {
       mockPaymentCount(1);
-      // Perfil ok
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -252,18 +273,7 @@ describe('enrollmentsService', () => {
           })),
         })),
       });
-      // Monthly count ok (5 < 12)
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              lte: vi.fn(() => ({
-                neq: vi.fn().mockResolvedValue({ count: 5, error: null }),
-              })),
-            })),
-          })),
-        })),
-      });
+      setupQuotaCheck();
       // Enrolled count = 15, capacity = 15 → excedido
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
@@ -277,13 +287,32 @@ describe('enrollmentsService', () => {
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: mockClassWithCapacity, error: null }),
+            single: vi.fn().mockResolvedValue({
+              data: { ...mockClassWithCapacity, activity_name: 'Boxeo' },
+              error: null,
+            }),
           })),
         })),
       });
 
       await expect(enrollmentsService.enrollStudent(studentId, classId, reservationDate)).rejects.toThrow(
         'La clase ha alcanzado su capacidad máxima para esa fecha.'
+      );
+    });
+
+    it('debería incluir plan_id al insertar la inscripción', async () => {
+      const insertMock = setupSuccessfulEnrollment(1);
+
+      await enrollmentsService.enrollStudent(studentId, classId, reservationDate);
+
+      expect(insertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          student_id: studentId,
+          class_id: classId,
+          reservation_date: reservationDate,
+          studio_id: 'studio-001',
+          plan_id: 'plan-001',
+        })
       );
     });
 
@@ -296,17 +325,7 @@ describe('enrollmentsService', () => {
           })),
         })),
       });
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              lte: vi.fn(() => ({
-                neq: vi.fn().mockResolvedValue({ count: 2, error: null }),
-              })),
-            })),
-          })),
-        })),
-      });
+      setupQuotaCheck();
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -319,7 +338,10 @@ describe('enrollmentsService', () => {
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: mockClassWithCapacity, error: null }),
+            single: vi.fn().mockResolvedValue({
+              data: { ...mockClassWithCapacity, activity_name: 'Boxeo' },
+              error: null,
+            }),
           })),
         })),
       });
@@ -342,17 +364,7 @@ describe('enrollmentsService', () => {
           })),
         })),
       });
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              lte: vi.fn(() => ({
-                neq: vi.fn().mockResolvedValue({ count: 2, error: null }),
-              })),
-            })),
-          })),
-        })),
-      });
+      setupQuotaCheck();
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -365,7 +377,10 @@ describe('enrollmentsService', () => {
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: mockClassWithCapacity, error: null }),
+            single: vi.fn().mockResolvedValue({
+              data: { ...mockClassWithCapacity, activity_name: 'Boxeo' },
+              error: null,
+            }),
           })),
         })),
       });
@@ -402,17 +417,8 @@ describe('enrollmentsService', () => {
           })),
         })),
       });
-      mockFrom.mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              lte: vi.fn(() => ({
-                neq: vi.fn().mockResolvedValue({ count: 0, error: null }),
-              })),
-            })),
-          })),
-        })),
-      });
+      mockGetPlanById.mockResolvedValue(mockPlanWithActivities);
+      mockGetRemainingQuota.mockResolvedValue(mockQuotaMap());
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -425,7 +431,10 @@ describe('enrollmentsService', () => {
       mockFrom.mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: mockClassWithCapacity, error: null }),
+            single: vi.fn().mockResolvedValue({
+              data: { ...mockClassWithCapacity, activity_name: 'Boxeo' },
+              error: null,
+            }),
           })),
         })),
       });

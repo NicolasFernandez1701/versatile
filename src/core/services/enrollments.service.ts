@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { useAuthStore } from '../store/useAuthStore';
+import { plansService } from './plans.service';
+import { getRemainingQuota } from '../utils/quotaTracker';
 import type { EnrollmentEntity } from '../types/enrollments.types';
 
 export const enrollmentsService = {
@@ -34,42 +36,25 @@ export const enrollmentsService = {
       throw new Error('El alumno debe abonar la cuota del mes actual antes de inscribirse.');
     }
 
-    // 1. Validar límite mensual del alumno
-    // Obtenemos el perfil y su plan para saber cuántas clases tiene por semana
+    // 1. Validar límite por actividad del alumno
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('plan_id, plans(classes_per_week)')
+      .select('plan_id')
       .eq('id', studentId)
       .single();
 
     if (profileError) throw profileError;
     if (!profile?.plan_id) throw new Error('El alumno no tiene un plan activo asignado.');
 
-    // Obtenemos cuántas reservas tiene el alumno en el MES actual
+    const plan = await plansService.getPlanById(profile.plan_id);
+
     const [year, month] = reservationDate.split('-');
-    const firstDayOfMonth = `${year}-${month}-01`;
-    const lastDayOfMonth = new Date(Number(year), Number(month), 0).toISOString().split('T')[0];
+    const monthStart = new Date(Number(year), Number(month) - 1, 1);
+    const monthEnd = new Date(Number(year), Number(month), 0);
 
-    const { count: monthlyCount, error: countMonthlyError } = await supabase
-      .from('enrollments')
-      .select('*', { count: 'exact', head: true })
-      .eq('student_id', studentId)
-      .gte('reservation_date', firstDayOfMonth)
-      .lte('reservation_date', lastDayOfMonth)
-      .neq('attendance_status', 'cancelled'); // No contamos las canceladas
+    const remainingQuota = await getRemainingQuota(studentId, profile.plan_id, plan, monthStart, monthEnd);
 
-    if (countMonthlyError) throw countMonthlyError;
-
-    // TODO: La base de datos guarda 'classes_per_week', en muchos gimnasios el cupo mensual es x4
-    const classesPerMonth = ((profile.plans as { classes_per_week?: number } | null)?.classes_per_week ?? 0) * 4;
-
-    if (monthlyCount !== null && monthlyCount >= classesPerMonth) {
-      throw new Error(
-        `Límite mensual excedido. El plan permite ${classesPerMonth} clases por mes.`
-      );
-    }
-
-    // 2. Chequear cupo disponible de la clase
+    // 2. Chequear cupo disponible de la clase y obtener su actividad
     const { count: enrolledCount, error: countError } = await supabase
       .from('enrollments')
       .select('*', { count: 'exact', head: true })
@@ -81,7 +66,7 @@ export const enrollmentsService = {
 
     const { data: classData, error: classError } = await supabase
       .from('classes')
-      .select('capacity')
+      .select('capacity, activity_name')
       .eq('id', classId)
       .single();
 
@@ -91,13 +76,24 @@ export const enrollmentsService = {
       throw new Error('La clase ha alcanzado su capacidad máxima para esa fecha.');
     }
 
+    const activityQuota = classData?.activity_name ? remainingQuota[classData.activity_name] : undefined;
+    if (!activityQuota || activityQuota.remaining <= 0) {
+      throw new Error(`Límite de cupos de ${classData?.activity_name ?? 'esta actividad'} excedido.`);
+    }
+
     // 3. Inscribir (Reservar)
     const studioId = useAuthStore.getState().current_studio_id;
     if (!studioId) throw new Error('No active studio');
 
     const { error } = await supabase
       .from('enrollments')
-      .insert({ student_id: studentId, class_id: classId, reservation_date: reservationDate, studio_id: studioId });
+      .insert({
+        student_id: studentId,
+        class_id: classId,
+        reservation_date: reservationDate,
+        studio_id: studioId,
+        plan_id: profile.plan_id,
+      });
 
     if (error) {
       if (error.code === '23505')
