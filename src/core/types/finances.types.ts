@@ -20,6 +20,11 @@ export interface PaymentEntity {
   profiles?: Profile;
 }
 
+export interface PlanChangePayload {
+  newPlanId: string;
+  studentId: string;
+}
+
 export interface RecordPaymentPayload {
   student_id: string;
   plan_id?: string;
@@ -33,4 +38,5 @@ export interface RecordPaymentPayload {
   late_payment: boolean;
   late_fee_applied: boolean;
   is_first_payment: boolean;
+  planChange?: PlanChangePayload;
 }

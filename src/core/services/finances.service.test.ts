@@ -55,7 +55,7 @@ vi.mock('./supabase', () => ({
 
 vi.mock('../store/useAuthStore', () => ({
   useAuthStore: {
-    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID })),
+    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID, user: { id: 'admin-001' } })),
   },
 }));
 
@@ -189,7 +189,11 @@ describe('financesService', () => {
 
     it('debería registrar un pago con studio_id y actualizar la fecha de expiración', async () => {
       mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { id: 'pay-001' }, error: null }),
+          })),
+        })),
       });
       mockFrom.mockReturnValueOnce({
         update: vi.fn(() => ({
@@ -212,7 +216,11 @@ describe('financesService', () => {
 
     it('debería lanzar error si el insert del pago falla', async () => {
       mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: new Error('Error al registrar pago') }),
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: new Error('Error al registrar pago') }),
+          })),
+        })),
       });
 
       await expect(financesService.recordPayment(payload)).rejects.toThrow('Error al registrar pago');
@@ -220,7 +228,11 @@ describe('financesService', () => {
 
     it('debería lanzar error si el update del perfil falla', async () => {
       mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { id: 'pay-001' }, error: null }),
+          })),
+        })),
       });
       mockFrom.mockReturnValueOnce({
         update: vi.fn(() => ({
@@ -229,6 +241,115 @@ describe('financesService', () => {
       });
 
       await expect(financesService.recordPayment(payload)).rejects.toThrow('Error al actualizar perfil');
+    });
+
+    it('debería registrar el cambio de plan atómicamente junto al pago', async () => {
+      const planChangePayload = {
+        ...payload,
+        planChange: { newPlanId: 'plan-002', studentId: 'stu-001' },
+      };
+      const paymentId = 'pay-123';
+
+      // 1. Insert payment
+      const insertPaymentMock = vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({ data: { id: paymentId }, error: null }),
+        })),
+      }));
+      mockFrom.mockReturnValueOnce({ insert: insertPaymentMock });
+      // 2. Fetch old plan from profile
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { plan_id: 'plan-001' }, error: null }),
+          })),
+        })),
+      });
+      // 3. Insert plan_changes
+      const insertPlanChangeMock = vi.fn().mockResolvedValue({ error: null });
+      mockFrom.mockReturnValueOnce({ insert: insertPlanChangeMock });
+      // 4. Update profile plan_id + expiration
+      const updateProfileMock = vi.fn(() => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }));
+      mockFrom.mockReturnValueOnce({ update: updateProfileMock });
+
+      await financesService.recordPayment(planChangePayload);
+
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
+      expect(mockFrom).toHaveBeenNthCalledWith(3, 'plan_changes');
+      expect(mockFrom).toHaveBeenNthCalledWith(4, 'profiles');
+      expect(insertPlanChangeMock).toHaveBeenCalledWith({
+        profile_id: 'stu-001',
+        old_plan_id: 'plan-001',
+        new_plan_id: 'plan-002',
+        changed_by: 'admin-001',
+        payment_id: paymentId,
+      });
+      expect(updateProfileMock).toHaveBeenCalledWith({
+        plan_expiration_date: payload.expiration_date,
+        plan_id: 'plan-002',
+      });
+    });
+
+    it('no debería registrar cambio de plan si el pago falla', async () => {
+      const planChangePayload = {
+        ...payload,
+        planChange: { newPlanId: 'plan-002', studentId: 'stu-001' },
+      };
+
+      mockFrom.mockReturnValueOnce({
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: new Error('Error al registrar pago') }),
+          })),
+        })),
+      });
+
+      await expect(financesService.recordPayment(planChangePayload)).rejects.toThrow('Error al registrar pago');
+      expect(mockFrom).toHaveBeenCalledTimes(1);
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
+    });
+
+    it('debería loguear el error si el cambio de plan falla después del pago', async () => {
+      const planChangePayload = {
+        ...payload,
+        planChange: { newPlanId: 'plan-002', studentId: 'stu-001' },
+      };
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      // 1. Insert payment
+      mockFrom.mockReturnValueOnce({
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { id: 'pay-123' }, error: null }),
+          })),
+        })),
+      });
+      // 2. Fetch old plan
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { plan_id: 'plan-001' }, error: null }),
+          })),
+        })),
+      });
+      // 3. Insert plan_changes fails
+      mockFrom.mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: new Error('Error al registrar cambio de plan') }),
+      });
+      // 4. Still update profile expiration (without plan_id)
+      mockFrom.mockReturnValueOnce({
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        })),
+      });
+
+      await expect(financesService.recordPayment(planChangePayload)).resolves.toBeUndefined();
+      expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+
+      consoleSpy.mockRestore();
     });
   });
 });
