@@ -132,4 +132,22 @@ describe('useAuthStore', () => {
   it('getCurrentStudioId debería devolver null cuando no hay studio activo', () => {
     expect(useAuthStore.getState().getCurrentStudioId()).toBeNull();
   });
+
+  it('AuthState shape soporta memberships, activeRole y setActiveRole', () => {
+    const mockUser = {
+      id: '1',
+      email: 'test@test.com',
+      memberships: [
+        { studio_id: 'studio-1', studio_name: 'Studio 1', role: 'admin' },
+        { studio_id: 'studio-1', studio_name: 'Studio 1', role: 'teacher' },
+      ],
+    } as AppUser;
+
+    useAuthStore.getState().setUser(mockUser);
+    useAuthStore.getState().setActiveRole('teacher');
+
+    const state = useAuthStore.getState();
+    expect(state.memberships).toHaveLength(2);
+    expect(state.activeRole).toBe('teacher');
+  });
 });

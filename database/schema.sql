@@ -97,7 +97,7 @@ CREATE TABLE public.studio_members (
     user_id    UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     role       VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'teacher', 'student')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    UNIQUE (studio_id, user_id)
+    UNIQUE (studio_id, user_id, role)
 );
 
 -- Index to speed up the auth_studio_ids() lookup (critical for RLS performance)
@@ -297,7 +297,7 @@ BEGIN
     -- Create studio membership
     INSERT INTO public.studio_members (studio_id, user_id, role)
     VALUES (v_studio_id, NEW.id, v_role)
-    ON CONFLICT (studio_id, user_id) DO NOTHING;
+    ON CONFLICT (studio_id, user_id, role) DO NOTHING;
 
     RETURN NEW;
 END;

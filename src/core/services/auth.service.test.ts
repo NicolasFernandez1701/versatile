@@ -30,7 +30,7 @@ vi.mock('./supabase', () => ({
 // Helper: set up the sequential from mocks for profile + membership
 function setupFromMocks(
   profileData: object | null,
-  membershipData: object | null
+  membershipsData: object[] | null
 ) {
   // First call → profiles
   mockFrom.mockReturnValueOnce({
@@ -40,12 +40,10 @@ function setupFromMocks(
       })),
     })),
   });
-  // Second call → studio_members
+  // Second call → studio_members (array, no maybeSingle)
   mockFrom.mockReturnValueOnce({
     select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        maybeSingle: vi.fn().mockResolvedValue({ data: membershipData, error: null }),
-      })),
+      eq: vi.fn().mockResolvedValue({ data: membershipsData, error: null }),
     })),
   });
 }
@@ -157,7 +155,7 @@ describe('authService', () => {
         data: { session: { user: mockUser } },
         error: null,
       });
-      setupFromMocks(mockProfile, mockMembership);
+      setupFromMocks(mockProfile, [mockMembership]);
 
       const result = await authService.getCurrentUser();
 
@@ -169,6 +167,13 @@ describe('authService', () => {
           studio_name: 'Studio Principal',
           role: 'admin',
         },
+        memberships: [
+          {
+            studio_id: 'studio-001',
+            studio_name: 'Studio Principal',
+            role: 'admin',
+          },
+        ],
       });
       expect(mockAuth.getSession).toHaveBeenCalledOnce();
       expect(mockFrom).toHaveBeenCalledWith('profiles');
@@ -226,6 +231,50 @@ describe('authService', () => {
 
       await expect(authService.getCurrentUser()).rejects.toThrow('Error de conexión');
     });
+
+    it('debería devolver todas las memberships como array para usuario multi-rol', async () => {
+      const mockUser = { id: '1', email: 'test@test.com' };
+      const mockProfile = { has_completed_onboarding: true, role: 'admin', full_name: 'Admin' };
+      const mockMemberships = [
+        { studio_id: 'studio-001', role: 'admin', studios: { name: 'Studio Principal' } },
+        { studio_id: 'studio-001', role: 'teacher', studios: { name: 'Studio Principal' } },
+      ];
+
+      mockAuth.getSession.mockResolvedValue({
+        data: { session: { user: mockUser } },
+        error: null,
+      });
+
+      // Profile query
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
+          })),
+        })),
+      });
+
+      // Memberships query (array, no maybeSingle)
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ data: mockMemberships, error: null }),
+        })),
+      });
+
+      const result = await authService.getCurrentUser();
+
+      expect(result?.memberships).toHaveLength(2);
+      expect(result?.memberships?.[0]).toMatchObject({
+        studio_id: 'studio-001',
+        studio_name: 'Studio Principal',
+        role: 'admin',
+      });
+      expect(result?.memberships?.[1]).toMatchObject({
+        studio_id: 'studio-001',
+        studio_name: 'Studio Principal',
+        role: 'teacher',
+      });
+    });
   });
 
   // ────────────────────────────────────────────
@@ -256,7 +305,7 @@ describe('authService', () => {
         studios: { name: 'Studio Principal' },
       };
 
-      setupFromMocks(mockProfile, mockMembership);
+      setupFromMocks(mockProfile, [mockMembership]);
 
       let handlerDone: Promise<void>;
       mockAuth.onAuthStateChange.mockImplementation((cb: (event: string, session: typeof mockSession) => Promise<void>) => {

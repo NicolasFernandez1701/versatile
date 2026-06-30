@@ -18,6 +18,7 @@ interface UsersState {
     studio_id: string;
   }) => Promise<void>;
   deleteUser: (id: string, role: 'student' | 'teacher') => Promise<void>;
+  reset: () => void;
 }
 
 export const useUsersStore = create<UsersState>((set, get) => ({
@@ -80,5 +81,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       set({ error: err instanceof Error ? err.message : 'Error desconocido', loading: false });
       throw err;
     }
-  }
+  },
+
+  reset: () => set({ students: [], teachers: [], error: null })
 }));
