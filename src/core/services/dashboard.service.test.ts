@@ -64,6 +64,10 @@ const { mockFrom, mockRpc } = vi.hoisted(() => {
   return { mockFrom, mockRpc };
 });
 
+const { mockGetRemainingQuota } = vi.hoisted(() => ({
+  mockGetRemainingQuota: vi.fn(),
+}));
+
 vi.mock('./supabase', () => ({
   supabase: {
     from: mockFrom,
@@ -71,9 +75,14 @@ vi.mock('./supabase', () => ({
   },
 }));
 
+vi.mock('../utils/quotaTracker', () => ({
+  getRemainingQuota: mockGetRemainingQuota,
+}));
+
 describe('dashboardService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetRemainingQuota.mockReset();
   });
 
   // ────────────────────────────────────────────
@@ -479,6 +488,122 @@ describe('dashboardService', () => {
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'enrollments');
       expect(mockFrom).toHaveBeenNthCalledWith(3, 'profiles');
+    });
+  });
+
+  // ────────────────────────────────────────────
+  // getStudentClassLimit — per-activity quota
+  // ────────────────────────────────────────────
+  describe('getStudentClassLimit', () => {
+    const studentId = 'stu-001';
+
+    const mockPlanWithActivities = {
+      id: 'plan-001',
+      name: 'Plan Mensual',
+      price: 25000,
+      classes_per_week: 3,
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      plan_activities: [
+        { id: 'pa-001', plan_id: 'plan-001', activity_name: 'Boxeo', classes_per_week: 2, created_at: '2024-01-01T00:00:00Z' },
+        { id: 'pa-002', plan_id: 'plan-001', activity_name: 'Yoga', classes_per_week: 1, created_at: '2024-01-01T00:00:00Z' },
+      ],
+    };
+
+    const mockQuotaMap = {
+      Boxeo: { activity_id: 'pa-001', activity_name: 'Boxeo', total: 8, consumed: 3, remaining: 5 },
+      Yoga: { activity_id: 'pa-002', activity_name: 'Yoga', total: 4, consumed: 1, remaining: 3 },
+    };
+
+    it('debería devolver el límite total y el desglose por actividad desde el pago activo', async () => {
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              order: vi.fn(() => ({
+                limit: vi.fn().mockResolvedValue({
+                  data: [{ plan_id: 'plan-001', plans: mockPlanWithActivities }],
+                  error: null,
+                }),
+              })),
+            })),
+          })),
+        })),
+      });
+      mockGetRemainingQuota.mockResolvedValue(mockQuotaMap);
+
+      const result = await dashboardService.getStudentClassLimit(studentId);
+
+      expect(mockFrom).toHaveBeenCalledWith('payments');
+      expect(mockGetRemainingQuota).toHaveBeenCalled();
+      expect(result.limit).toBe(12);
+      expect(result.classesPerWeek).toBe(3);
+      expect(result.perActivity).toEqual(mockQuotaMap);
+    });
+
+    it('debería usar el plan del perfil como fallback si no hay pago activo', async () => {
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              order: vi.fn(() => ({
+                limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+              })),
+            })),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { plan_id: 'plan-001', plans: mockPlanWithActivities },
+              error: null,
+            }),
+          })),
+        })),
+      });
+      mockGetRemainingQuota.mockResolvedValue(mockQuotaMap);
+
+      const result = await dashboardService.getStudentClassLimit(studentId);
+
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
+      expect(result.limit).toBe(12);
+      expect(result.classesPerWeek).toBe(3);
+      expect(result.perActivity).toEqual(mockQuotaMap);
+    });
+
+    it('debería devolver límite 0 cuando el alumno no tiene plan', async () => {
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              order: vi.fn(() => ({
+                limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+              })),
+            })),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { plan_id: null, plans: null },
+              error: null,
+            }),
+          })),
+        })),
+      });
+
+      const result = await dashboardService.getStudentClassLimit(studentId);
+
+      expect(result.limit).toBe(0);
+      expect(result.classesPerWeek).toBe(0);
+      expect(result.perActivity).toEqual({});
+      expect(mockGetRemainingQuota).not.toHaveBeenCalled();
     });
   });
 });

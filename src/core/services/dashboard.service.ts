@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
+import { getRemainingQuota } from '../utils/quotaTracker';
 import type { ClassEntity } from '../types/classes.types';
 import type { StudentDashboardData, StudentActivePlan, StudentClassLimit } from '../types/dashboard.types';
+import type { PlanWithActivities, QuotaMap } from '../types/plans.types';
 
 export interface DashboardStats {
   totalStudents: number;
@@ -162,38 +164,54 @@ export const dashboardService = {
    */
   async getStudentClassLimit(studentId: string): Promise<StudentClassLimit> {
     const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // 1. Buscar pago activo
     const { data: payments } = await supabase
       .from('payments')
-      .select('plan_id, plans(classes_per_week)')
+      .select('plan_id, plans(classes_per_week, plan_activities(*))')
       .eq('student_id', studentId)
       .gte('expiration_date', today)
       .order('expiration_date', { ascending: false })
       .limit(1);
 
     const activePayment = payments?.[0] as
-      | { plans: { classes_per_week: number } | null }
+      | { plan_id: string; plans: PlanWithActivities | null }
       | undefined;
 
-    let classesPerWeek = activePayment?.plans?.classes_per_week;
+    let plan: PlanWithActivities | null = activePayment?.plans ?? null;
+    let planId: string | null = activePayment?.plan_id ?? null;
 
     // 2. Fallback al plan del perfil
-    if (!classesPerWeek) {
+    if (!plan || !planId) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan_id, plans(classes_per_week)')
+        .select('plan_id, plans(classes_per_week, plan_activities(*))')
         .eq('id', studentId)
         .single();
 
-      const profilePlan = (profile as { plans: { classes_per_week: number } | null } | null)?.plans;
-      classesPerWeek = profilePlan?.classes_per_week || 0;
+      const profileData = profile as { plan_id: string | null; plans: PlanWithActivities | null } | null;
+      plan = profileData?.plans ?? null;
+      planId = profileData?.plan_id ?? null;
     }
 
+    if (!plan || !planId) {
+      return {
+        limit: 0,
+        classesPerWeek: 0,
+        perActivity: {},
+      };
+    }
+
+    const perActivity: QuotaMap = await getRemainingQuota(studentId, planId, plan, monthStart, monthEnd);
+    const totalLimit = Object.values(perActivity).reduce((sum, quota) => sum + quota.total, 0);
+
     return {
-      limit: (classesPerWeek || 0) * 4,
-      classesPerWeek: classesPerWeek || 0,
-      perActivity: {},
+      limit: totalLimit,
+      classesPerWeek: plan.classes_per_week || 0,
+      perActivity,
     };
   }
 };
