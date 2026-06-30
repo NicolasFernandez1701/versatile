@@ -50,14 +50,15 @@ const { mockFrom } = vi.hoisted(() => ({
 }));
 
 // Mockeamos @supabase/supabase-js completa para controlar authClient
-const { mockSignUp, mockUpdateUser, mockSupabaseAuth } = vi.hoisted(() => {
+const { mockSignUp, mockUpdateUser, mockGetSession, mockSupabaseAuth } = vi.hoisted(() => {
   const mockSignUp = vi.fn();
   const mockUpdateUser = vi.fn();
+  const mockGetSession = vi.fn();
   const mockSupabaseAuth = {
-    auth: { signUp: mockSignUp, updateUser: mockUpdateUser },
+    auth: { signUp: mockSignUp, updateUser: mockUpdateUser, getSession: mockGetSession },
   };
 
-  return { mockSignUp, mockUpdateUser, mockSupabaseAuth };
+  return { mockSignUp, mockUpdateUser, mockGetSession, mockSupabaseAuth };
 });
 
 vi.mock('./supabase', () => ({
@@ -88,36 +89,32 @@ describe('usersService', () => {
   // getStudents (requires studioId)
   // ────────────────────────────────────────────
   describe('getStudents', () => {
-    beforeEach(() => {
-      mockFrom.mockReturnValue({
+    function createStudentsChain(data: UserProfile[] | null, error: Error | null = null) {
+      return {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn().mockResolvedValue({ data: mockStudents, error: null }),
+              order: vi.fn().mockResolvedValue({ data, error }),
             })),
           })),
         })),
-      });
-    });
+      };
+    }
 
-    it('debería devolver la lista de alumnos filtrados por studio', async () => {
+    it('debería devolver la lista de alumnos filtrados por membresía del studio', async () => {
+      const chain = createStudentsChain(mockStudents);
+      mockFrom.mockReturnValue(chain);
+
       const result = await usersService.getStudents(STUDIO_ID);
 
       expect(result).toEqual(mockStudents);
       expect(result).toHaveLength(2);
       expect(mockFrom).toHaveBeenCalledWith('profiles');
+      expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('studio_members!inner(*)'));
     });
 
     it('debería lanzar error si Supabase falla', async () => {
-      mockFrom.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error de conexión') }),
-            })),
-          })),
-        })),
-      });
+      mockFrom.mockReturnValue(createStudentsChain(null, new Error('Error de conexión')));
 
       await expect(usersService.getStudents(STUDIO_ID)).rejects.toThrow('Error de conexión');
     });
@@ -127,36 +124,32 @@ describe('usersService', () => {
   // getTeachers (requires studioId)
   // ────────────────────────────────────────────
   describe('getTeachers', () => {
-    beforeEach(() => {
-      mockFrom.mockReturnValue({
+    function createTeachersChain(data: UserProfile[] | null, error: Error | null = null) {
+      return {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn().mockResolvedValue({ data: mockTeachers, error: null }),
+              order: vi.fn().mockResolvedValue({ data, error }),
             })),
           })),
         })),
-      });
-    });
+      };
+    }
 
-    it('debería devolver la lista de profesores filtrados por studio', async () => {
+    it('debería devolver la lista de profesores filtrados por membresía del studio', async () => {
+      const chain = createTeachersChain(mockTeachers);
+      mockFrom.mockReturnValue(chain);
+
       const result = await usersService.getTeachers(STUDIO_ID);
 
       expect(result).toEqual(mockTeachers);
       expect(result).toHaveLength(1);
       expect(mockFrom).toHaveBeenCalledWith('profiles');
+      expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('studio_members!inner(*)'));
     });
 
     it('debería lanzar error si Supabase falla', async () => {
-      mockFrom.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn().mockResolvedValue({ data: null, error: new Error('Error DB') }),
-            })),
-          })),
-        })),
-      });
+      mockFrom.mockReturnValue(createTeachersChain(null, new Error('Error DB')));
 
       await expect(usersService.getTeachers(STUDIO_ID)).rejects.toThrow('Error DB');
     });
@@ -431,6 +424,77 @@ describe('usersService', () => {
       await expect(
         usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] }),
       ).rejects.toThrow('Error al actualizar perfil');
+    });
+  });
+
+  // ────────────────────────────────────────────
+  // addSelfAsTeacher
+  // ────────────────────────────────────────────
+  describe('addSelfAsTeacher', () => {
+    const USER_ID = 'admin-user-001';
+
+    beforeEach(() => {
+      mockGetSession.mockResolvedValue({
+        data: { session: { user: { id: USER_ID } } },
+        error: null,
+      });
+    });
+
+    function createMembershipCheckChain(existing: object | null) {
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({ data: existing, error: null }),
+              })),
+            })),
+          })),
+        })),
+      };
+    }
+
+    it('debería insertar una membresía de profesor para el usuario actual', async () => {
+      const insertFn = vi.fn().mockResolvedValue({ error: null });
+      mockFrom.mockReturnValueOnce(createMembershipCheckChain(null));
+      mockFrom.mockReturnValueOnce({ insert: insertFn });
+
+      await usersService.addSelfAsTeacher(STUDIO_ID);
+
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'studio_members');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'studio_members');
+      expect(insertFn).toHaveBeenCalledWith([
+        expect.objectContaining({
+          studio_id: STUDIO_ID,
+          user_id: USER_ID,
+          role: 'teacher',
+        }),
+      ]);
+    });
+
+    it('debería lanzar error descriptivo si ya existe membresía de profesor', async () => {
+      mockFrom.mockReturnValue(createMembershipCheckChain({ id: 'existing-membership' }));
+
+      await expect(usersService.addSelfAsTeacher(STUDIO_ID)).rejects.toThrow(
+        'Ya sos profesor de este estudio',
+      );
+    });
+
+    it('debería lanzar error si no hay sesión activa', async () => {
+      mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+
+      await expect(usersService.addSelfAsTeacher(STUDIO_ID)).rejects.toThrow(
+        'No hay sesión activa',
+      );
+    });
+
+    it('debería propagar el error si falla la inserción', async () => {
+      mockFrom.mockReturnValueOnce(createMembershipCheckChain(null));
+      mockFrom.mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: new Error('Error DB') }),
+      });
+
+      await expect(usersService.addSelfAsTeacher(STUDIO_ID)).rejects.toThrow('Error DB');
     });
   });
 });

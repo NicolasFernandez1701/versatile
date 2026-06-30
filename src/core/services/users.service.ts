@@ -17,9 +17,9 @@ export const usersService = {
   async getStudents(studioId: string): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, plans(*)')
-      .eq('role', 'student')
-      .eq('studio_id', studioId)
+      .select('*, plans(*), studio_members!inner(*)')
+      .eq('studio_members.studio_id', studioId)
+      .eq('studio_members.role', 'student')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -29,13 +29,41 @@ export const usersService = {
   async getTeachers(studioId: string): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, classes(activity_name, teacher_commission_pct)')
-      .eq('role', 'teacher')
-      .eq('studio_id', studioId)
+      .select('*, classes(activity_name, teacher_commission_pct), studio_members!inner(*)')
+      .eq('studio_members.studio_id', studioId)
+      .eq('studio_members.role', 'teacher')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data as UserProfile[];
+  },
+
+  async addSelfAsTeacher(studioId: string): Promise<void> {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+    if (!session?.user) throw new Error('No hay sesión activa');
+
+    const userId = session.user.id;
+
+    const { data: existing } = await supabase
+      .from('studio_members')
+      .select('*')
+      .eq('studio_id', studioId)
+      .eq('user_id', userId)
+      .eq('role', 'teacher')
+      .maybeSingle();
+
+    if (existing) throw new Error('Ya sos profesor de este estudio');
+
+    const { error } = await supabase.from('studio_members').insert([
+      { studio_id: studioId, user_id: userId, role: 'teacher' },
+    ]);
+
+    if (error) throw error;
   },
 
   async createUser(payload: {
