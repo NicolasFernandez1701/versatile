@@ -81,6 +81,33 @@
 }
 
 @media (max-width: 768px) {
+  .profile-switcher {
+    margin-bottom: 0;
+  }
+
+  .profile-switcher-trigger {
+    gap: 0.25rem;
+    padding: 0.5rem 0.5rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .profile-switcher-trigger:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .profile-switcher-role {
+    display: none;
+  }
+
+  .profile-switcher-chevron {
+    width: 14px;
+    height: 14px;
+  }
+
   .profile-switcher-dropdown {
     position: fixed;
     bottom: 0;

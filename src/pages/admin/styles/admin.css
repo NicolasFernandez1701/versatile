@@ -186,9 +186,21 @@
     border-top-right-radius: 24px;
   }
 
-  .sidebar-header,
+  .sidebar-header {
+    display: none; /* Logo no visible en navbar inferior */
+  }
+
   .sidebar-footer {
-    display: none; /* Ocultamos logo y logout en el navbar inferior */
+    display: flex;
+    align-items: center;
+    margin-top: 0;
+    border-top: none;
+    border-left: 1px solid var(--border-color);
+    padding: 0 0.75rem;
+  }
+
+  .sidebar-footer .logout-btn {
+    display: none; /* Logout va en overflow menu en mobile */
   }
 
   .sidebar-nav {
