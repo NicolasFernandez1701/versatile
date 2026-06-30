@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
-import { usersService, plansService } from '@/core/services';
+import { usersService } from '@/core/services';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
-import type { PlanEntity } from '@/core/types/plans.types';
-import { Modal, Input, Select, Button } from '@/components/ui';
+import { Modal, Input, Button } from '@/components/ui';
 import { useAuthStore } from '@/core/store/useAuthStore';
 
 interface StudentFormModalProps {
@@ -24,23 +23,17 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
   const [email, setEmail] = useState('');
 
   // Edit Specific
-  const [planId, setPlanId] = useState('');
   const [promoDiscountPct, setPromoDiscountPct] = useState(0);
   const [promoExpirationDate, setPromoExpirationDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [availablePlans, setAvailablePlans] = useState<PlanEntity[]>([]);
-
   useEffect(() => {
     if (isOpen) {
-      plansService.getPlans().then(setAvailablePlans).catch(console.error);
-
       if (isEditing && studentId) {
         const student = students.find((s) => s.id === studentId);
         if (student) {
           setFullName(student.full_name || '');
           setEmail(student.email || '');
-          setPlanId(student.plan_id || '');
           setPromoDiscountPct(student.promotion_discount_pct || 0);
           setPromoExpirationDate(student.promotion_expiration_date || '');
         }
@@ -48,7 +41,6 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
         // Reset for create
         setFullName('');
         setEmail('');
-        setPlanId('');
         setPromoDiscountPct(0);
         setPromoExpirationDate('');
       }
@@ -72,24 +64,17 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
           'Alumno creado con éxito (Contraseña inicial: password123). Luego podrás asignarle un plan editándolo.'
         );
       } else {
-        // Update
-        const expirationDate = planId
-          ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
-              .toISOString()
-              .split('T')[0]
-          : undefined;
-
+        // Update — plan changes now require payment via Finanzas
         await usersService.updateUser(studentId!, {
           full_name,
-          plan_id: planId || undefined,
-          plan_expiration_date: expirationDate,
           promotion_discount_pct: promoDiscountPct,
           promotion_expiration_date: promoExpirationDate || undefined
         });
       }
       onSuccess();
-    } catch (error: any) {
-      showError(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      showError(`Error: ${message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -135,21 +120,24 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
         {isEditing && (
           <>
             <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>
-              Plan y Promociones
+              Promociones
             </h3>
 
-            <Select
-              label="Plan Asignado"
-              value={planId}
-              onChange={(e) => setPlanId(e.target.value)}
-              options={[
-                { value: '', label: 'Sin plan' },
-                ...availablePlans.map((p) => ({
-                  value: p.id,
-                  label: `${p.name} ($${p.price} / mes)`
-                }))
-              ]}
-            />
+            <div
+              style={{
+                background: 'rgba(52, 152, 219, 0.1)',
+                padding: '1rem',
+                borderRadius: '8px',
+                marginBottom: '1.5rem',
+                border: '1px solid rgba(52, 152, 219, 0.3)'
+              }}
+            >
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <strong>Para cambiar de plan</strong>, usá la sección{' '}
+                <strong>Finanzas → Registrar Cobro</strong> y activá la opción "Cambiar plan".
+                El cambio de plan requiere el registro de un pago.
+              </p>
+            </div>
 
             <div className="form-group" style={{ display: 'flex', gap: '1rem', marginBottom: 0 }}>
               <div style={{ flex: 1, marginBottom: 0 }}>

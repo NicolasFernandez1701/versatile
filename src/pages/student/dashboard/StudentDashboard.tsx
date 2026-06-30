@@ -4,7 +4,7 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { CreditCard, CalendarDays, AlertTriangle } from 'lucide-react';
 import { SummaryCard } from '@/pages/admin/dashboard/components/SummaryCard';
 import { dashboardService } from '@/core/services';
-import type { StudentDashboardData } from '@/core/types/dashboard.types';
+import type { StudentDashboardData, StudentClassLimit } from '@/core/types/dashboard.types';
 import { Loader } from '@/components/ui';
 import '@/pages/admin/dashboard/dashboard.css';
 
@@ -12,13 +12,19 @@ export function StudentDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [data, setData] = useState<StudentDashboardData | null>(null);
+  const [classLimit, setClassLimit] = useState<StudentClassLimit | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      dashboardService
-        .getStudentDashboardData(user.id)
-        .then(setData)
+      Promise.all([
+        dashboardService.getStudentDashboardData(user.id),
+        dashboardService.getStudentClassLimit(user.id)
+      ])
+        .then(([dashData, limitData]) => {
+          setData(dashData);
+          setClassLimit(limitData);
+        })
         .catch(console.error)
         .finally(() => setLoading(false));
     }
@@ -82,6 +88,25 @@ export function StudentDashboard() {
       </div>
 
       <div style={{ marginTop: '2rem' }}>
+        {classLimit && Object.keys(classLimit.perActivity).length > 0 && (
+          <>
+            <h2 style={{ marginBottom: '1rem', color: 'var(--text-color)' }}>Mis Cupos del Mes</h2>
+            <div className="summary-grid">
+              {Object.entries(classLimit.perActivity).map(([_, quota]) => (
+                <SummaryCard
+                  key={quota.activity_name}
+                  title={quota.activity_name}
+                  value={`${quota.consumed} / ${quota.total}`}
+                  subtitle={`${quota.remaining} disponibles`}
+                  icon={CalendarDays}
+                  onClick={() => navigate('/student/classes')}
+                  iconColorClass={quota.remaining > 0 ? 'text-success' : 'text-error'}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         <div style={cardStyle}>
           <div
             style={{ padding: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}

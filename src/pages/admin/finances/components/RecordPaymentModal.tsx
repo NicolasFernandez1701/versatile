@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Check, AlertTriangle } from 'lucide-react';
-import { financesService } from '@/core/services';
+import { financesService, plansService } from '@/core/services';
 import { usePaymentCalculation } from '@/core/hooks/usePaymentCalculation';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import { Modal } from '@/components/ui';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { useAuthStore } from '@/core/store/useAuthStore';
+import type { PlanEntity } from '@/core/types/plans.types';
+import type { StudentWithPlan } from '@/core/types/finances.types';
 import '../finances.css';
 
 interface RecordPaymentModalProps {
@@ -17,15 +19,20 @@ interface RecordPaymentModalProps {
 export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPaymentModalProps) {
   const { showError, showSuccess } = useAlert();
   const { current_studio_id } = useAuthStore();
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentWithPlan[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [studentSearchText, setStudentSearchText] = useState('');
+  const [availablePlans, setAvailablePlans] = useState<PlanEntity[]>([]);
 
   // Payment Details
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('transferencia');
   const [applyLateFee, setApplyLateFee] = useState(false);
   const [amountOverride, setAmountOverride] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Plan Change
+  const [isPlanChange, setIsPlanChange] = useState(false);
+  const [newPlanId, setNewPlanId] = useState('');
 
   // Date context
   const today = new Date();
@@ -38,16 +45,26 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         .then((data) => setStudents(data))
         .catch(console.error);
 
+      plansService
+        .getActivePlans()
+        .then((data) => setAvailablePlans(data))
+        .catch(console.error);
+
       setApplyLateFee(isAfter10th);
       setSelectedStudentId('');
       setStudentSearchText('');
       setPaymentMethod('transferencia');
       setAmountOverride('');
+      setIsPlanChange(false);
+      setNewPlanId('');
     }
   }, [isOpen, isAfter10th, current_studio_id]);
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
-  const plan = selectedStudent?.plans;
+  const currentPlan = selectedStudent?.plans;
+  const selectedPlan = isPlanChange
+    ? availablePlans.find((p) => p.id === newPlanId) || currentPlan
+    : currentPlan;
 
   const promoDiscountPct = useMemo(() => {
     if (selectedStudent?.promotion_expiration_date) {
@@ -61,14 +78,14 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
   const planInfo = useMemo(
     () =>
-      plan
+      selectedPlan
         ? {
-            id: plan.id,
-            price: Number(plan.price),
-            name: plan.name,
+            id: selectedPlan.id,
+            price: Number(selectedPlan.price),
+            name: selectedPlan.name,
           }
         : null,
-    [plan]
+    [selectedPlan]
   );
 
   const { calculation, loading: calculationLoading, isFirstPayment } = usePaymentCalculation({
@@ -84,8 +101,12 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent || !plan || !calculation) {
+    if (!selectedStudent || !selectedPlan || !calculation) {
       showError('Seleccione un alumno con plan activo.');
+      return;
+    }
+    if (isPlanChange && !newPlanId) {
+      showError('Seleccione el nuevo plan.');
       return;
     }
 
@@ -93,10 +114,10 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     try {
       await financesService.recordPayment({
         student_id: selectedStudentId,
-        plan_id: plan.id,
+        plan_id: selectedPlan?.id ?? currentPlan?.id,
         amount: finalAmount,
         expiration_date: calculation.expirationDate,
-        plan_details: `${plan.name} - ${formatCurrency(plan.price)}`,
+        plan_details: `${selectedPlan?.name ?? currentPlan?.name} - ${formatCurrency(selectedPlan?.price ?? currentPlan?.price)}`,
         payment_method: paymentMethod,
         original_amount: calculation.proratedBase,
         discount_applied: calculation.promoDiscountAmount + calculation.cashDiscountAmount,
@@ -104,8 +125,11 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         late_payment: isAfter10th,
         late_fee_applied: applyLateFee,
         is_first_payment: isFirstPayment,
+        ...(isPlanChange && newPlanId
+          ? { planChange: { newPlanId, studentId: selectedStudentId } }
+          : {}),
       });
-      showSuccess('Pago registrado con éxito.');
+      showSuccess(isPlanChange ? 'Pago y cambio de plan registrados con éxito.' : 'Pago registrado con éxito.');
       onSuccess();
       onClose();
     } catch (error) {
@@ -152,7 +176,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                 />
               ))}
             </datalist>
-            {!plan && selectedStudentId && (
+            {!currentPlan && selectedStudentId && (
               <small className="text-danger" style={{ display: 'block', marginTop: '0.5rem' }}>
                 <AlertTriangle
                   size={14}
@@ -165,7 +189,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
           <div className="form-group">
             <label>Método de Pago</label>
-            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as any)}>
+            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'efectivo' | 'transferencia')}>
               <option value="transferencia">Transferencia / MercadoPago</option>
               <option value="efectivo">Efectivo (-15%)</option>
             </select>
@@ -188,6 +212,48 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             </small>
           </div>
 
+          {selectedStudentId && currentPlan && (
+            <div
+              className="form-group checkbox-group"
+              style={{ background: 'rgba(52, 152, 219, 0.1)', padding: '1rem', borderRadius: '8px' }}
+            >
+              <label>
+                <input
+                  type="checkbox"
+                  checked={isPlanChange}
+                  aria-label="Cambiar plan"
+                  onChange={(e) => {
+                    setIsPlanChange(e.target.checked);
+                    if (!e.target.checked) setNewPlanId('');
+                  }}
+                />
+                Cambiar plan
+              </label>
+              <small className="text-secondary" style={{ display: 'block', marginTop: '0.5rem' }}>
+                Plan actual: {currentPlan.name}. Al cambiar se registrará un pago prorrateado por el nuevo plan.
+              </small>
+            </div>
+          )}
+
+          {isPlanChange && (
+            <div className="form-group">
+              <label>Nuevo Plan</label>
+              <select
+                value={newPlanId}
+                onChange={(e) => setNewPlanId(e.target.value)}
+                required
+                aria-label="Nuevo Plan"
+              >
+                <option value="">Seleccionar nuevo plan...</option>
+                {availablePlans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} (${p.price})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label>Monto Final a Cobrar ($) (Override Manual)</label>
             <input
@@ -204,13 +270,20 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         </form>
 
         {/* Panel de Desglose (Preview) */}
-        {selectedStudentId && plan && calculation ? (
+        {selectedStudentId && selectedPlan && calculation ? (
           <div className="breakdown-panel">
             <h3 className="breakdown-title">Desglose Financiero</h3>
 
+            {isPlanChange && (
+              <div className="breakdown-row" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
+                <span>Cambio de plan</span>
+                <span>{currentPlan?.name} → {selectedPlan.name}</span>
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="breakdown-row">
-                <span className="text-secondary">Plan Base ({plan.name})</span>
+                <span className="text-secondary">Plan Base ({selectedPlan.name})</span>
                 <span>{formatCurrency(calculation.proratedBase)}</span>
               </div>
 
@@ -288,7 +361,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           type="submit"
           form="record-payment-form"
           className="btn-primary"
-          disabled={!plan || !calculation || calculationLoading || isSubmitting}
+          disabled={!selectedPlan || !calculation || calculationLoading || isSubmitting || (isPlanChange && !newPlanId)}
           style={{ minWidth: '200px', justifyContent: 'center' }}
         >
           <Check size={20} /> {isSubmitting ? 'Registrando...' : 'Registrar Pago'}

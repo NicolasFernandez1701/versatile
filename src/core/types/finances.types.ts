@@ -40,3 +40,18 @@ export interface RecordPaymentPayload {
   is_first_payment: boolean;
   planChange?: PlanChangePayload;
 }
+
+export interface StudentWithPlan {
+  id: string;
+  full_name: string;
+  email: string;
+  plan_id: string | null;
+  promotion_expiration_date: string | null;
+  promotion_discount_pct: number | null;
+  plans: {
+    id: string;
+    name: string;
+    price: number;
+    classes_per_week: number;
+  } | null;
+}

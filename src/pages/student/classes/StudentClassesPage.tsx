@@ -7,6 +7,7 @@ import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { validateBookingWindow } from '@/core/utils/validation';
 import type { ClassEntity } from '@/core/types/classes.types';
+import type { StudentClassLimit } from '@/core/types/dashboard.types';
 
 const DAYS_MAP: Record<number, string> = {
   0: 'Domingo',
@@ -25,7 +26,7 @@ export function StudentClassesPage() {
   const [loading, setLoading] = useState(true);
   const [classesList, setClassesList] = useState<ClassEntity[]>([]);
   const [reservations, setReservations] = useState<AttendanceRecord[]>([]);
-  const [planLimits, setPlanLimits] = useState({ limit: 0, consumed: 0 });
+  const [planLimits, setPlanLimits] = useState<StudentClassLimit>({ limit: 0, classesPerWeek: 0, perActivity: {} });
 
   // Para simular la semana actual y las fechas de las clases
   const [weekDates, setWeekDates] = useState<Record<number, Date>>({});
@@ -56,17 +57,9 @@ export function StudentClassesPage() {
       const resData = await attendanceService.getStudentAttendances(user.id);
       setReservations(resData);
 
-      // Traer límite mensual del plan (pago activo → fallback perfil)
-      const { limit } = await dashboardService.getStudentClassLimit(user.id);
-
-      // Contar consumos del mes actual
-      const now = new Date();
-      const monthStr = now.toISOString().substring(0, 7); // YYYY-MM
-      const consumed = resData.filter(
-        (r) => r.date.startsWith(monthStr) && r.status !== 'cancelled'
-      ).length;
-
-      setPlanLimits({ limit, consumed });
+      // Traer límite mensual del plan con desglose por actividad
+      const classLimit = await dashboardService.getStudentClassLimit(user.id);
+      setPlanLimits(classLimit);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Error desconocido';
       showError('Error cargando los datos: ' + message);
@@ -86,6 +79,7 @@ export function StudentClassesPage() {
     classDate: Date,
     action: 'enroll' | 'cancel',
     startTime: string,
+    activityName?: string,
     existingReservationId?: string
   ) => {
     try {
@@ -99,10 +93,22 @@ export function StudentClassesPage() {
       const dateStr = classDate.toISOString().split('T')[0];
 
       if (action === 'enroll') {
-        if (planLimits.consumed >= planLimits.limit) {
+        // Check per-activity quota
+        if (activityName) {
+          const activityQuota = planLimits.perActivity[activityName];
+          if (activityQuota && activityQuota.remaining <= 0) {
+            showError(`No tenés cupos disponibles para ${activityName} este mes.`);
+            return;
+          }
+        }
+
+        // Fallback total check for activities not in perActivity map
+        const totalConsumed = Object.values(planLimits.perActivity).reduce((sum, q) => sum + q.consumed, 0);
+        if (totalConsumed >= planLimits.limit && planLimits.limit > 0) {
           showError(`Alcanzaste tu límite mensual de ${planLimits.limit} clases.`);
           return;
         }
+
         await enrollmentsService.enrollStudent(user!.id, classId, dateStr);
         showSuccess('¡Lugar reservado con éxito!');
       } else if (action === 'cancel' && existingReservationId) {
@@ -157,10 +163,22 @@ export function StudentClassesPage() {
             color: 'white',
             padding: '0.75rem 1.25rem',
             borderRadius: '12px',
-            fontWeight: 600
+            fontWeight: 600,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.25rem'
           }}
         >
-          Créditos Mensuales: {planLimits.consumed} / {planLimits.limit}
+          {Object.keys(planLimits.perActivity).length > 0 ? (
+            Object.entries(planLimits.perActivity).map(([_, quota]) => (
+              <div key={quota.activity_name} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                <span>{quota.activity_name}</span>
+                <span style={{ opacity: 0.9 }}>{quota.consumed} / {quota.total}</span>
+              </div>
+            ))
+          ) : (
+            <span>Créditos Mensuales: {Object.values(planLimits.perActivity).reduce((sum, q) => sum + q.consumed, 0)} / {planLimits.limit}</span>
+          )}
         </div>
       </div>
 
@@ -299,6 +317,7 @@ export function StudentClassesPage() {
                                     classDate,
                                     'cancel',
                                     cls.start_time,
+                                    cls.activity_name,
                                     reservation.id
                                   )
                                 }
@@ -310,9 +329,13 @@ export function StudentClassesPage() {
                             <Button
                               variant="primary"
                               onClick={() =>
-                                handleBooking(cls.id, classDate, 'enroll', cls.start_time)
+                                handleBooking(cls.id, classDate, 'enroll', cls.start_time, cls.activity_name)
                               }
-                              disabled={planLimits.consumed >= planLimits.limit}
+                              disabled={(() => {
+                                const q = planLimits.perActivity[cls.activity_name];
+                                const totalConsumed = Object.values(planLimits.perActivity).reduce((sum, a) => sum + a.consumed, 0);
+                                return (q && q.remaining <= 0) || (totalConsumed >= planLimits.limit && planLimits.limit > 0);
+                              })()}
                             >
                               Reservar Lugar
                             </Button>

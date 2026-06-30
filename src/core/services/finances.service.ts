@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { useAuthStore } from '../store/useAuthStore';
-import type { PaymentEntity, RecordPaymentPayload } from '../types/finances.types';
+import type { PaymentEntity, RecordPaymentPayload, StudentWithPlan } from '../types/finances.types';
 
 export const financesService = {
   async getPayments(studioId: string): Promise<PaymentEntity[]> {
@@ -14,7 +14,7 @@ export const financesService = {
     return data as PaymentEntity[];
   },
 
-  async getStudentsWithPlans(studioId: string): Promise<unknown[]> {
+  async getStudentsWithPlans(studioId: string): Promise<StudentWithPlan[]> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*, plans(*)')
@@ -22,7 +22,7 @@ export const financesService = {
       .eq('studio_id', studioId);
 
     if (error) throw error;
-    return data;
+    return data as StudentWithPlan[];
   },
 
   async hasExistingPayments(studentId: string): Promise<boolean> {
