@@ -13,7 +13,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setUser: (user) => {
     const memberships = user?.memberships ?? (user?.membership ? [user.membership] : []);
-    const firstMembership = memberships[0] ?? null;
+    const previousActiveRole = get().activeRole;
+    const previousStudioId = get().current_studio_id;
+
+    // Preserve the currently active membership if it still exists after refresh.
+    // This prevents adding a secondary role (e.g. admin self-adding as teacher)
+    // from silently switching the active role away from the previous one.
+    const preservedMembership =
+      previousActiveRole && previousStudioId
+        ? (memberships.find(
+            (m) => m.studio_id === previousStudioId && m.role === previousActiveRole
+          ) ?? null)
+        : null;
+
+    const firstMembership = preservedMembership ?? memberships[0] ?? null;
 
     set({
       user,

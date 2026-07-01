@@ -75,6 +75,73 @@ describe('useAuthStore', () => {
     expect(state.isAuthenticated).toBe(true);
   });
 
+  it('setUser debería preservar el rol activo cuando se agrega una membresía adicional en el mismo estudio', () => {
+    const studioId = 'studio-abc';
+    const adminMembership: StudioMembership = {
+      studio_id: studioId,
+      studio_name: 'Studio ABC',
+      role: 'admin',
+    };
+    const teacherMembership: StudioMembership = {
+      studio_id: studioId,
+      studio_name: 'Studio ABC',
+      role: 'teacher',
+    };
+
+    // Simula un admin que ya tiene activo el rol admin en el estudio
+    useAuthStore.setState({
+      activeRole: 'admin',
+      current_studio_id: studioId,
+      membership: adminMembership,
+      memberships: [adminMembership],
+    });
+
+    // La DB devuelve la nueva membresía de teacher primero (caso addSelfAsTeacher)
+    const refreshedUser = {
+      id: '1',
+      email: 'admin@example.com',
+      memberships: [teacherMembership, adminMembership],
+    } as AppUser;
+
+    useAuthStore.getState().setUser(refreshedUser);
+
+    const state = useAuthStore.getState();
+    expect(state.activeRole).toBe('admin');
+    expect(state.role).toBe('admin');
+    expect(state.current_studio_id).toBe(studioId);
+    expect(state.membership).toEqual(adminMembership);
+    expect(state.memberships).toHaveLength(2);
+  });
+
+  it('setUser debería fallback a memberships[0] cuando el rol activo previo ya no existe', () => {
+    useAuthStore.setState({
+      activeRole: 'admin',
+      current_studio_id: 'studio-old',
+      membership: { studio_id: 'studio-old', studio_name: 'Old', role: 'admin' },
+      memberships: [{ studio_id: 'studio-old', studio_name: 'Old', role: 'admin' }],
+    });
+
+    const newMembership: StudioMembership = {
+      studio_id: 'studio-new',
+      studio_name: 'New Studio',
+      role: 'teacher',
+    };
+
+    const refreshedUser = {
+      id: '1',
+      email: 'user@example.com',
+      memberships: [newMembership],
+    } as AppUser;
+
+    useAuthStore.getState().setUser(refreshedUser);
+
+    const state = useAuthStore.getState();
+    expect(state.activeRole).toBe('teacher');
+    expect(state.role).toBe('teacher');
+    expect(state.current_studio_id).toBe('studio-new');
+    expect(state.membership).toEqual(newMembership);
+  });
+
   it('setUser con null debería desautenticar y limpiar studio', () => {
     useAuthStore.setState({
       user: { id: '1' } as AppUser,
