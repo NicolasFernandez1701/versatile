@@ -3,7 +3,7 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { Loader, Button } from '@/components/ui';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useStudentClassesData } from '@/core/hooks/useStudentClassesData';
-import { useStudentClassesBooking } from '@/core/hooks/useStudentClassesBooking';
+import { useEnrollClass, useCancelClass, isActivityAvailable } from '@/core/hooks/useStudentClassesBooking';
 import type { ClassEntity } from '@/core/types/classes.types';
 
 const DAYS_MAP: Record<number, string> = {
@@ -36,11 +36,8 @@ export function StudentClassesPage() {
   }, []);
 
   const { loading, classesList, reservations, planLimits, loadData } = useStudentClassesData(weekDates);
-  const { handleBooking, isActivityAvailable } = useStudentClassesBooking({
-    studentId: user?.id,
-    planLimits,
-    refresh: loadData,
-  });
+  const { enroll } = useEnrollClass({ studentId: user?.id, refresh: loadData });
+  const { cancel } = useCancelClass({ refresh: loadData });
 
   const classesByDay = useMemo<Record<number, ClassEntity[]>>(() => {
     const grouped: Record<number, ClassEntity[]> = {
@@ -241,16 +238,7 @@ export function StudentClassesPage() {
                               </span>
                               <Button
                                 variant="danger"
-                                onClick={() =>
-                                  handleBooking(
-                                    cls.id,
-                                    classDate,
-                                    'cancel',
-                                    cls.start_time,
-                                    cls.activity_name,
-                                    reservation.id
-                                  )
-                                }
+                                onClick={() => cancel(reservation.id)}
                               >
                                 Cancelar
                               </Button>
@@ -258,16 +246,8 @@ export function StudentClassesPage() {
                           ) : (
                             <Button
                               variant="primary"
-                              onClick={() =>
-                                handleBooking(
-                                  cls.id,
-                                  classDate,
-                                  'enroll',
-                                  cls.start_time,
-                                  cls.activity_name
-                                )
-                              }
-                              disabled={!isActivityAvailable(cls.activity_name)}
+                              onClick={() => enroll(cls.id, classDate)}
+                              disabled={!isActivityAvailable(cls.activity_name, planLimits)}
                             >
                               Reservar Lugar
                             </Button>
