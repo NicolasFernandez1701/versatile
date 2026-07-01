@@ -1,5 +1,17 @@
 import type { QuotaMap } from './plans.types';
 
+export interface DashboardStats {
+  totalStudents: number;
+  activeClasses: number;
+}
+
+export interface FinancialBalance {
+  monthlyTotal: number;
+  annualTotal: number;
+  monthlyByPlan: Record<string, number>;
+  annualByPlan: Record<string, number>;
+}
+
 export interface StudentActivePlan {
   plan_id: string;
   plan_details: string;

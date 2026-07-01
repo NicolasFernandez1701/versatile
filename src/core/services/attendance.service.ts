@@ -1,27 +1,35 @@
 import { supabase } from './supabase';
+import type { EnrollmentEntity } from '../types/enrollments.types';
+import type { AttendanceRecord } from '../types/attendance.types';
 
-export interface AttendanceRecord {
-  id: string; // Will map to enrollment id
-  enrollment_id: string; // Will also map to enrollment id for backwards compatibility
-  date: string;
-  status: 'present' | 'absent' | 'confirmed' | 'cancelled' | 'pending';
-  enrollments?: {
-    student_id: string;
-    class_id: string;
-    profiles?: {
-      id: string;
-      full_name: string;
-      email: string;
-      phone: string;
-    };
-  };
+export type { AttendanceRecord } from '../types/attendance.types';
+
+interface EnrollmentRow {
+  id: string;
+  student_id: string;
+  class_id: string;
+  reservation_date: string;
+  attendance_status: 'pending' | 'attended' | 'absent' | 'cancelled';
+  profiles?: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string;
+  }[];
+}
+
+function mapAttendanceStatus(
+  raw: 'pending' | 'attended' | 'absent' | 'cancelled'
+): AttendanceRecord['status'] {
+  if (raw === 'attended') return 'present';
+  return raw;
 }
 
 export const attendanceService = {
   /**
    * Obtiene la lista de todos los inscriptos a una clase, sin importar la fecha.
    */
-  async getClassEnrollments(classId: string) {
+  async getClassEnrollments(classId: string): Promise<EnrollmentEntity[]> {
     const { data, error } = await supabase
       .from('enrollments')
       .select(
@@ -42,7 +50,22 @@ export const attendanceService = {
       .eq('class_id', classId);
 
     if (error) throw error;
-    return data;
+
+    return ((data || []) as unknown as EnrollmentRow[]).map((enr) => ({
+      id: enr.id,
+      student_id: enr.student_id,
+      class_id: enr.class_id,
+      reservation_date: enr.reservation_date,
+      attendance_status: enr.attendance_status,
+      created_at: '',
+      profiles: enr.profiles?.[0]
+        ? {
+            full_name: enr.profiles[0].full_name,
+            email: enr.profiles[0].email,
+            phone: enr.profiles[0].phone
+          }
+        : undefined
+    }));
   },
 
   /**
@@ -73,15 +96,15 @@ export const attendanceService = {
     if (error) throw error;
 
     // Mapear al formato esperado por el frontend
-    return (data || []).map((enr: any) => ({
+    return ((data || []) as unknown as EnrollmentRow[]).map((enr: EnrollmentRow) => ({
       id: enr.id,
       enrollment_id: enr.id,
       date: enr.reservation_date,
-      status: enr.attendance_status,
+      status: mapAttendanceStatus(enr.attendance_status),
       enrollments: {
         student_id: enr.student_id,
         class_id: enr.class_id,
-        profiles: enr.profiles
+        profiles: enr.profiles?.[0]
       }
     }));
   },
@@ -122,11 +145,11 @@ export const attendanceService = {
 
     if (error) throw error;
 
-    return (data || []).map((enr: any) => ({
+    return ((data || []) as unknown as EnrollmentRow[]).map((enr: EnrollmentRow) => ({
       id: enr.id,
       enrollment_id: enr.id,
       date: enr.reservation_date,
-      status: enr.attendance_status,
+      status: mapAttendanceStatus(enr.attendance_status),
       enrollments: {
         student_id: enr.student_id,
         class_id: enr.class_id

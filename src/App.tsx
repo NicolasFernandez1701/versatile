@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authService } from '@/core/services';
 import { useAuthStore } from './core/store/useAuthStore';
 import { useThemeStore } from './core/store/useThemeStore';
+import type { AppUser } from './core/types/auth.types';
 import { LoginPage } from './pages/auth/LoginPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { TeacherOnboardingPage } from './pages/onboarding/TeacherOnboardingPage';
@@ -58,7 +59,7 @@ export default function App() {
     // Verificar sesión inicial
     authService
       .getCurrentUser()
-      .then((user) => setUser(user as any))
+      .then((user) => setUser(user))
       .catch(console.error)
       .finally(() => setLoading(false));
 
@@ -66,7 +67,7 @@ export default function App() {
     const {
       data: { subscription }
     } = authService.onAuthStateChange((session) => {
-      setUser((session?.user as any) || null);
+      setUser((session?.user as AppUser) || null);
     });
 
     return () => {

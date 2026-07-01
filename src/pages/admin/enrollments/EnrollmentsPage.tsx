@@ -3,6 +3,8 @@ import { UserPlus, Trash2 } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { enrollmentsService, classesService } from '@/core/services';
+import type { EnrollmentEntity } from '@/core/types/enrollments.types';
+import type { ClassEntity } from '@/core/types/classes.types';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { EnrollmentFormModal } from './components/EnrollmentFormModal';
@@ -14,8 +16,8 @@ export function EnrollmentsPage() {
   const { showError, showSuccess } = useAlert();
   const { fetchStudents } = useUsersStore();
 
-  const [enrollments, setEnrollments] = useState<any[]>([]);
-  const [classesList, setClassesList] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentEntity[]>([]);
+  const [classesList, setClassesList] = useState<ClassEntity[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function EnrollmentsPage() {
 
   const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-  const columns: Column<any>[] = [
+  const columns: Column<EnrollmentEntity>[] = [
     {
       key: 'date',
       header: 'Fecha de Reserva',

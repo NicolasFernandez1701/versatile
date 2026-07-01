@@ -44,8 +44,8 @@ export function TeacherOnboardingPage() {
       setIsSubmitting(true);
       try {
         await usersService.updatePassword(newPassword);
-      } catch (error: any) {
-        showError(`Error al actualizar contraseña: ${error.message}`);
+      } catch (error: unknown) {
+        showError(`Error al actualizar contraseña: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         setIsSubmitting(false);
         return;
       }
@@ -99,8 +99,8 @@ export function TeacherOnboardingPage() {
 
       // Reload page to re-evaluate protection logic
       window.location.href = '/teacher/dashboard';
-    } catch (error: any) {
-      showError(error.message || 'Error guardando datos');
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : 'Error guardando datos');
       setIsSubmitting(false);
     }
   };

@@ -61,8 +61,8 @@ export function EnrollmentFormModal({
       showSuccess('Alumno inscripto correctamente.');
       onSuccess();
       onClose();
-    } catch (error: any) {
-      showError(error.message);
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : 'Error al inscribir alumno');
     } finally {
       setIsSubmitting(false);
     }

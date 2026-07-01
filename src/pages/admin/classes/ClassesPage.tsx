@@ -102,8 +102,8 @@ export function ClassesPage() {
       await fetchClasses();
       closeFormModal();
       showSuccess('Clase guardada exitosamente.');
-    } catch (error: any) {
-      showError(error.message || 'Error guardando la clase');
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : 'Error guardando la clase');
     } finally {
       setSaving(false);
     }

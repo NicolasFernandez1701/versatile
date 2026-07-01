@@ -68,7 +68,7 @@ export function TeacherDashboard() {
             ) : (
               <div className="grid-responsive">
                 {todayClasses.map((cls) => {
-                  const enrollmentsCount = (cls as any).enrollments?.[0]?.count || 0;
+                  const enrollmentsCount = cls.enrollments?.[0]?.count || 0;
                   return (
                     <div
                       key={cls.id}
@@ -154,7 +154,7 @@ export function TeacherDashboard() {
                 style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}
               >
                 {upcomingClasses.map((cls) => {
-                  const enrollmentsCount = (cls as any).enrollments?.[0]?.count || 0;
+                  const enrollmentsCount = cls.enrollments?.[0]?.count || 0;
                   return (
                     <div
                       key={cls.id}

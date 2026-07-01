@@ -106,8 +106,8 @@ export function OnboardingPage() {
       setIsSubmitting(true);
       try {
         await usersService.updatePassword(newPassword);
-      } catch (error: any) {
-        showError(`Error al actualizar contraseña: ${error.message}`);
+      } catch (error: unknown) {
+        showError(`Error al actualizar contraseña: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         setIsSubmitting(false);
         return;
       }
@@ -182,8 +182,8 @@ export function OnboardingPage() {
 
       // Force reload to update auth context and redirect to dashboard
       window.location.href = '/';
-    } catch (error: any) {
-      showError(`Error al guardar: ${error.message}`);
+    } catch (error: unknown) {
+      showError(`Error al guardar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
       setIsSubmitting(false);
     }
   };
@@ -356,7 +356,7 @@ export function OnboardingPage() {
               <label>¿Cuenta con Certificado Médico de aptitud física?</label>
               <select
                 value={hasMedicalCert}
-                onChange={(e) => setHasMedicalCert(e.target.value as any)}
+                onChange={(e) => setHasMedicalCert(e.target.value as 'yes' | 'no')}
               >
                 <option value="no">No</option>
                 <option value="yes">Sí</option>

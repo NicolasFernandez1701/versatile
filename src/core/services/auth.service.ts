@@ -2,14 +2,6 @@ import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
 import type { StudioMembership, AppUser } from '../types/auth.types';
 
-interface StudioMemberRow {
-  studio_id: string;
-  role: 'admin' | 'teacher' | 'student';
-  studios: {
-    name: string;
-  } | null;
-}
-
 async function fetchMemberships(userId: string): Promise<StudioMembership[]> {
   const { data } = await supabase
     .from('studio_members')
@@ -18,7 +10,7 @@ async function fetchMemberships(userId: string): Promise<StudioMembership[]> {
 
   if (!data || data.length === 0) return [];
 
-  return (data as unknown as StudioMemberRow[]).map((row) => ({
+  return (data as unknown as { studio_id: string; role: StudioMembership['role']; studios: { name: string } | null }[]).map((row) => ({
     studio_id: row.studio_id,
     studio_name: row.studios?.name ?? '',
     role: row.role

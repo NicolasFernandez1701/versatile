@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Wallet, Plus, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { financesService, dashboardService, type FinancialBalance } from '@/core/services';
+import { financesService, dashboardService } from '@/core/services';
+import type { FinancialBalance } from '@/core/types/dashboard.types';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
