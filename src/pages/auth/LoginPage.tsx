@@ -3,20 +3,24 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
-import { isValidEmail, isError } from '@/core/utils/validation';
+import { useLoginForm } from '@/core/hooks/useLoginForm';
 
 import { Button } from '@/components/ui';
 import '../../features/auth/styles/auth.css';
 
 export function LoginPage() {
   const { isAuthenticated, role, isLoading } = useAuthStore();
+  const {
+    email,
+    password,
+    loading,
+    error,
+    setEmail,
+    setPassword,
+    handleSubmit,
+  } = useLoginForm();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   if (isLoading) return null;
 
@@ -55,28 +59,9 @@ export function LoginPage() {
     );
   }
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!email || !password) {
-      setError('Por favor completa todos los campos.');
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      setError('Ingresá un email válido.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await authService.login(email, password);
-    } catch (err) {
-      setError(isError(err) ? err.message : 'Error al iniciar sesión');
-    } finally {
-      setLoading(false);
-    }
+    handleSubmit();
   };
 
   return (
@@ -90,7 +75,7 @@ export function LoginPage() {
           <h2 className="auth-form-title">Bienvenido de nuevo</h2>
           <p className="auth-form-subtitle">Ingresá tus credenciales para continuar</p>
 
-          <form onSubmit={handleAuth} className="auth-form">
+          <form onSubmit={onSubmit} className="auth-form">
             {error && <div className="auth-error-message">{error}</div>}
 
             <div className="auth-input-group">
@@ -98,10 +83,7 @@ export function LoginPage() {
                 type="email"
                 placeholder="Email"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (error) setError('');
-                }}
+                onChange={(e) => setEmail(e.target.value)}
                 className="auth-input"
               />
             </div>

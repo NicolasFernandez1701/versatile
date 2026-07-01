@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Check } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
-import { usersService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useStudentForm } from '@/core/hooks/useStudentForm';
 import { Modal, Input, Button } from '@/components/ui';
-import { useAuthStore } from '@/core/store/useAuthStore';
 
 interface StudentFormModalProps {
   isOpen: boolean;
@@ -14,70 +12,25 @@ interface StudentFormModalProps {
 }
 
 export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: StudentFormModalProps) {
-  const { current_studio_id } = useAuthStore();
-  const { showError, showSuccess } = useAlert();
   const isEditing = !!studentId;
   const { students } = useUsersStore();
 
-  const [full_name, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const initialData = studentId ? students.find((s) => s.id === studentId) ?? null : null;
 
-  // Edit Specific
-  const [promoDiscountPct, setPromoDiscountPct] = useState(0);
-  const [promoExpirationDate, setPromoExpirationDate] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    fullName,
+    email,
+    promoDiscountPct,
+    promoExpirationDate,
+    loading,
+    error,
+    setField,
+    handleSubmit,
+  } = useStudentForm({ initialData, onSuccess });
 
-  useEffect(() => {
-    if (isOpen) {
-      if (isEditing && studentId) {
-        const student = students.find((s) => s.id === studentId);
-        if (student) {
-          setFullName(student.full_name || '');
-          setEmail(student.email || '');
-          setPromoDiscountPct(student.promotion_discount_pct || 0);
-          setPromoExpirationDate(student.promotion_expiration_date || '');
-        }
-      } else {
-        // Reset for create
-        setFullName('');
-        setEmail('');
-        setPromoDiscountPct(0);
-        setPromoExpirationDate('');
-      }
-    }
-  }, [isOpen, isEditing, studentId, students]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      if (!isEditing) {
-        // Create new
-        await usersService.createUser({
-          email,
-          full_name,
-          role: 'student',
-          password: 'password123',
-          studio_id: current_studio_id || ''
-        });
-        showSuccess(
-          'Alumno creado con éxito (Contraseña inicial: password123). Luego podrás asignarle un plan editándolo.'
-        );
-      } else {
-        // Update — plan changes now require payment via Finanzas
-        await usersService.updateUser(studentId!, {
-          full_name,
-          promotion_discount_pct: promoDiscountPct,
-          promotion_expiration_date: promoExpirationDate || undefined
-        });
-      }
-      onSuccess();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error desconocido';
-      showError(`Error: ${message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await handleSubmit();
   };
 
   return (
@@ -87,14 +40,14 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
       title={isEditing ? 'Editar Alumno' : 'Registrar Nuevo Alumno'}
       maxWidth="600px"
     >
-      <form onSubmit={handleSubmit} className="standard-form">
+      <form onSubmit={onSubmit} className="standard-form">
         <h3 style={{ marginBottom: '1rem', color: 'var(--primary-color)' }}>Datos de Acceso</h3>
 
         <Input
           label="Nombre Completo"
           type="text"
-          value={full_name}
-          onChange={(e) => setFullName(e.target.value)}
+          value={fullName}
+          onChange={(e) => setField('fullName', e.target.value)}
           required
         />
 
@@ -102,7 +55,7 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
           label="Correo Electrónico"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => setField('email', e.target.value)}
           required
           disabled={isEditing}
         />
@@ -147,7 +100,7 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
                   min="0"
                   max="100"
                   value={promoDiscountPct}
-                  onChange={(e) => setPromoDiscountPct(Number(e.target.value))}
+                  onChange={(e) => setField('promoDiscountPct', Number(e.target.value))}
                 />
               </div>
               <div style={{ flex: 1, marginBottom: 0 }}>
@@ -155,12 +108,14 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
                   label="Vencimiento de Promo"
                   type="date"
                   value={promoExpirationDate}
-                  onChange={(e) => setPromoExpirationDate(e.target.value)}
+                  onChange={(e) => setField('promoExpirationDate', e.target.value)}
                 />
               </div>
             </div>
           </>
         )}
+
+        {error && <div className="error-message">{error}</div>}
 
         <div
           className="form-actions"
@@ -172,8 +127,8 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
             marginTop: '1.5rem'
           }}
         >
-          <Button type="submit" variant="primary" loading={isSubmitting}>
-            <Check size={20} /> {isSubmitting ? 'Guardando...' : 'Guardar'}
+          <Button type="submit" variant="primary" loading={loading}>
+            <Check size={20} /> {loading ? 'Guardando...' : 'Guardar'}
           </Button>
         </div>
       </form>

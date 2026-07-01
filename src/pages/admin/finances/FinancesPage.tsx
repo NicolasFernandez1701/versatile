@@ -1,23 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Wallet, Plus, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { financesService, dashboardService } from '@/core/services';
-import type { FinancialBalance } from '@/core/types/dashboard.types';
+import { useFinancesData } from '@/core/hooks/useFinancesData';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
 import { usePaymentHistory } from './hooks/usePaymentHistory';
 import { DataTable, type Column, Button, Loader, Select, Input } from '@/components/ui';
-import { useAuthStore } from '@/core/store/useAuthStore';
 
 export function FinancesPage() {
-  const { current_studio_id } = useAuthStore();
-  const [payments, setPayments] = useState<PaymentEntity[]>([]);
-  const [balance, setBalance] = useState<FinancialBalance | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Tabs State
   const [activeTab, setActiveTab] = useState<'resumen' | 'historial'>('resumen');
+
+  const { payments, balance, loading, fetchPayments, fetchBalance } = useFinancesData();
 
   // Logic delegated to Custom Hook
   const {
@@ -32,27 +28,9 @@ export function FinancesPage() {
     totalPages
   } = usePaymentHistory(payments);
 
-  useEffect(() => {
-    if (current_studio_id) {
-      loadData();
-    }
-  }, [current_studio_id]);
-
-  const loadData = async () => {
-    if (!current_studio_id) return;
-    try {
-      setLoading(true);
-      const [paymentsData, balanceData] = await Promise.all([
-        financesService.getPayments(current_studio_id),
-        dashboardService.getFinancialBalance(current_studio_id)
-      ]);
-      setPayments(paymentsData);
-      setBalance(balanceData);
-    } catch (error) {
-      console.error('Error al cargar datos financieros:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handlePaymentSuccess = async () => {
+    setIsModalOpen(false);
+    await Promise.all([fetchPayments(), fetchBalance()]);
   };
 
   const columns: Column<PaymentEntity>[] = [
@@ -329,10 +307,7 @@ export function FinancesPage() {
       <RecordPaymentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={() => {
-          setIsModalOpen(false);
-          loadData();
-        }}
+        onSuccess={handlePaymentSuccess}
       />
     </div>
   );

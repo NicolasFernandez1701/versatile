@@ -17,6 +17,7 @@ export interface UseClassesManagementResult {
   deleteClass: (id: string) => Promise<void>;
   toggleStatus: (id: string, currentStatus: boolean) => Promise<void>;
   openStudentsModal: (cls: ClassEntity) => Promise<void>;
+  closeStudentsModal: () => void;
 }
 
 export function useClassesManagement(): UseClassesManagementResult {
@@ -133,6 +134,11 @@ export function useClassesManagement(): UseClassesManagementResult {
     [showError],
   );
 
+  const closeStudentsModal = useCallback(() => {
+    setViewingStudentsClass(null);
+    setStudents([]);
+  }, []);
+
   return {
     classes,
     teachers,
@@ -146,5 +152,6 @@ export function useClassesManagement(): UseClassesManagementResult {
     deleteClass,
     toggleStatus,
     openStudentsModal,
+    closeStudentsModal,
   };
 }

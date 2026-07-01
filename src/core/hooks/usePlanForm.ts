@@ -86,25 +86,35 @@ export function usePlanForm({ initialData, onSuccess }: UsePlanFormOptions = {})
     }
   }, []);
 
-  const addActivity = useCallback(() => {
-    setActivities((prev) => [...prev, { activity_name: '', classes_per_week: 1 }]);
+  const totalClassesFor = useCallback((acts: PlanFormActivity[]) => {
+    return acts.reduce((sum, a) => sum + Number(a.classes_per_week || 0), 0);
   }, []);
+
+  const addActivity = useCallback(() => {
+    setActivities((prev) => {
+      const next = [...prev, { activity_name: '', classes_per_week: 1 }];
+      setClassesPerWeek(totalClassesFor(next));
+      return next;
+    });
+  }, [totalClassesFor]);
 
   const removeActivity = useCallback((index: number) => {
     setActivities((prev) => {
       const next = [...prev];
       next.splice(index, 1);
+      setClassesPerWeek(totalClassesFor(next));
       return next;
     });
-  }, []);
+  }, [totalClassesFor]);
 
   const updateActivity = useCallback((index: number, field: string, value: string | number) => {
     setActivities((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
+      setClassesPerWeek(totalClassesFor(next));
       return next;
     });
-  }, []);
+  }, [totalClassesFor]);
 
   const calculateSuggestedPrice = useCallback(() => {
     setPrice(String(classesPerWeek * SUGGESTED_PRICE_PER_CLASS));

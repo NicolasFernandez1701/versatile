@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { CreditCard, CalendarDays, AlertTriangle } from 'lucide-react';
 import { SummaryCard } from '@/pages/admin/dashboard/components/SummaryCard';
-import { dashboardService } from '@/core/services';
-import type { StudentDashboardData, StudentClassLimit } from '@/core/types/dashboard.types';
+import { useStudentDashboard } from '@/core/hooks/useStudentDashboard';
 import { Loader } from '@/components/ui';
 import '@/pages/admin/dashboard/dashboard.css';
 
@@ -26,24 +24,7 @@ function QuotaRow({ name, consumed, total, remaining }: { name: string; consumed
 export function StudentDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const [data, setData] = useState<StudentDashboardData | null>(null);
-  const [classLimit, setClassLimit] = useState<StudentClassLimit | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      Promise.all([
-        dashboardService.getStudentDashboardData(user.id),
-        dashboardService.getStudentClassLimit(user.id)
-      ])
-        .then(([dashData, limitData]) => {
-          setData(dashData);
-          setClassLimit(limitData);
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    }
-  }, [user]);
+  const { data, classLimit, loading } = useStudentDashboard(user?.id);
 
   const cardStyle = {
     background: 'var(--surface-color)',

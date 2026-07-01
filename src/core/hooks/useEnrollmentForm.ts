@@ -23,6 +23,7 @@ export interface UseEnrollmentFormResult {
   searchStudents: (query: string) => void;
   selectStudent: (student: UserProfile) => void;
   selectClass: (cls: ClassEntity) => void;
+  setSelectedClass: (id: string) => void;
   setStudentDropdownOpen: (open: boolean) => void;
   setClassDropdownOpen: (open: boolean) => void;
   setReservationDate: (date: string) => void;
@@ -94,6 +95,10 @@ export function useEnrollmentForm({
     setClassDropdownOpen(false);
   }, []);
 
+  const setSelectedClassId = useCallback((id: string) => {
+    setSelectedClass(id);
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     setError('');
     if (!selectedStudent) {
@@ -135,6 +140,7 @@ export function useEnrollmentForm({
     searchStudents,
     selectStudent,
     selectClass,
+    setSelectedClass: setSelectedClassId,
     setStudentDropdownOpen,
     setClassDropdownOpen,
     setReservationDate,

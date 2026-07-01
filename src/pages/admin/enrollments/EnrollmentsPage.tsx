@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { UserPlus, Trash2 } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
-import { enrollmentsService, classesService } from '@/core/services';
+import { useEnrollments } from '@/core/hooks/useEnrollments';
 import type { EnrollmentEntity } from '@/core/types/enrollments.types';
-import type { ClassEntity } from '@/core/types/classes.types';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { EnrollmentFormModal } from './components/EnrollmentFormModal';
@@ -13,38 +11,17 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 
 export function EnrollmentsPage() {
   const { current_studio_id } = useAuthStore();
-  const { showError, showSuccess } = useAlert();
   const { fetchStudents } = useUsersStore();
+  const { enrollments, loading, loadData, deleteEnrollment } = useEnrollments();
 
-  const [enrollments, setEnrollments] = useState<EnrollmentEntity[]>([]);
-  const [classesList, setClassesList] = useState<ClassEntity[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (current_studio_id) {
-      loadData();
       fetchStudents();
     }
-  }, [current_studio_id]);
-
-  const loadData = async () => {
-    if (!current_studio_id) return;
-    setLoading(true);
-    try {
-      const [eData, cData] = await Promise.all([
-        enrollmentsService.getEnrollments(),
-        classesService.getClasses(current_studio_id)
-      ]);
-      setEnrollments(eData);
-      setClassesList(cData);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [current_studio_id, fetchStudents]);
 
   const handleDeleteClick = (id: string) => {
     setDeletingId(id);
@@ -52,15 +29,8 @@ export function EnrollmentsPage() {
 
   const confirmDelete = async () => {
     if (!deletingId) return;
-    try {
-      await enrollmentsService.unenrollStudent(deletingId);
-      showSuccess('Alumno desinscripto.');
-      loadData();
-    } catch (error) {
-      showError('Error al desinscribir.');
-    } finally {
-      setDeletingId(null);
-    }
+    await deleteEnrollment(deletingId);
+    setDeletingId(null);
   };
 
   const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -150,7 +120,7 @@ export function EnrollmentsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={loadData}
-        classesList={classesList}
+        studioId={current_studio_id || ''}
       />
 
       <ConfirmModal

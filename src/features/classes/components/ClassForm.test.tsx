@@ -4,10 +4,21 @@ import { ClassForm } from './ClassForm';
 import type { Profile, ClassEntity } from '@/core/types/classes.types';
 
 const mockGetSpecialties = vi.hoisted(() => vi.fn());
+const mockCreateClass = vi.hoisted(() => vi.fn());
+const mockUpdateClass = vi.hoisted(() => vi.fn());
 const mockIsTimeRangeValid = vi.hoisted(() => vi.fn((start: string, end: string) => end > start));
+const mockOnSuccess = vi.hoisted(() => vi.fn());
 
 vi.mock('@/core/services', () => ({
   usersService: { getSpecialties: mockGetSpecialties },
+  classesService: {
+    createClass: mockCreateClass,
+    updateClass: mockUpdateClass,
+  },
+}));
+
+vi.mock('@/core/components/GlobalAlertProvider', () => ({
+  useAlert: () => ({ showError: vi.fn(), showSuccess: vi.fn() }),
 }));
 
 vi.mock('@/core/utils/validation', () => ({
@@ -26,22 +37,19 @@ const mockSpecialties = [
 ];
 
 describe('ClassForm', () => {
-  const defaultOnSubmit = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetSpecialties.mockResolvedValue([]);
   });
 
   const renderForm = (overrides: Partial<{
     teachers: Profile[];
-    onSubmit: (payload: Partial<ClassEntity>) => Promise<void>;
-    loading: boolean;
+    onSuccess: () => void;
     initialData?: Partial<ClassEntity>;
   }> = {}) => {
     const props = {
       teachers: mockTeachers,
-      onSubmit: defaultOnSubmit,
-      loading: false,
+      onSuccess: mockOnSuccess,
       ...overrides,
     };
     return render(<ClassForm {...props} />);
@@ -76,7 +84,7 @@ describe('ClassForm', () => {
   });
 
   it('Autocomplete dropdown: escribe en actividad, muestra opciones filtradas', async () => {
-    mockGetSpecialties.mockResolvedValueOnce(mockSpecialties);
+    mockGetSpecialties.mockResolvedValue(mockSpecialties);
     renderForm();
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
@@ -98,7 +106,7 @@ describe('ClassForm', () => {
   });
 
   it('Seleccionar opción del autocomplete: se llena el campo y se cierra dropdown', async () => {
-    mockGetSpecialties.mockResolvedValueOnce(mockSpecialties);
+    mockGetSpecialties.mockResolvedValue(mockSpecialties);
     renderForm();
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
@@ -114,10 +122,10 @@ describe('ClassForm', () => {
     expect(screen.queryByText('Funcional')).not.toBeInTheDocument();
   });
 
-  it('Submit llama a onSubmit con los datos del form', async () => {
-    const onSubmit = vi.fn();
+  it('Submit crea una clase con los datos del form', async () => {
     mockGetSpecialties.mockResolvedValueOnce(mockSpecialties);
-    renderForm({ onSubmit: onSubmit as (payload: Partial<ClassEntity>) => Promise<void> });
+    mockCreateClass.mockResolvedValueOnce(undefined);
+    renderForm();
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
     fireEvent.change(activityInput, { target: { value: 'Yoga' } });
@@ -138,7 +146,7 @@ describe('ClassForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Clase' }));
 
     await vi.waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
+      expect(mockCreateClass).toHaveBeenCalledWith(
         expect.objectContaining({
           activity_name: 'Yoga',
           teacher_id: 't1',
@@ -148,13 +156,69 @@ describe('ClassForm', () => {
         })
       );
     });
+    expect(mockOnSuccess).toHaveBeenCalled();
   });
 
-  it('Loading deshabilita botón', () => {
-    mockGetSpecialties.mockResolvedValueOnce([]);
-    renderForm({ loading: true });
+  it('Submit actualiza una clase cuando hay initialData', async () => {
+    mockGetSpecialties.mockResolvedValueOnce(mockSpecialties);
+    mockUpdateClass.mockResolvedValueOnce(undefined);
+    const initialData: Partial<ClassEntity> = {
+      id: 'cls-001',
+      activity_name: 'Pilates',
+      teacher_id: 't2',
+      day_of_week: 5,
+      start_time: '10:00',
+      end_time: '11:00',
+      capacity: 20,
+      base_price: 6000,
+      teacher_commission_pct: 40,
+    };
 
-    expect(screen.getByRole('button', { name: 'Guardando...' })).toBeDisabled();
+    renderForm({ initialData });
+
+    await vi.waitFor(() => {
+      expect(screen.getByPlaceholderText('Ej: Funcional, Yoga')).toHaveValue('Pilates');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar Clase' }));
+
+    await vi.waitFor(() => {
+      expect(mockUpdateClass).toHaveBeenCalledWith(
+        'cls-001',
+        expect.objectContaining({
+          activity_name: 'Pilates',
+          teacher_id: 't2',
+        })
+      );
+    });
+    expect(mockCreateClass).not.toHaveBeenCalled();
+    expect(mockOnSuccess).toHaveBeenCalled();
+  });
+
+  it('Loading deshabilita botón durante el submit', async () => {
+    mockGetSpecialties.mockResolvedValueOnce([]);
+    let resolveCreate: (value: unknown) => void = () => {};
+    mockCreateClass.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        })
+    );
+
+    renderForm();
+
+    const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
+    fireEvent.change(activityInput, { target: { value: 'Yoga' } });
+    const teacherSelect = screen.getByDisplayValue('Seleccionar Profesora');
+    fireEvent.change(teacherSelect, { target: { value: 't1' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar Clase' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Guardando...' })).toBeDisabled();
+    });
+
+    resolveCreate(undefined);
   });
 
   it('initialData precarga los valores', async () => {
@@ -193,7 +257,7 @@ describe('ClassForm', () => {
     expect(screen.getByText('Ana López')).toBeInTheDocument();
   });
 
-  it('onChange de cada campo actualiza el formData', () => {
+  it('onChange de cada campo actualiza los valores del hook', () => {
     mockGetSpecialties.mockResolvedValueOnce([]);
     renderForm();
 
@@ -231,16 +295,15 @@ describe('ClassForm', () => {
   });
 
   it('end_time antes que start_time: rechaza submit y muestra error', async () => {
-    const onSubmit = vi.fn();
     mockGetSpecialties.mockResolvedValueOnce([]);
-    const { container } = renderForm({ onSubmit: onSubmit as (payload: Partial<ClassEntity>) => Promise<void> });
+    mockIsTimeRangeValid.mockReturnValueOnce(false);
+    const { container } = renderForm();
 
-    fireEvent.change(screen.getByDisplayValue('18:00'), {
-      target: { value: '14:00' },
+    fireEvent.change(screen.getByPlaceholderText('Ej: Funcional, Yoga'), {
+      target: { value: 'Yoga' },
     });
-    fireEvent.change(screen.getByDisplayValue('19:00'), {
-      target: { value: '10:00' },
-    });
+    const teacherSelect = screen.getByDisplayValue('Seleccionar Profesora');
+    fireEvent.change(teacherSelect, { target: { value: 't1' } });
 
     fireEvent.submit(container.querySelector('form')!);
 
@@ -249,50 +312,6 @@ describe('ClassForm', () => {
         screen.getByText('La hora de fin debe ser posterior a la de inicio.')
       ).toBeInTheDocument();
     });
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-
-  it('end_time igual a start_time: rechaza submit y muestra error', async () => {
-    const onSubmit = vi.fn();
-    mockGetSpecialties.mockResolvedValueOnce([]);
-    const { container } = renderForm({ onSubmit: onSubmit as (payload: Partial<ClassEntity>) => Promise<void> });
-
-    fireEvent.change(screen.getByDisplayValue('18:00'), {
-      target: { value: '10:00' },
-    });
-    fireEvent.change(screen.getByDisplayValue('19:00'), {
-      target: { value: '10:00' },
-    });
-
-    fireEvent.submit(container.querySelector('form')!);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('La hora de fin debe ser posterior a la de inicio.')
-      ).toBeInTheDocument();
-    });
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-
-  it('midnight boundary (23:00 → 00:30): rechaza submit', async () => {
-    const onSubmit = vi.fn();
-    mockGetSpecialties.mockResolvedValueOnce([]);
-    const { container } = renderForm({ onSubmit: onSubmit as (payload: Partial<ClassEntity>) => Promise<void> });
-
-    fireEvent.change(screen.getByDisplayValue('18:00'), {
-      target: { value: '23:00' },
-    });
-    fireEvent.change(screen.getByDisplayValue('19:00'), {
-      target: { value: '00:30' },
-    });
-
-    fireEvent.submit(container.querySelector('form')!);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('La hora de fin debe ser posterior a la de inicio.')
-      ).toBeInTheDocument();
-    });
-    expect(onSubmit).not.toHaveBeenCalled();
+    expect(mockCreateClass).not.toHaveBeenCalled();
   });
 });

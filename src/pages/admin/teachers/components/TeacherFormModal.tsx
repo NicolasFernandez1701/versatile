@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Check } from 'lucide-react';
 
-import { usersService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useTeacherForm } from '@/core/hooks/useTeacherForm';
 import { Modal, Input, Button } from '@/components/ui';
-import { isError } from '@/core/utils/validation';
 
 import type { UserProfile } from '@/core/types/users.types';
-import { useAuthStore } from '@/core/store/useAuthStore';
 
 interface TeacherFormModalProps {
   isOpen: boolean;
@@ -17,68 +14,31 @@ interface TeacherFormModalProps {
 }
 
 export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: TeacherFormModalProps) {
-  const { current_studio_id } = useAuthStore();
-  const { showError, showSuccess } = useAlert();
-  const [full_name, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    fullName,
+    email,
+    phone,
+    loading,
+    error,
+    setField,
+    handleSubmit,
+  } = useTeacherForm({ initialData, onSuccess });
 
-  useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        setFullName(initialData.full_name);
-        setEmail(initialData.email || '');
-        setPhone(initialData.phone || '');
-      } else {
-        setFullName('');
-        setEmail('');
-        setPhone('');
-      }
-    }
-  }, [isOpen, initialData]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      if (initialData) {
-        await usersService.updateUser(initialData.id, {
-          full_name,
-          email,
-          phone
-        });
-        showSuccess('Profesor actualizado con éxito.');
-      } else {
-        await usersService.createUser({
-          full_name,
-          email,
-          phone,
-          role: 'teacher',
-          password: 'password123',
-          studio_id: current_studio_id || ''
-        });
-        showSuccess('Profesor creado con éxito. La contraseña inicial es password123.');
-      }
-      onSuccess();
-      onClose();
-    } catch (error: unknown) {
-      showError(`Error: ${isError(error) ? error.message : 'Error desconocido'}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await handleSubmit();
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Editar Profesor" : "Registrar Nuevo Profesor"} maxWidth="600px">
-      <form onSubmit={handleSubmit} className="standard-form">
+      <form onSubmit={onSubmit} className="standard-form">
         <h3 style={{ marginBottom: '1rem', color: 'var(--primary-color)' }}>Datos de Acceso</h3>
 
         <Input
           label="Nombre Completo"
           type="text"
-          value={full_name}
-          onChange={(e) => setFullName(e.target.value)}
+          value={fullName}
+          onChange={(e) => setField('fullName', e.target.value)}
           required
         />
 
@@ -86,7 +46,7 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: Te
           label="Correo Electrónico"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => setField('email', e.target.value)}
           required
         />
 
@@ -94,7 +54,7 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: Te
           label="Teléfono"
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setField('phone', e.target.value)}
         />
 
         {!initialData && (
@@ -107,6 +67,8 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: Te
           </p>
         )}
 
+        {error && <div className="error-message">{error}</div>}
+
         <div
           className="form-actions"
           style={{
@@ -117,8 +79,8 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: Te
             marginTop: '1.5rem'
           }}
         >
-          <Button type="submit" variant="primary" loading={isSubmitting}>
-            <Check size={20} /> {isSubmitting ? 'Guardando...' : 'Guardar'}
+          <Button type="submit" variant="primary" loading={loading}>
+            <Check size={20} /> {loading ? 'Guardando...' : 'Guardar'}
           </Button>
         </div>
       </form>

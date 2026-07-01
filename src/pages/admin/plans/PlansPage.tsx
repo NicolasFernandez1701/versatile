@@ -1,68 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Tag, Plus, Trash2, Edit } from 'lucide-react';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { usePlansManagement } from '@/core/hooks/usePlansManagement';
 import { formatCurrency } from '@/core/utils/formatCurrency';
-import { plansService, classesService } from '@/core/services';
 import type { PlanEntity } from '@/core/types/plans.types';
-import type { ClassEntity } from '@/core/types/classes.types';
 import { PlanForm } from '@/features/plans/components/PlanForm';
 import { Modal, ConfirmModal, DataTable, type Column, Button } from '@/components/ui';
-import { useAuthStore } from '@/core/store/useAuthStore';
 
 export function PlansPage() {
-  const { current_studio_id } = useAuthStore();
-  const { showError, showSuccess } = useAlert();
-  const [plans, setPlans] = useState<PlanEntity[]>([]);
-  const [availableClasses, setAvailableClasses] = useState<ClassEntity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    plans,
+    availableClasses,
+    loading,
+    deletePlan,
+    toggleStatus,
+  } = usePlansManagement();
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<PlanEntity | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (current_studio_id) {
-      loadPlans();
-      classesService.getClasses(current_studio_id).then(setAvailableClasses).catch(console.error);
-    }
-  }, [current_studio_id]);
-
-  const loadPlans = async () => {
-    try {
-      const data = await plansService.getPlans();
-      setPlans(data);
-    } catch (error) {
-      console.error('Error al cargar planes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!deletingPlanId) return;
-    try {
-      await plansService.deletePlan(deletingPlanId);
-      setPlans(plans.filter((p) => p.id !== deletingPlanId));
-      setIsConfirmOpen(false);
-      setDeletingPlanId(null);
-      showSuccess('Plan eliminado con éxito.');
-    } catch (error) {
-      console.error('Error al eliminar plan:', error);
-      showError('Error al eliminar el plan');
-    }
-  };
-
-  const toggleStatus = async (id: string, currentStatus: boolean) => {
-    try {
-      await plansService.togglePlanStatus(id, !currentStatus);
-      setPlans(plans.map((p) => (p.id === id ? { ...p, is_active: !currentStatus } : p)));
-    } catch (error) {
-      console.error('Error al cambiar estado:', error);
-    }
+    await deletePlan(deletingPlanId);
+    setIsConfirmOpen(false);
+    setDeletingPlanId(null);
   };
 
   const handleOpenModal = (plan?: PlanEntity) => {
@@ -75,26 +39,8 @@ export function PlansPage() {
     setIsModalOpen(false);
   };
 
-  const handleSavePlan = async (
-    data: { name: string; price: number; classes_per_week: number; is_active: boolean },
-    activities: { activity_name: string; classes_per_week: number }[]
-  ) => {
-    try {
-      setIsSaving(true);
-      if (selectedPlan) {
-        await plansService.updatePlanWithActivities(selectedPlan.id, data, activities);
-      } else {
-        await plansService.createPlanWithActivities(data, activities);
-      }
-      await loadPlans();
-      handleCloseModal();
-      showSuccess('Plan guardado con éxito.');
-    } catch (error) {
-      console.error('Error saving plan:', error);
-      showError('Error al guardar el plan');
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSaveSuccess = () => {
+    handleCloseModal();
   };
 
   const columns: Column<PlanEntity>[] = [
@@ -198,9 +144,8 @@ export function PlansPage() {
         <PlanForm
           initialData={selectedPlan}
           availableClasses={availableClasses}
-          onSubmit={handleSavePlan}
+          onSuccess={handleSaveSuccess}
           onCancel={handleCloseModal}
-          loading={isSaving}
         />
       </Modal>
 
