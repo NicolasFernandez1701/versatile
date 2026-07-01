@@ -16,21 +16,19 @@ interface StudioMemberRow {
   } | null;
 }
 
-async function fetchMembership(userId: string): Promise<StudioMembership | null> {
+async function fetchMemberships(userId: string): Promise<StudioMembership[]> {
   const { data } = await supabase
     .from('studio_members')
     .select('studio_id, role, studios(name)')
-    .eq('user_id', userId)
-    .maybeSingle();
+    .eq('user_id', userId);
 
-  if (!data) return null;
+  if (!data || data.length === 0) return [];
 
-  const row = data as unknown as StudioMemberRow;
-  return {
+  return (data as unknown as StudioMemberRow[]).map((row) => ({
     studio_id: row.studio_id,
     studio_name: row.studios?.name ?? '',
     role: row.role
-  };
+  }));
 }
 
 export const authService = {
@@ -77,12 +75,13 @@ export const authService = {
       .eq('id', session.user.id)
       .maybeSingle();
 
-    const membership = await fetchMembership(session.user.id);
+    const memberships = await fetchMemberships(session.user.id);
 
     return {
       ...session.user,
       profile: (profile as ProfileRow | null) || null,
-      membership
+      membership: memberships[0] ?? null,
+      memberships
     };
   },
 
@@ -101,14 +100,15 @@ export const authService = {
         .eq('id', session.user.id)
         .maybeSingle();
 
-      const membership = await fetchMembership(session.user.id);
+      const memberships = await fetchMemberships(session.user.id);
 
       const enrichedSession = {
         ...session,
         user: {
           ...session.user,
           profile: (profile as ProfileRow | null) || null,
-          membership
+          membership: memberships[0] ?? null,
+          memberships
         }
       };
 

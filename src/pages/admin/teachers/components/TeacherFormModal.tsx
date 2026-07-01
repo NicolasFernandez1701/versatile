@@ -4,6 +4,7 @@ import { Check } from 'lucide-react';
 import { usersService } from '@/core/services';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { Modal, Input, Button } from '@/components/ui';
+import { isError } from '@/core/utils/validation';
 
 import type { UserProfile } from '@/core/types/users.types';
 import { useAuthStore } from '@/core/store/useAuthStore';
@@ -61,8 +62,8 @@ export function TeacherFormModal({ isOpen, onClose, onSuccess, initialData }: Te
       }
       onSuccess();
       onClose();
-    } catch (error: any) {
-      showError(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      showError(`Error: ${isError(error) ? error.message : 'Error desconocido'}`);
     } finally {
       setIsSubmitting(false);
     }

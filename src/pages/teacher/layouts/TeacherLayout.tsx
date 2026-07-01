@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
+import { ProfileSwitcher } from '@/core/components/ProfileSwitcher';
 import { LayoutDashboard, Calendar, CalendarDays, User, LogOut } from 'lucide-react';
 import '@/pages/admin/styles/admin.css';
 
@@ -55,6 +56,7 @@ export function TeacherLayout() {
         </nav>
 
         <div className="sidebar-footer">
+          <ProfileSwitcher />
           <button onClick={handleLogout} className="logout-btn">
             <LogOut size={20} />
             <span>Salir</span>

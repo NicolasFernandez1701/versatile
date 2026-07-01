@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, GraduationCap } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAddSelfAsTeacher } from '@/core/hooks/useAddSelfAsTeacher';
 import { usersService } from '@/core/services';
 import { TeacherList } from './components/TeacherList';
 import { TeacherFormModal } from './components/TeacherFormModal';
 import { ConfirmModal } from '@/components/ui';
+import type { UserProfile } from '@/core/types/users.types';
+import './TeachersPage.css';
 
 export function TeachersPage() {
   const { showError, showSuccess } = useAlert();
-  const { teachers, loading, fetchTeachers } = useUsersStore();
+  const teachers = useUsersStore((state) => state.teachers);
+  const loading = useUsersStore((state) => state.loading);
+  const fetchTeachers = useUsersStore((state) => state.fetchTeachers);
+  const { canAdd: showAddSelfAsTeacher, addSelfAsTeacher: handleAddSelfAsTeacher, isLoading: isAddingSelf } = useAddSelfAsTeacher();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState<any>(null);
+  const [editingTeacher, setEditingTeacher] = useState<UserProfile | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,10 +55,24 @@ export function TeachersPage() {
           <h1>Gestión de Profesores</h1>
           <p>Administrá al equipo docente.</p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditingTeacher(null); setIsModalOpen(true); }} title="Nuevo Profesor">
-          <UserPlus size={20} />
-          <span>Nuevo Profesor</span>
-        </button>
+        <div className="teachers-page-actions">
+          {showAddSelfAsTeacher && (
+            <button
+              className="btn-secondary btn-add-self-teacher"
+              onClick={handleAddSelfAsTeacher}
+              disabled={isAddingSelf}
+              title="Agregarme como profesor"
+              aria-label="Agregarme como profesor"
+            >
+              <GraduationCap size={20} />
+              <span>Agregarme como profesor</span>
+            </button>
+          )}
+          <button className="btn-primary" onClick={() => { setEditingTeacher(null); setIsModalOpen(true); }} title="Nuevo Profesor">
+            <UserPlus size={20} />
+            <span>Nuevo Profesor</span>
+          </button>
+        </div>
       </div>
 
       <div style={{ marginBottom: '1.5rem' }}>

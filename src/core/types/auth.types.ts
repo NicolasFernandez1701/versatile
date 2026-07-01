@@ -15,17 +15,21 @@ export interface AppUser extends User {
     full_name?: string;
   };
   membership?: StudioMembership | null;
+  memberships?: StudioMembership[] | null;
 }
 
 export interface AuthState {
   user: AppUser | null;
   role: Role | null;
+  activeRole: Role | null;
   current_studio_id: string | null;
   membership: StudioMembership | null;
+  memberships: StudioMembership[];
   isAuthenticated: boolean;
   isLoading: boolean;
   setUser: (user: AppUser | null) => void;
   setRole: (role: Role | null) => void;
+  setActiveRole: (role: Role) => void;
   setLoading: (isLoading: boolean) => void;
   logout: () => void;
   getCurrentStudioId: () => string | null;

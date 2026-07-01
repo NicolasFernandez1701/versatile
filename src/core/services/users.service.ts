@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { createClient } from '@supabase/supabase-js';
 import { useAuthStore } from '../store/useAuthStore';
 import type { UserProfile } from '../types/users.types';
+import type { Specialty } from '../types/users.types';
 
 // Cliente secundario para no pisar la sesión del administrador al crear usuarios
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -17,9 +18,9 @@ export const usersService = {
   async getStudents(studioId: string): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, plans(*)')
-      .eq('role', 'student')
-      .eq('studio_id', studioId)
+      .select('*, plans(*), studio_members!inner(*)')
+      .eq('studio_members.studio_id', studioId)
+      .eq('studio_members.role', 'student')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -29,13 +30,48 @@ export const usersService = {
   async getTeachers(studioId: string): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, classes(activity_name, teacher_commission_pct)')
-      .eq('role', 'teacher')
-      .eq('studio_id', studioId)
+      .select('*, classes(activity_name, teacher_commission_pct), studio_members!inner(*)')
+      .eq('studio_members.studio_id', studioId)
+      .eq('studio_members.role', 'teacher')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data as UserProfile[];
+  },
+
+  async addSelfAsTeacher(studioId: string): Promise<void> {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+    if (!session?.user) throw new Error('No hay sesión activa');
+
+    const userId = session.user.id;
+
+    const { data: existing } = await supabase
+      .from('studio_members')
+      .select('*')
+      .eq('studio_id', studioId)
+      .eq('user_id', userId)
+      .eq('role', 'teacher')
+      .maybeSingle();
+
+    if (existing) throw new Error('Ya sos profesor de este estudio');
+
+    const { error } = await supabase.from('studio_members').insert([
+      { studio_id: studioId, user_id: userId, role: 'teacher' },
+    ]);
+
+    if (error) throw error;
+
+    // Mark onboarding as completed — the admin profile already exists,
+    // no need to go through teacher onboarding when switching roles.
+    await supabase
+      .from('profiles')
+      .update({ has_completed_onboarding: true })
+      .eq('id', userId);
   },
 
   async createUser(payload: {
@@ -111,7 +147,7 @@ export const usersService = {
     if (profileError) throw profileError;
   },
 
-  async getSpecialties(): Promise<{ id: string; name: string }[]> {
+  async getSpecialties(): Promise<Specialty[]> {
     const { data, error } = await supabase
       .from('specialties')
       .select('*')

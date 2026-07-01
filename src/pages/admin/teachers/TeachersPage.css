@@ -1,0 +1,35 @@
+.teachers-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.teachers-page-actions .btn-add-self-teacher {
+  background-color: var(--surface-hover);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.teachers-page-actions .btn-add-self-teacher:hover:not(:disabled) {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.teachers-page-actions .btn-add-self-teacher:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile: icon-only circular buttons */
+@media (max-width: 768px) {
+  .teachers-page-actions .btn-add-self-teacher {
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
+    padding: 0;
+  }
+
+  .teachers-page-actions .btn-add-self-teacher span {
+    display: none;
+  }
+}

@@ -1,17 +1,28 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { AppUser, StudioMembership } from '../types/auth.types';
 import { useAuthStore } from './useAuthStore';
+
+const mockReset = vi.hoisted(() => vi.fn());
+
+vi.mock('./useUsersStore', () => ({
+  useUsersStore: {
+    getState: () => ({ reset: mockReset }),
+  },
+}));
 
 describe('useAuthStore', () => {
   beforeEach(() => {
     useAuthStore.setState({
       user: null,
       role: null,
+      activeRole: null,
+      memberships: [],
       current_studio_id: null,
       membership: null,
       isAuthenticated: false,
       isLoading: true,
     });
+    mockReset.mockClear();
   });
 
   it('debería arrancar con estado inicial', () => {
@@ -62,6 +73,73 @@ describe('useAuthStore', () => {
     expect(state.current_studio_id).toBe('studio-abc');
     expect(state.membership).toEqual(mockMembership);
     expect(state.isAuthenticated).toBe(true);
+  });
+
+  it('setUser debería preservar el rol activo cuando se agrega una membresía adicional en el mismo estudio', () => {
+    const studioId = 'studio-abc';
+    const adminMembership: StudioMembership = {
+      studio_id: studioId,
+      studio_name: 'Studio ABC',
+      role: 'admin',
+    };
+    const teacherMembership: StudioMembership = {
+      studio_id: studioId,
+      studio_name: 'Studio ABC',
+      role: 'teacher',
+    };
+
+    // Simula un admin que ya tiene activo el rol admin en el estudio
+    useAuthStore.setState({
+      activeRole: 'admin',
+      current_studio_id: studioId,
+      membership: adminMembership,
+      memberships: [adminMembership],
+    });
+
+    // La DB devuelve la nueva membresía de teacher primero (caso addSelfAsTeacher)
+    const refreshedUser = {
+      id: '1',
+      email: 'admin@example.com',
+      memberships: [teacherMembership, adminMembership],
+    } as AppUser;
+
+    useAuthStore.getState().setUser(refreshedUser);
+
+    const state = useAuthStore.getState();
+    expect(state.activeRole).toBe('admin');
+    expect(state.role).toBe('admin');
+    expect(state.current_studio_id).toBe(studioId);
+    expect(state.membership).toEqual(adminMembership);
+    expect(state.memberships).toHaveLength(2);
+  });
+
+  it('setUser debería fallback a memberships[0] cuando el rol activo previo ya no existe', () => {
+    useAuthStore.setState({
+      activeRole: 'admin',
+      current_studio_id: 'studio-old',
+      membership: { studio_id: 'studio-old', studio_name: 'Old', role: 'admin' },
+      memberships: [{ studio_id: 'studio-old', studio_name: 'Old', role: 'admin' }],
+    });
+
+    const newMembership: StudioMembership = {
+      studio_id: 'studio-new',
+      studio_name: 'New Studio',
+      role: 'teacher',
+    };
+
+    const refreshedUser = {
+      id: '1',
+      email: 'user@example.com',
+      memberships: [newMembership],
+    } as AppUser;
+
+    useAuthStore.getState().setUser(refreshedUser);
+
+    const state = useAuthStore.getState();
+    expect(state.activeRole).toBe('teacher');
+    expect(state.role).toBe('teacher');
+    expect(state.current_studio_id).toBe('studio-new');
+    expect(state.membership).toEqual(newMembership);
   });
 
   it('setUser con null debería desautenticar y limpiar studio', () => {
@@ -131,5 +209,43 @@ describe('useAuthStore', () => {
 
   it('getCurrentStudioId debería devolver null cuando no hay studio activo', () => {
     expect(useAuthStore.getState().getCurrentStudioId()).toBeNull();
+  });
+
+  it('AuthState shape soporta memberships, activeRole y setActiveRole', () => {
+    const mockUser = {
+      id: '1',
+      email: 'test@test.com',
+      memberships: [
+        { studio_id: 'studio-1', studio_name: 'Studio 1', role: 'admin' },
+        { studio_id: 'studio-1', studio_name: 'Studio 1', role: 'teacher' },
+      ],
+    } as AppUser;
+
+    useAuthStore.getState().setUser(mockUser);
+    useAuthStore.getState().setActiveRole('teacher');
+
+    const state = useAuthStore.getState();
+    expect(state.memberships).toHaveLength(2);
+    expect(state.activeRole).toBe('teacher');
+  });
+
+  describe('activeRole subscription resets role-dependent stores', () => {
+    it('calls useUsersStore.reset when activeRole changes', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      useAuthStore.getState().setActiveRole('teacher');
+
+      expect(mockReset).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call reset when activeRole is set to the same value', async () => {
+      useAuthStore.setState({ activeRole: 'teacher' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      mockReset.mockClear();
+
+      useAuthStore.getState().setActiveRole('teacher');
+
+      expect(mockReset).not.toHaveBeenCalled();
+    });
   });
 });

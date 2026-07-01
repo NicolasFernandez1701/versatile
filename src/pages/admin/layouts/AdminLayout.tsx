@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
+import { ProfileSwitcher } from '@/core/components/ProfileSwitcher';
 import {
   LayoutDashboard,
   Users,
@@ -127,6 +128,7 @@ export function AdminLayout() {
         </nav>
 
         <div className="sidebar-footer">
+          <ProfileSwitcher />
           <button onClick={handleLogout} className="logout-btn">
             <LogOut size={20} />
             <span>Salir</span>
