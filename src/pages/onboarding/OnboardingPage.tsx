@@ -163,7 +163,7 @@ export function OnboardingPage() {
         recent_injuries: recentInjuries,
         medications,
         medical_certificate_url: certUrl,
-        medical_certificate_status: certUrl ? 'pending' : null,
+        medical_certificate_status: (certUrl ? 'pending' : null) as 'pending' | null,
 
         currently_active: currentlyActive,
         training_experience: trainingExperience,
