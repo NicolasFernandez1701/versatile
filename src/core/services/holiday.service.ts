@@ -1,12 +1,13 @@
+import type { Holiday } from '../types/holiday.types';
+
+export type { Holiday } from '../types/holiday.types';
+
 const API_BASE = 'https://api.argentinadatos.com/v1/feriados';
 
-export interface Holiday {
-  id: string;
-  motivo: string;
+interface ArgentinaDatosHoliday {
+  fecha: string;
+  nombre: string;
   tipo: string;
-  dia: number;
-  mes: number;
-  id_info: string;
 }
 
 export const HolidayService = {
@@ -23,7 +24,7 @@ export const HolidayService = {
       const data = await response.json();
 
       // Mapeamos el formato de ArgentinaDatos a la interfaz local Holiday
-      return data.map((item: any, index: number) => {
+      return data.map((item: ArgentinaDatosHoliday, index: number) => {
         // item.fecha viene como "YYYY-MM-DD"
         const parts = item.fecha.split('-');
         const month = parseInt(parts[1], 10);

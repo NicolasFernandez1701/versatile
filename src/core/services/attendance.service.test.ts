@@ -5,19 +5,21 @@ import { attendanceService } from './attendance.service';
 // 1. Datos de prueba
 // ──────────────────────────────────────────────
 
-const mockRawEnrollments: any[] = [
+const mockRawEnrollments = [
   {
     id: 'enr-001',
     student_id: 'stu-001',
     class_id: 'cls-001',
     reservation_date: '2024-06-15',
     attendance_status: 'confirmed',
-    profiles: {
-      id: 'stu-001',
-      full_name: 'María García',
-      phone: '123456789',
-      email: 'maria@test.com',
-    },
+    profiles: [
+      {
+        id: 'stu-001',
+        full_name: 'María García',
+        phone: '123456789',
+        email: 'maria@test.com',
+      },
+    ],
   },
   {
     id: 'enr-002',
@@ -25,12 +27,14 @@ const mockRawEnrollments: any[] = [
     class_id: 'cls-001',
     reservation_date: '2024-06-15',
     attendance_status: 'pending',
-    profiles: {
-      id: 'stu-002',
-      full_name: 'Juan Pérez',
-      phone: '987654321',
-      email: 'juan@test.com',
-    },
+    profiles: [
+      {
+        id: 'stu-002',
+        full_name: 'Juan Pérez',
+        phone: '987654321',
+        email: 'juan@test.com',
+      },
+    ],
   },
 ];
 
@@ -66,7 +70,34 @@ describe('attendanceService', () => {
 
       const result = await attendanceService.getClassEnrollments('cls-001');
 
-      expect(result).toEqual(mockRawEnrollments);
+      expect(result).toEqual([
+        {
+          id: 'enr-001',
+          student_id: 'stu-001',
+          class_id: 'cls-001',
+          reservation_date: '2024-06-15',
+          attendance_status: 'confirmed',
+          created_at: '',
+          profiles: {
+            full_name: 'María García',
+            phone: '123456789',
+            email: 'maria@test.com',
+          },
+        },
+        {
+          id: 'enr-002',
+          student_id: 'stu-002',
+          class_id: 'cls-001',
+          reservation_date: '2024-06-15',
+          attendance_status: 'pending',
+          created_at: '',
+          profiles: {
+            full_name: 'Juan Pérez',
+            phone: '987654321',
+            email: 'juan@test.com',
+          },
+        },
+      ]);
       expect(mockFrom).toHaveBeenCalledWith('enrollments');
     });
 
@@ -190,7 +221,7 @@ describe('attendanceService', () => {
   // getStudentAttendances (con data mapping)
   // ────────────────────────────────────────────
   describe('getStudentAttendances', () => {
-    const mockRawStudentData: any[] = [
+    const mockRawStudentData = [
       {
         id: 'enr-001',
         student_id: 'stu-001',
@@ -214,7 +245,7 @@ describe('attendanceService', () => {
         id: 'enr-001',
         enrollment_id: 'enr-001',
         date: '2024-06-15',
-        status: 'attended',
+        status: 'present',
         enrollments: {
           student_id: 'stu-001',
           class_id: 'cls-001',

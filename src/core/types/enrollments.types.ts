@@ -12,6 +12,7 @@ export interface EnrollmentEntity {
   profiles?: {
     full_name: string;
     email: string;
+    phone?: string;
   };
   classes?: {
     activity_name: string;

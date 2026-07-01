@@ -1,20 +1,16 @@
 import { supabase } from './supabase';
 import { getRemainingQuota } from '../utils/quotaTracker';
 import type { ClassEntity } from '../types/classes.types';
-import type { StudentDashboardData, StudentActivePlan, StudentClassLimit } from '../types/dashboard.types';
+import type {
+  DashboardStats,
+  FinancialBalance,
+  StudentDashboardData,
+  StudentActivePlan,
+  StudentClassLimit
+} from '../types/dashboard.types';
 import type { PlanWithActivities, QuotaMap } from '../types/plans.types';
 
-export interface DashboardStats {
-  totalStudents: number;
-  activeClasses: number;
-}
-
-export interface FinancialBalance {
-  monthlyTotal: number;
-  annualTotal: number;
-  monthlyByPlan: Record<string, number>;
-  annualByPlan: Record<string, number>;
-}
+export type { DashboardStats, FinancialBalance } from '../types/dashboard.types';
 
 interface RpcFinancialBalanceRow {
   monthlyTotal: number | string | null;

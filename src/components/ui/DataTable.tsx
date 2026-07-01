@@ -51,7 +51,7 @@ export function DataTable<T>({
               <tr key={keyExtractor(row)}>
                 {columns.map((col) => (
                   <td key={col.key} data-label={col.header} className={col.className}>
-                    {col.render ? col.render(row) : String((row as any)[col.key] || '')}
+                    {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
                   </td>
                 ))}
               </tr>

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { classesService, attendanceService } from '@/core/services';
 import type { ClassEntity } from '@/core/types/classes.types';
-import type { AttendanceRecord } from '@/core/services/attendance.service';
+import type { EnrollmentEntity } from '@/core/types/enrollments.types';
+import type { AttendanceRecord } from '@/core/types/attendance.types';
 import { Loader, Button } from '@/components/ui';
 import { CalendarDays, Users, CheckCircle, XCircle, Clock, UserCheck } from 'lucide-react';
 import { useAlert } from '@/core/components/GlobalAlertProvider';
@@ -27,7 +28,7 @@ export function TeacherClassesPage() {
   const [selectedClass, setSelectedClass] = useState<ClassEntity | null>(null);
   const [activeTab, setActiveTab] = useState<'padron' | 'asistencia'>('asistencia');
 
-  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentEntity[]>([]);
   const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
@@ -66,8 +67,8 @@ export function TeacherClassesPage() {
         const data = await attendanceService.getClassAttendanceByDate(classId, todayStr);
         setAttendances(data);
       }
-    } catch (error: any) {
-      showError(error.message);
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : 'Error cargando detalles');
     } finally {
       setLoadingDetails(false);
     }
@@ -84,8 +85,8 @@ export function TeacherClassesPage() {
       );
       await attendanceService.markAttendance(attendanceRecord.enrollment_id, todayStr, newStatus);
       showSuccess(`Asistencia marcada como ${newStatus === 'present' ? 'Presente' : 'Ausente'}`);
-    } catch (error: any) {
-      showError(`Error al marcar asistencia: ${error.message}`);
+    } catch (error: unknown) {
+      showError(`Error al marcar asistencia: ${error instanceof Error ? error.message : 'Error desconocido'}`);
       loadDetails(selectedClass!.id); // Revert on error
     }
   };
