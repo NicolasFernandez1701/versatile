@@ -356,6 +356,15 @@ CREATE POLICY studio_members_select ON public.studio_members
     FOR SELECT TO authenticated
     USING (studio_id = ANY(SELECT public.auth_studio_ids()));
 
+-- Allow members to insert themselves into studios they already belong to.
+-- App-level logic enforces that only admins can add themselves as teachers.
+CREATE POLICY studio_members_insert_self ON public.studio_members
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        user_id = auth.uid()
+        AND studio_id = ANY(SELECT public.auth_studio_ids())
+    );
+
 -- profiles: members can read profiles of anyone in their studio
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
