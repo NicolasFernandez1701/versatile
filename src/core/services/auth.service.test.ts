@@ -206,7 +206,7 @@ describe('authService', () => {
       expect(result).toBeNull();
     });
 
-    it('debería devolver perfil null si el usuario no tiene profile en DB', async () => {
+    it('debería devolver perfil undefined si el usuario no tiene profile en DB', async () => {
       mockAuth.getSession.mockResolvedValue({
         data: { session: { user: { id: '1', email: 'test@test.com' } } },
         error: null,
@@ -218,18 +218,20 @@ describe('authService', () => {
       expect(result).toMatchObject({
         id: '1',
         email: 'test@test.com',
-        profile: null,
         membership: null,
       });
+      expect(result?.profile).toBeUndefined();
     });
 
-    it('debería lanzar error si getSession falla', async () => {
+    it('debería devolver null si getSession retorna error', async () => {
       mockAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: new Error('Error de conexión'),
       });
 
-      await expect(authService.getCurrentUser()).rejects.toThrow('Error de conexión');
+      const result = await authService.getCurrentUser();
+
+      expect(result).toBeNull();
     });
 
     it('debería devolver todas las memberships como array para usuario multi-rol', async () => {

@@ -1,12 +1,6 @@
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
-import type { StudioMembership } from '../types/auth.types';
-
-interface ProfileRow {
-  has_completed_onboarding: boolean;
-  role: 'admin' | 'teacher' | 'student';
-  full_name: string | null;
-}
+import type { StudioMembership, AppUser } from '../types/auth.types';
 
 interface StudioMemberRow {
   studio_id: string;
@@ -60,13 +54,13 @@ export const authService = {
     if (error) throw error;
   },
 
-  async getCurrentUser() {
+  async getCurrentUser(): Promise<AppUser | null> {
     const {
       data: { session },
       error
     } = await supabase.auth.getSession();
-    if (error) throw error;
-    if (!session?.user) return null;
+
+    if (error || !session?.user) return null;
 
     // Fetch extra profile data
     const { data: profile } = await supabase
@@ -79,10 +73,10 @@ export const authService = {
 
     return {
       ...session.user,
-      profile: (profile as ProfileRow | null) || null,
+      profile: (profile as AppUser['profile']) ?? undefined,
       membership: memberships[0] ?? null,
       memberships
-    };
+    } as AppUser;
   },
 
   // Hook para suscribirse a los cambios de sesión
@@ -106,10 +100,10 @@ export const authService = {
         ...session,
         user: {
           ...session.user,
-          profile: (profile as ProfileRow | null) || null,
+          profile: (profile as AppUser['profile']) ?? undefined,
           membership: memberships[0] ?? null,
           memberships
-        }
+        } as AppUser
       };
 
       callback(enrichedSession);
