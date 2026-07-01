@@ -1,17 +1,28 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { AppUser, StudioMembership } from '../types/auth.types';
 import { useAuthStore } from './useAuthStore';
+
+const mockReset = vi.hoisted(() => vi.fn());
+
+vi.mock('./useUsersStore', () => ({
+  useUsersStore: {
+    getState: () => ({ reset: mockReset }),
+  },
+}));
 
 describe('useAuthStore', () => {
   beforeEach(() => {
     useAuthStore.setState({
       user: null,
       role: null,
+      activeRole: null,
+      memberships: [],
       current_studio_id: null,
       membership: null,
       isAuthenticated: false,
       isLoading: true,
     });
+    mockReset.mockClear();
   });
 
   it('debería arrancar con estado inicial', () => {
@@ -149,5 +160,25 @@ describe('useAuthStore', () => {
     const state = useAuthStore.getState();
     expect(state.memberships).toHaveLength(2);
     expect(state.activeRole).toBe('teacher');
+  });
+
+  describe('activeRole subscription resets role-dependent stores', () => {
+    it('calls useUsersStore.reset when activeRole changes', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      useAuthStore.getState().setActiveRole('teacher');
+
+      expect(mockReset).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call reset when activeRole is set to the same value', async () => {
+      useAuthStore.setState({ activeRole: 'teacher' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      mockReset.mockClear();
+
+      useAuthStore.getState().setActiveRole('teacher');
+
+      expect(mockReset).not.toHaveBeenCalled();
+    });
   });
 });

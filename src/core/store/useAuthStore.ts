@@ -55,3 +55,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   getCurrentStudioId: () => get().current_studio_id
 }));
+
+// Auto-reset role-dependent stores whenever the active role changes.
+// Dynamic import avoids a circular dependency: useUsersStore already imports useAuthStore.
+let previousActiveRole = useAuthStore.getState().activeRole;
+import('./useUsersStore').then(({ useUsersStore }) => {
+  useAuthStore.subscribe((state) => {
+    const currentActiveRole = state.activeRole;
+    if (currentActiveRole !== previousActiveRole) {
+      previousActiveRole = currentActiveRole;
+      useUsersStore.getState().reset();
+    }
+  });
+});

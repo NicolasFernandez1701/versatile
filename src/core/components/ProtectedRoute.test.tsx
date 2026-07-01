@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
+import type { Role } from '../types/auth.types';
 
 const mockUseAuthStore = vi.hoisted(() => vi.fn());
 
@@ -13,7 +14,7 @@ function TestChild() {
   return <div data-testid="protected-content">Protected</div>;
 }
 
-function renderWithRoute(activeRole: string | null, role: string | null, allowedRoles?: string[]) {
+function renderWithRoute(activeRole: Role | null, role: Role | null, allowedRoles?: Role[]) {
   mockUseAuthStore.mockReturnValue({
     isAuthenticated: true,
     isLoading: false,
@@ -25,7 +26,7 @@ function renderWithRoute(activeRole: string | null, role: string | null, allowed
   return render(
     <MemoryRouter initialEntries={['/protected']}>
       <Routes>
-        <Route element={<ProtectedRoute allowedRoles={allowedRoles as any} />}>
+        <Route element={<ProtectedRoute allowedRoles={allowedRoles} />}>
           <Route path="/protected" element={<TestChild />} />
         </Route>
         <Route path="/admin" element={<div data-testid="admin-redirect">Admin</div>} />
