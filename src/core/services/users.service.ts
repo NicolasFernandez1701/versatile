@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { createClient } from '@supabase/supabase-js';
 import { useAuthStore } from '../store/useAuthStore';
 import type { UserProfile } from '../types/users.types';
+import type { Specialty } from '../types/users.types';
 
 // Cliente secundario para no pisar la sesión del administrador al crear usuarios
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -64,6 +65,13 @@ export const usersService = {
     ]);
 
     if (error) throw error;
+
+    // Mark onboarding as completed — the admin profile already exists,
+    // no need to go through teacher onboarding when switching roles.
+    await supabase
+      .from('profiles')
+      .update({ has_completed_onboarding: true })
+      .eq('id', userId);
   },
 
   async createUser(payload: {
@@ -139,7 +147,7 @@ export const usersService = {
     if (profileError) throw profileError;
   },
 
-  async getSpecialties(): Promise<{ id: string; name: string }[]> {
+  async getSpecialties(): Promise<Specialty[]> {
     const { data, error } = await supabase
       .from('specialties')
       .select('*')

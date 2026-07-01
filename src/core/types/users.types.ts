@@ -67,3 +67,8 @@ export interface StudentDetails {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface Specialty {
+  id: string;
+  name: string;
+}

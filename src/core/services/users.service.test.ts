@@ -454,15 +454,19 @@ describe('usersService', () => {
       };
     }
 
-    it('debería insertar una membresía de profesor para el usuario actual', async () => {
+    it('debería insertar una membresía de profesor para el usuario actual y marcar onboarding como completado', async () => {
       const insertFn = vi.fn().mockResolvedValue({ error: null });
+      const updateEqFn = vi.fn().mockResolvedValue({ error: null });
+      const updateFn = vi.fn(() => ({ eq: updateEqFn }));
       mockFrom.mockReturnValueOnce(createMembershipCheckChain(null));
       mockFrom.mockReturnValueOnce({ insert: insertFn });
+      mockFrom.mockReturnValueOnce({ update: updateFn });
 
       await usersService.addSelfAsTeacher(STUDIO_ID);
 
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'studio_members');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'studio_members');
+      expect(mockFrom).toHaveBeenNthCalledWith(3, 'profiles');
       expect(insertFn).toHaveBeenCalledWith([
         expect.objectContaining({
           studio_id: STUDIO_ID,
@@ -470,6 +474,8 @@ describe('usersService', () => {
           role: 'teacher',
         }),
       ]);
+      expect(updateFn).toHaveBeenCalledWith({ has_completed_onboarding: true });
+      expect(updateEqFn).toHaveBeenCalledWith('id', USER_ID);
     });
 
     it('debería lanzar error descriptivo si ya existe membresía de profesor', async () => {
