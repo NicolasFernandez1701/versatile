@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useHolidays } from './useHolidays';
+import { useHolidays, getHolidayForDate } from './useHolidays';
 
 const { mockGetHolidays } = vi.hoisted(() => ({
   mockGetHolidays: vi.fn(),
@@ -17,7 +17,7 @@ describe('useHolidays', () => {
     vi.clearAllMocks();
   });
 
-  it('debería cargar feriados y exponer getHolidayForDate', async () => {
+  it('debería cargar feriados y exponer markedDates', async () => {
     const mockHolidays = [
       { id: '1', motivo: 'Año Nuevo', tipo: 'inamovible', dia: 1, mes: 1 },
       { id: '2', motivo: 'Navidad', tipo: 'inamovible', dia: 25, mes: 12 },
@@ -31,8 +31,9 @@ describe('useHolidays', () => {
       expect(result.current.holidays).toEqual(mockHolidays);
     });
 
-    expect(result.current.getHolidayForDate(new Date(2025, 0, 1))?.motivo).toBe('Año Nuevo');
-    expect(result.current.getHolidayForDate(new Date(2025, 11, 25))?.motivo).toBe('Navidad');
+    const { markedDates } = result.current;
+    expect(getHolidayForDate(new Date(2025, 0, 1), markedDates)?.motivo).toBe('Año Nuevo');
+    expect(getHolidayForDate(new Date(2025, 11, 25), markedDates)?.motivo).toBe('Navidad');
   });
 
   it('debería devolver lista vacía si no hay feriados', async () => {
@@ -44,7 +45,7 @@ describe('useHolidays', () => {
       expect(result.current.holidays).toEqual([]);
     });
 
-    expect(result.current.getHolidayForDate(new Date(2025, 0, 1))).toBeUndefined();
+    expect(getHolidayForDate(new Date(2025, 0, 1), result.current.markedDates)).toBeUndefined();
   });
 
   it('getHolidayForDate debería devolver el feriado si existe', async () => {
@@ -60,11 +61,12 @@ describe('useHolidays', () => {
       expect(result.current.holidays).toHaveLength(1);
     });
 
-    const holiday = result.current.getHolidayForDate(new Date(2025, 0, 1));
+    const { markedDates } = result.current;
+    const holiday = getHolidayForDate(new Date(2025, 0, 1), markedDates);
     expect(holiday).toBeDefined();
     expect(holiday!.motivo).toBe('Año Nuevo');
 
-    const noHoliday = result.current.getHolidayForDate(new Date(2025, 5, 15));
+    const noHoliday = getHolidayForDate(new Date(2025, 5, 15), markedDates);
     expect(noHoliday).toBeUndefined();
   });
 

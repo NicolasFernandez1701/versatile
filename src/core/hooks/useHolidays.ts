@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { HolidayService } from '../services/holiday.service';
 import type { Holiday } from '../services/holiday.service';
 
+export function getHolidayForDate(date: Date, markedDates: Record<string, Holiday>): Holiday | undefined {
+  const dayStr = date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`;
+  const monthStr = date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : `${date.getMonth() + 1}`;
+  const dateKey = `${date.getFullYear()}-${monthStr}-${dayStr}`;
+  return markedDates[dateKey];
+}
+
 export const useHolidays = (year: number) => {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [markedDates, setMarkedDates] = useState<Record<string, Holiday>>({});
@@ -28,13 +35,5 @@ export const useHolidays = (year: number) => {
     fetchHolidays();
   }, [year]);
 
-  const getHolidayForDate = (date: Date): Holiday | undefined => {
-    const dayStr = date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`;
-    const monthStr =
-      date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : `${date.getMonth() + 1}`;
-    const dateKey = `${date.getFullYear()}-${monthStr}-${dayStr}`;
-    return markedDates[dateKey];
-  };
-
-  return { holidays, loadingHolidays, getHolidayForDate };
+  return { holidays, markedDates, loadingHolidays };
 };

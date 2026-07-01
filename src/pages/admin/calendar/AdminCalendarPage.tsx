@@ -3,7 +3,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { classesService } from '@/core/services';
 import type { ClassEntity, EnrollmentEntity } from '@/core/types/classes.types';
-import { useHolidays } from '@/core/hooks/useHolidays';
+import { useHolidays, getHolidayForDate } from '@/core/hooks/useHolidays';
 import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStudentsModal';
 import { User } from 'lucide-react';
 import './calendar.css';
@@ -25,7 +25,7 @@ export function AdminCalendarPage() {
   const [students, setStudents] = useState<EnrollmentEntity[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
-  const { loadingHolidays, getHolidayForDate } = useHolidays(activeStartDate.getFullYear());
+  const { loadingHolidays, markedDates } = useHolidays(activeStartDate.getFullYear());
 
   const fetchClasses = async () => {
     if (!current_studio_id) return;
@@ -61,7 +61,7 @@ export function AdminCalendarPage() {
   };
   const tileClassName = ({ date, view }: { date: Date; view: string }) => {
     if (view === 'month') {
-      if (getHolidayForDate(date)) {
+      if (getHolidayForDate(date, markedDates)) {
         return 'react-calendar__tile--holiday';
       }
     }
@@ -70,7 +70,7 @@ export function AdminCalendarPage() {
 
   const tileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view === 'month') {
-      const holiday = getHolidayForDate(date);
+      const holiday = getHolidayForDate(date, markedDates);
       if (holiday) {
         return (
           <div
@@ -84,7 +84,7 @@ export function AdminCalendarPage() {
     return null;
   };
 
-  const selectedHoliday = getHolidayForDate(date);
+  const selectedHoliday = getHolidayForDate(date, markedDates);
   const dayOfWeek = date.getDay(); // 0 = Domingo, 1 = Lunes, etc.
 
   // Filtrar y ordenar las clases del día seleccionado
