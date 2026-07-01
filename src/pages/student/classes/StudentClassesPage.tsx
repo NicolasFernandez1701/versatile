@@ -152,7 +152,7 @@ export function StudentClassesPage() {
       className="page-container"
       style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1.5rem' }}
     >
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header" style={{ marginBottom: 0, flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1>Reservar Clases</h1>
           <p className="text-secondary">Explorá la grilla semanal y reservá tus lugares.</p>
@@ -166,7 +166,9 @@ export function StudentClassesPage() {
             fontWeight: 600,
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.25rem'
+            gap: '0.25rem',
+            width: '100%',
+            maxWidth: '280px'
           }}
         >
           {Object.keys(planLimits.perActivity).length > 0 ? (

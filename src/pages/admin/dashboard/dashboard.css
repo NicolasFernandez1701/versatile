@@ -24,6 +24,12 @@
   gap: 1rem;
 }
 
+@media (max-width: 480px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Acciones Rápidas */
 .action-grid {
   background-color: var(--surface-color);

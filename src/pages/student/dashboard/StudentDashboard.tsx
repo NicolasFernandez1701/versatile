@@ -91,7 +91,7 @@ export function StudentDashboard() {
         {classLimit && Object.keys(classLimit.perActivity).length > 0 && (
           <>
             <h2 style={{ marginBottom: '1rem', color: 'var(--text-color)' }}>Mis Cupos del Mes</h2>
-            <div className="summary-grid">
+            <div className="summary-grid" style={{ marginBottom: '1.5rem' }}>
               {Object.entries(classLimit.perActivity).map(([_, quota]) => (
                 <SummaryCard
                   key={quota.activity_name}
