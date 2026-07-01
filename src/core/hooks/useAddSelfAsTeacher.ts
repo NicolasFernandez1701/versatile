@@ -17,10 +17,8 @@ export function canAddSelfAsTeacher(
 
 export function useAddSelfAsTeacher() {
   const { showSuccess, showError } = useAlert();
-  const { memberships, current_studio_id } = useAuthStore((state) => ({
-    memberships: state.memberships,
-    current_studio_id: state.current_studio_id,
-  }));
+  const memberships = useAuthStore((state) => state.memberships);
+  const current_studio_id = useAuthStore((state) => state.current_studio_id);
   const fetchTeachers = useUsersStore((state) => state.fetchTeachers);
   const [isLoading, setIsLoading] = useState(false);
 
