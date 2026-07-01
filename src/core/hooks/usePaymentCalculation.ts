@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { financesService } from '../services/finances.service';
 import { calculatePayment, type PaymentCalcResult } from '../utils/paymentCalculator';
 
@@ -32,20 +32,18 @@ export function usePaymentCalculation({
   applyLateFee = false,
   today = new Date(),
 }: UsePaymentCalculationParams): UsePaymentCalculationResult {
-  const [calculation, setCalculation] = useState<PaymentCalcResult | null>(null);
+  const [isFirstPayment, setIsFirstPayment] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [isFirstPayment, setIsFirstPayment] = useState(false);
 
+  // Fetch whether student has existing payments
   useEffect(() => {
     if (!studentId || !plan) {
-      setCalculation(null);
       setIsFirstPayment(false);
       return;
     }
 
     let cancelled = false;
-
     setLoading(true);
     setError(null);
 
@@ -53,36 +51,35 @@ export function usePaymentCalculation({
       .hasExistingPayments(studentId)
       .then((hasExistingPayments) => {
         if (cancelled) return;
-
-        const firstPayment = !hasExistingPayments;
-        setIsFirstPayment(firstPayment);
-
-        const calc = calculatePayment({
-          basePrice: Number(plan.price),
-          paymentMethod,
-          promoDiscountPct,
-          applyLateFee,
-          isFirstPayment: firstPayment,
-          today,
-        });
-
-        setCalculation(calc);
+        setIsFirstPayment(!hasExistingPayments);
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
         }
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [studentId, plan, paymentMethod, promoDiscountPct, applyLateFee]);
+  }, [studentId, plan]);
+
+  // Pure calculation — no side effects
+  const calculation = useMemo<PaymentCalcResult | null>(() => {
+    if (!studentId || !plan) return null;
+
+    return calculatePayment({
+      basePrice: Number(plan.price),
+      paymentMethod,
+      promoDiscountPct,
+      applyLateFee,
+      isFirstPayment,
+      today,
+    });
+  }, [plan, paymentMethod, promoDiscountPct, applyLateFee, isFirstPayment, today]);
 
   return { calculation, loading, error, isFirstPayment };
 }
