@@ -8,6 +8,21 @@ import type { StudentDashboardData, StudentClassLimit } from '@/core/types/dashb
 import { Loader } from '@/components/ui';
 import '@/pages/admin/dashboard/dashboard.css';
 
+function QuotaRow({ name, consumed, total, remaining }: { name: string; consumed: number; total: number; remaining: number }) {
+  const pct = total > 0 ? (consumed / total) * 100 : 0;
+  const color = remaining > 0 ? 'var(--primary-color)' : 'var(--error-color)';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
+      <span style={{ fontWeight: 600, fontSize: '0.9rem', minWidth: '70px', color: 'var(--text-primary)' }}>{name}</span>
+      <div style={{ flex: 1, height: '6px', background: 'var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '3px', transition: 'width 0.3s' }} />
+      </div>
+      <span style={{ fontWeight: 700, fontSize: '0.85rem', color, minWidth: '36px', textAlign: 'right' }}>{consumed}/{total}</span>
+    </div>
+  );
+}
+
 export function StudentDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -90,17 +105,19 @@ export function StudentDashboard() {
       <div style={{ marginTop: '2rem' }}>
         {classLimit && Object.keys(classLimit.perActivity).length > 0 && (
           <>
-            <h2 style={{ marginBottom: '1rem', color: 'var(--text-color)' }}>Mis Cupos del Mes</h2>
-            <div className="summary-grid" style={{ marginBottom: '1.5rem' }}>
+            <h2 style={{ marginBottom: '0.75rem', color: 'var(--text-color)' }}>Mis Cupos del Mes</h2>
+            <div style={{
+              ...cardStyle,
+              padding: '0.75rem 1rem',
+              marginBottom: '1.5rem'
+            }}>
               {Object.entries(classLimit.perActivity).map(([_, quota]) => (
-                <SummaryCard
+                <QuotaRow
                   key={quota.activity_name}
-                  title={quota.activity_name}
-                  value={`${quota.consumed} / ${quota.total}`}
-                  subtitle={`${quota.remaining} disponibles`}
-                  icon={CalendarDays}
-                  onClick={() => navigate('/student/classes')}
-                  iconColorClass={quota.remaining > 0 ? 'text-success' : 'text-error'}
+                  name={quota.activity_name}
+                  consumed={quota.consumed}
+                  total={quota.total}
+                  remaining={quota.remaining}
                 />
               ))}
             </div>
