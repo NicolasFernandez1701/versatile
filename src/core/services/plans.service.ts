@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { useAuthStore } from '../store/useAuthStore';
-import type { PlanEntity, CreatePlanDTO, CreatePlanActivityDTO, PlanChange } from '../types/plans.types';
+import type { PlanEntity, PlanWithActivities, CreatePlanDTO, CreatePlanActivityDTO, PlanChange } from '../types/plans.types';
 
 export type { PlanChange };
 
@@ -69,7 +69,7 @@ export const plansService = {
     if (error) throw error;
   },
 
-  async getPlanById(planId: string): Promise<PlanEntity> {
+  async getPlanById(planId: string): Promise<PlanWithActivities> {
     const { data, error } = await supabase
       .from('plans')
       .select('*, plan_activities(*)')
@@ -77,7 +77,7 @@ export const plansService = {
       .single();
 
     if (error) throw error;
-    return data as PlanEntity;
+    return data as PlanWithActivities;
   },
 
   async updatePlanWithActivities(

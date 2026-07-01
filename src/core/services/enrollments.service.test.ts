@@ -19,7 +19,7 @@ const mockPlanWithActivities = {
   ],
 };
 
-const mockQuotaMap = (overrides: Record<string, { total: number; consumed: number; remaining: number }> = {}) => ({
+const mockQuotaMap = (overrides: Record<string, Partial<{ total: number; consumed: number; remaining: number }>> = {}) => ({
   Boxeo: { activity_id: 'pa-001', activity_name: 'Boxeo', total: 8, consumed: 3, remaining: 5, ...overrides.Boxeo },
   Yoga: { activity_id: 'pa-002', activity_name: 'Yoga', total: 4, consumed: 1, remaining: 3, ...overrides.Yoga },
 });
