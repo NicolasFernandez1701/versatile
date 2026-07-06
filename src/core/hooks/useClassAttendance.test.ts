@@ -92,7 +92,11 @@ describe('useClassAttendance', () => {
 
     await waitFor(() => expect(result.current.loadingDetails).toBe(false));
 
-    await result.current.handleToggleAttendance(attendanceRecords[0], 'present');
+    let togglePromise: Promise<void>;
+    act(() => {
+      togglePromise = result.current.handleToggleAttendance(attendanceRecords[0], 'present');
+    });
+    await togglePromise!;
 
     expect(mockMarkAttendance).toHaveBeenCalledWith('enr-001', todayStr, 'present');
     expect(mockShowSuccess).toHaveBeenCalledWith('Asistencia marcada como Presente');

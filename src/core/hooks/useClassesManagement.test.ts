@@ -85,7 +85,7 @@ describe('useClassesManagement', () => {
     mockGetEnrolledStudents.mockResolvedValue([mockEnrollment]);
   });
 
-  it('initializes with empty state and loading=true', () => {
+  it('initializes with empty state and loading=true', async () => {
     const { result } = renderHook(() => useClassesManagement());
 
     expect(result.current.classes).toEqual([]);
@@ -94,6 +94,8 @@ describe('useClassesManagement', () => {
     expect(result.current.viewingStudentsClass).toBeNull();
     expect(result.current.students).toEqual([]);
     expect(result.current.loadingStudents).toBe(false);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it('fetches classes and teachers on mount', async () => {
@@ -173,6 +175,22 @@ describe('useClassesManagement', () => {
     expect(mockUpdateClass).toHaveBeenCalledWith('class-001', { is_active: false });
     expect(result.current.classes[0].is_active).toBe(false);
     expect(mockShowSuccess).toHaveBeenCalledWith('Estado actualizado con éxito.');
+  });
+
+  it('toggleStatus reverts optimistic update on error', async () => {
+    mockUpdateClass.mockRejectedValueOnce(new Error('Update failed'));
+
+    const { result } = renderHook(() => useClassesManagement());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.toggleStatus('class-001', true);
+    });
+
+    expect(mockUpdateClass).toHaveBeenCalledWith('class-001', { is_active: false });
+    expect(result.current.classes[0].is_active).toBe(true);
+    expect(mockShowError).toHaveBeenCalledWith('Error actualizando el estado.');
   });
 
   it('openStudentsModal fetches enrolled students', async () => {

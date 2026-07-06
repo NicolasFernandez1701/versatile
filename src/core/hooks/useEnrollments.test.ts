@@ -69,12 +69,14 @@ describe('useEnrollments', () => {
     mockUnenrollStudent.mockResolvedValue(undefined);
   });
 
-  it('initializes with empty state and loading=true', () => {
+  it('initializes with empty state and loading=true', async () => {
     const { result } = renderHook(() => useEnrollments());
 
     expect(result.current.enrollments).toEqual([]);
     expect(result.current.classesList).toEqual([]);
     expect(result.current.loading).toBe(true);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it('fetches enrollments and classes in parallel on mount', async () => {

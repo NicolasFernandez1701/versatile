@@ -60,12 +60,14 @@ describe('useStudentPlans', () => {
     mockGetStudentDashboardData.mockResolvedValue(mockDashboardWithPlan);
   });
 
-  it('initializes with empty plans, null activePlanId and loading=true', () => {
+  it('initializes with empty plans, null activePlanId and loading=true', async () => {
     const { result } = renderHook(() => useStudentPlans('student-001'));
 
     expect(result.current.plans).toEqual([]);
     expect(result.current.activePlanId).toBeNull();
     expect(result.current.loading).toBe(true);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it('fetches active plans and detects the active plan for the student', async () => {

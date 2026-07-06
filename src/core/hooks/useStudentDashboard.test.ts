@@ -50,12 +50,14 @@ describe('useStudentDashboard', () => {
     mockGetStudentClassLimit.mockResolvedValue(mockClassLimit);
   });
 
-  it('initializes with null data, null classLimit and loading=true', () => {
+  it('initializes with null data, null classLimit and loading=true', async () => {
     const { result } = renderHook(() => useStudentDashboard('student-001'));
 
     expect(result.current.data).toBeNull();
     expect(result.current.classLimit).toBeNull();
     expect(result.current.loading).toBe(true);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it('fetches dashboard data and class limit in parallel on mount', async () => {

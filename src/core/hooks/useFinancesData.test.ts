@@ -66,12 +66,14 @@ describe('useFinancesData', () => {
     mockGetFinancialBalance.mockResolvedValue(mockBalance);
   });
 
-  it('initializes with empty state and loading=true', () => {
+  it('initializes with empty state and loading=true', async () => {
     const { result } = renderHook(() => useFinancesData());
 
     expect(result.current.payments).toEqual([]);
     expect(result.current.balance).toBeNull();
     expect(result.current.loading).toBe(true);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it('fetches payments and balance in parallel on mount', async () => {

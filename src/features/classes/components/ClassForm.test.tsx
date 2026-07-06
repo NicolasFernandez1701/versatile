@@ -55,9 +55,13 @@ describe('ClassForm', () => {
     return render(<ClassForm {...props} />);
   };
 
-  it('Renderiza todos los campos del form', () => {
+  it('Renderiza todos los campos del form', async () => {
     mockGetSpecialties.mockResolvedValueOnce([]);
     renderForm();
+
+    await waitFor(() => {
+      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+    });
 
     expect(
       screen.getByPlaceholderText('Ej: Funcional, Yoga')
@@ -78,7 +82,7 @@ describe('ClassForm', () => {
     mockGetSpecialties.mockResolvedValueOnce(mockSpecialties);
     renderForm();
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
     });
   });
@@ -87,10 +91,14 @@ describe('ClassForm', () => {
     mockGetSpecialties.mockResolvedValue(mockSpecialties);
     renderForm();
 
+    await waitFor(() => {
+      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+    });
+
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
     fireEvent.focus(activityInput);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.getByText('Yoga')).toBeInTheDocument();
     });
     expect(screen.getByText('Funcional')).toBeInTheDocument();
@@ -98,7 +106,7 @@ describe('ClassForm', () => {
 
     fireEvent.change(activityInput, { target: { value: 'Yo' } });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.getByText('Yoga')).toBeInTheDocument();
     });
     expect(screen.queryByText('Funcional')).not.toBeInTheDocument();
@@ -109,10 +117,14 @@ describe('ClassForm', () => {
     mockGetSpecialties.mockResolvedValue(mockSpecialties);
     renderForm();
 
+    await waitFor(() => {
+      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+    });
+
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
     fireEvent.focus(activityInput);
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.getByText('Yoga')).toBeInTheDocument();
     });
 
@@ -145,7 +157,7 @@ describe('ClassForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Clase' }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockCreateClass).toHaveBeenCalledWith(
         expect.objectContaining({
           activity_name: 'Yoga',
@@ -155,8 +167,8 @@ describe('ClassForm', () => {
           end_time: '10:00',
         })
       );
+      expect(mockOnSuccess).toHaveBeenCalled();
     });
-    expect(mockOnSuccess).toHaveBeenCalled();
   });
 
   it('Submit actualiza una clase cuando hay initialData', async () => {
@@ -176,13 +188,13 @@ describe('ClassForm', () => {
 
     renderForm({ initialData });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.getByPlaceholderText('Ej: Funcional, Yoga')).toHaveValue('Pilates');
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Clase' }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockUpdateClass).toHaveBeenCalledWith(
         'cls-001',
         expect.objectContaining({
@@ -190,9 +202,9 @@ describe('ClassForm', () => {
           teacher_id: 't2',
         })
       );
+      expect(mockCreateClass).not.toHaveBeenCalled();
+      expect(mockOnSuccess).toHaveBeenCalled();
     });
-    expect(mockCreateClass).not.toHaveBeenCalled();
-    expect(mockOnSuccess).toHaveBeenCalled();
   });
 
   it('Loading deshabilita botón durante el submit', async () => {
@@ -219,6 +231,10 @@ describe('ClassForm', () => {
     });
 
     resolveCreate(undefined);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Guardar Clase' })).toBeEnabled();
+    });
   });
 
   it('initialData precarga los valores', async () => {
@@ -237,7 +253,7 @@ describe('ClassForm', () => {
     renderForm({ initialData });
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(activityInput).toHaveValue('Pilates');
     });
 
@@ -249,17 +265,25 @@ describe('ClassForm', () => {
     expect(screen.getByDisplayValue('40')).toBeInTheDocument();
   });
 
-  it('Teachers se renderizan en el select', () => {
+  it('Teachers se renderizan en el select', async () => {
     mockGetSpecialties.mockResolvedValueOnce([]);
     renderForm();
+
+    await waitFor(() => {
+      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+    });
 
     expect(screen.getByText('María Gómez')).toBeInTheDocument();
     expect(screen.getByText('Ana López')).toBeInTheDocument();
   });
 
-  it('onChange de cada campo actualiza los valores del hook', () => {
+  it('onChange de cada campo actualiza los valores del hook', async () => {
     mockGetSpecialties.mockResolvedValueOnce([]);
     renderForm();
+
+    await waitFor(() => {
+      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+    });
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
     fireEvent.change(activityInput, { target: { value: 'Spinning' } });
@@ -298,6 +322,10 @@ describe('ClassForm', () => {
     mockGetSpecialties.mockResolvedValueOnce([]);
     mockIsTimeRangeValid.mockReturnValueOnce(false);
     const { container } = renderForm();
+
+    await waitFor(() => {
+      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+    });
 
     fireEvent.change(screen.getByPlaceholderText('Ej: Funcional, Yoga'), {
       target: { value: 'Yoga' },

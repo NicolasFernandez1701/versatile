@@ -50,7 +50,7 @@ describe('useClassForm', () => {
     mockUpdateClass.mockResolvedValue(undefined);
   });
 
-  it('initializes with default values', () => {
+  it('initializes with default values', async () => {
     const { result } = renderHook(() => useClassForm());
 
     expect(result.current.activityName).toBe('');
@@ -64,9 +64,11 @@ describe('useClassForm', () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBe('');
     expect(result.current.specialties).toEqual([]);
+
+    await waitFor(() => expect(result.current.specialties).toEqual(mockSpecialties));
   });
 
-  it('initializes from initialData', () => {
+  it('initializes from initialData', async () => {
     const { result } = renderHook(() => useClassForm({ initialData: baseClass }));
 
     expect(result.current.activityName).toBe('Yoga');
@@ -77,9 +79,11 @@ describe('useClassForm', () => {
     expect(result.current.maxCapacity).toBe(20);
     expect(result.current.basePrice).toBe(6000);
     expect(result.current.teacherCommission).toBe(40);
+
+    await waitFor(() => expect(result.current.specialties).toEqual(mockSpecialties));
   });
 
-  it('updates fields via setField', () => {
+  it('updates fields via setField', async () => {
     const { result } = renderHook(() => useClassForm());
 
     act(() => {
@@ -101,9 +105,11 @@ describe('useClassForm', () => {
     expect(result.current.maxCapacity).toBe(25);
     expect(result.current.basePrice).toBe(7000);
     expect(result.current.teacherCommission).toBe(45);
+
+    await waitFor(() => expect(result.current.specialties).toEqual(mockSpecialties));
   });
 
-  it('resets fields to initialData', () => {
+  it('resets fields to initialData', async () => {
     const { result } = renderHook(() => useClassForm({ initialData: baseClass }));
 
     act(() => {
@@ -113,6 +119,8 @@ describe('useClassForm', () => {
 
     expect(result.current.activityName).toBe('Yoga');
     expect(result.current.error).toBe('');
+
+    await waitFor(() => expect(result.current.specialties).toEqual(mockSpecialties));
   });
 
   it('loads specialties on mount', async () => {

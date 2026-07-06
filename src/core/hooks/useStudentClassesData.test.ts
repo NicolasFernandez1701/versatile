@@ -101,7 +101,7 @@ describe('useStudentClassesData', () => {
     mockGetStudentClassLimit.mockResolvedValue(mockPlanLimits);
   });
 
-  it('initializes with loading=true and empty state', () => {
+  it('initializes with loading=true and empty state', async () => {
     const { result } = renderHook(() => useStudentClassesData(baseWeekDates));
 
     expect(result.current.loading).toBe(true);
@@ -112,6 +112,8 @@ describe('useStudentClassesData', () => {
       classesPerWeek: 0,
       perActivity: {},
     });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it('fetches classes, reservations, and limits in parallel', async () => {

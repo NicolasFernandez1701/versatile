@@ -90,12 +90,14 @@ describe('usePlansManagement', () => {
     mockTogglePlanStatus.mockResolvedValue(undefined);
   });
 
-  it('initializes with empty state and loading=true', () => {
+  it('initializes with empty state and loading=true', async () => {
     const { result } = renderHook(() => usePlansManagement());
 
     expect(result.current.plans).toEqual([]);
     expect(result.current.availableClasses).toEqual([]);
     expect(result.current.loading).toBe(true);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it('fetches plans and classes on mount', async () => {
@@ -173,6 +175,22 @@ describe('usePlansManagement', () => {
     expect(mockTogglePlanStatus).toHaveBeenCalledWith('plan-001', false);
     expect(result.current.plans[0].is_active).toBe(false);
     expect(mockShowSuccess).toHaveBeenCalledWith('Estado actualizado con éxito.');
+  });
+
+  it('toggleStatus reverts optimistic update on error', async () => {
+    mockTogglePlanStatus.mockRejectedValueOnce(new Error('Update failed'));
+
+    const { result } = renderHook(() => usePlansManagement());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.toggleStatus('plan-001', true);
+    });
+
+    expect(mockTogglePlanStatus).toHaveBeenCalledWith('plan-001', false);
+    expect(result.current.plans[0].is_active).toBe(true);
+    expect(mockShowError).toHaveBeenCalledWith('Error actualizando el estado.');
   });
 
   it('fetchPlans refreshes plans manually', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useAddSelfAsTeacher, canAddSelfAsTeacher } from './useAddSelfAsTeacher';
 import type { StudioMembership } from '@/core/types/auth.types';
 
@@ -133,7 +133,9 @@ describe('useAddSelfAsTeacher', () => {
 
     const { result } = renderHook(() => useAddSelfAsTeacher());
 
-    await result.current.addSelfAsTeacher();
+    await act(async () => {
+      await result.current.addSelfAsTeacher();
+    });
 
     expect(mockAddSelfAsTeacher).toHaveBeenCalledWith(STUDIO_ID);
     expect(mockGetCurrentUser).toHaveBeenCalled();
@@ -147,7 +149,9 @@ describe('useAddSelfAsTeacher', () => {
 
     const { result } = renderHook(() => useAddSelfAsTeacher());
 
-    await result.current.addSelfAsTeacher();
+    await act(async () => {
+      await result.current.addSelfAsTeacher();
+    });
 
     expect(mockAddSelfAsTeacher).not.toHaveBeenCalled();
   });
@@ -158,7 +162,9 @@ describe('useAddSelfAsTeacher', () => {
 
     const { result } = renderHook(() => useAddSelfAsTeacher());
 
-    await result.current.addSelfAsTeacher();
+    await act(async () => {
+      await result.current.addSelfAsTeacher();
+    });
 
     await waitFor(() => {
       expect(mockShowError).toHaveBeenCalledWith('Ya sos profesor');

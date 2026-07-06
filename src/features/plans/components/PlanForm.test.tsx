@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PlanForm } from './PlanForm';
 import type { ClassEntity } from '@/core/types/classes.types';
 import type { PlanEntity } from '@/core/types/plans.types';
@@ -105,7 +105,7 @@ describe('PlanForm', () => {
   it('Render con initialData: precarga datos y activities', async () => {
     renderForm({ initialData: mockInitialData });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(
         screen.getByPlaceholderText('Ej: Intermedio A')
       ).toHaveValue('Plan Premium');
@@ -195,7 +195,7 @@ describe('PlanForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Plan' }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockCreatePlanWithActivities).toHaveBeenCalledWith(
         {
           name: 'Plan Avanzado',
@@ -205,20 +205,20 @@ describe('PlanForm', () => {
         },
         [{ activity_name: 'Yoga', classes_per_week: 2 }]
       );
+      expect(mockOnSuccess).toHaveBeenCalled();
     });
-    expect(mockOnSuccess).toHaveBeenCalled();
   });
 
   it('Submit con initialData actualiza el plan', async () => {
     renderForm({ initialData: mockInitialData });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(screen.getByPlaceholderText('Ej: Intermedio A')).toHaveValue('Plan Premium');
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Plan' }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockUpdatePlanWithActivities).toHaveBeenCalledWith(
         'plan-1',
         expect.objectContaining({
@@ -232,9 +232,9 @@ describe('PlanForm', () => {
           { activity_name: 'Funcional', classes_per_week: 2 },
         ]
       );
+      expect(mockCreatePlanWithActivities).not.toHaveBeenCalled();
+      expect(mockOnSuccess).toHaveBeenCalled();
     });
-    expect(mockCreatePlanWithActivities).not.toHaveBeenCalled();
-    expect(mockOnSuccess).toHaveBeenCalled();
   });
 
   it('Submit sin actividades: muestra error via showError', async () => {
@@ -248,7 +248,7 @@ describe('PlanForm', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Plan' }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockShowError).toHaveBeenCalled();
     });
   });
@@ -269,7 +269,7 @@ describe('PlanForm', () => {
 
     fireEvent.submit(getForm());
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockShowError).toHaveBeenCalled();
     });
   });

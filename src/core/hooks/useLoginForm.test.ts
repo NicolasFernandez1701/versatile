@@ -36,7 +36,7 @@ describe('useLoginForm', () => {
     expect(result.current.password).toBe('secret123');
   });
 
-  it('clears error when email changes', () => {
+  it('clears error when email changes', async () => {
     const { result } = renderHook(() => useLoginForm());
 
     act(() => {
@@ -44,8 +44,8 @@ describe('useLoginForm', () => {
       result.current.setPassword('secret123');
     });
 
-    act(() => {
-      result.current.handleSubmit();
+    await act(async () => {
+      await result.current.handleSubmit();
     });
 
     expect(result.current.error).toBe('');

@@ -46,7 +46,7 @@ describe('useTeacherClasses', () => {
 
   it('auto-selects the class matching today', async () => {
     const today = new Date().getDay();
-    const classes = [makeClass('cls-mon', 1), makeClass('cls-today', today), makeClass('cls-fri', 5)];
+    const classes = [makeClass('cls-tue', 2), makeClass('cls-today', today), makeClass('cls-fri', 5)];
     mockGetClassesByTeacher.mockResolvedValue(classes);
 
     const { result } = renderHook(() => useTeacherClasses());
