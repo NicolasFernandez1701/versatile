@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfileSwitcher } from './ProfileSwitcher';
-import type { StudioMembership } from '../types/auth.types';
+import type { StudioMembership } from '@/core/types/auth.types';
 
 const mockUseAuthStore = vi.hoisted(() => vi.fn());
 const mockNavigate = vi.hoisted(() => vi.fn());

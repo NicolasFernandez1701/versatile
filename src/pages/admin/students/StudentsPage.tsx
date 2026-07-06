@@ -6,7 +6,7 @@ import { useStudentStatus } from '@/core/hooks/useStudentStatus';
 import { StudentCard } from './components/StudentCard';
 import { StudentFormModal } from './components/StudentFormModal';
 import './students.css'; // Will create this
-import { Loader } from '@/components/ui';
+import { Loader } from '@/ui';
 
 export function StudentsPage() {
   const navigate = useNavigate();

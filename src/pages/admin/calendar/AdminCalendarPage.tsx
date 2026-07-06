@@ -7,7 +7,7 @@ import { useHolidays, getHolidayForDate } from '@/core/hooks/useHolidays';
 import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStudentsModal';
 import { User } from 'lucide-react';
 import './calendar.css';
-import { Loader } from '@/components/ui';
+import { Loader } from '@/ui';
 import { useAuthStore } from '@/core/store/useAuthStore';
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];

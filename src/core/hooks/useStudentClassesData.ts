@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { classesService, attendanceService, dashboardService } from '../services';
-import { useAlert } from '../components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import type { AttendanceRecord } from '../types/attendance.types';
 import type { ClassEntity } from '../types/classes.types';
 import type { StudentClassLimit } from '../types/dashboard.types';

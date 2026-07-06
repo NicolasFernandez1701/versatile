@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { usersService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import { usePasswordStep } from './usePasswordStep';
 import { useDateInput } from './useDateInput';
 import type { StudentOnboardingPayload } from '@/core/types/users.types';

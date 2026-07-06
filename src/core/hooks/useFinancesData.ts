@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import { financesService, dashboardService } from '@/core/services';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import type { FinancialBalance } from '@/core/types/dashboard.types';

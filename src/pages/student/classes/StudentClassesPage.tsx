@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { Loader, Button } from '@/components/ui';
+import { Loader, Button } from '@/ui';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useStudentClassesData } from '@/core/hooks/useStudentClassesData';
 import { useEnrollClass, useCancelClass, isActivityAvailable } from '@/core/hooks/useStudentClassesBooking';

@@ -6,7 +6,7 @@ import { formatCurrency } from '@/core/utils/formatCurrency';
 import { dashboardService } from '@/core/services';
 import type { DashboardStats, FinancialBalance } from '@/core/types/dashboard.types';
 import type { ClassEntity } from '@/core/types/classes.types';
-import { Loader } from '@/components/ui';
+import { Loader } from '@/ui';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import './dashboard.css';
 

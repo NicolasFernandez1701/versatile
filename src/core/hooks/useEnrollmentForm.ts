@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usersService, classesService, enrollmentsService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import type { UserProfile } from '@/core/types/users.types';
 import type { ClassEntity } from '@/core/types/classes.types';
 

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { usersService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 
 export interface UsePasswordStepResult {
   newPassword: string;

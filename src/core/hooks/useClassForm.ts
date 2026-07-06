@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usersService, classesService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import { isTimeRangeValid } from '@/core/utils/validation';
 import type { ClassEntity } from '@/core/types/classes.types';
 import type { Specialty } from '@/core/types/users.types';

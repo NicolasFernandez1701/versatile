@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { usersService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import { usePasswordStep } from './usePasswordStep';
 import { useDateInput } from './useDateInput';
 import type { Specialty, TeacherOnboardingPayload } from '@/core/types/users.types';

@@ -2,7 +2,7 @@
 import { Check, AlertTriangle } from 'lucide-react';
 import { useRecordPayment } from '@/core/hooks/useRecordPayment';
 import { formatCurrency } from '@/core/utils/formatCurrency';
-import { Modal } from '@/components/ui';
+import { Modal } from '@/ui';
 import '../finances.css';
 
 interface RecordPaymentModalProps {

@@ -5,7 +5,7 @@ import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
 import { usePaymentHistory } from './hooks/usePaymentHistory';
-import { DataTable, type Column, Button, Loader, Select, Input } from '@/components/ui';
+import { DataTable, type Column, Button, Loader, Select, Input } from '@/ui';
 
 export function FinancesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

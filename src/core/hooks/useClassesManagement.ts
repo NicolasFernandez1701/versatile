@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import { classesService, usersService } from '@/core/services';
 import type { ClassEntity, EnrollmentEntity, Profile } from '@/core/types/classes.types';
 

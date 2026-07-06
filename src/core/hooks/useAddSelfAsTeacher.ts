@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useUsersStore } from '@/core/store/useUsersStore';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import { usersService, authService } from '@/core/services';
 import type { StudioMembership } from '@/core/types/auth.types';
 

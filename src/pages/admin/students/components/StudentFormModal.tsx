@@ -2,7 +2,7 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
 import { useStudentForm } from '@/core/hooks/useStudentForm';
-import { Modal, Input, Button } from '@/components/ui';
+import { Modal, Input, Button } from '@/ui';
 
 interface StudentFormModalProps {
   isOpen: boolean;

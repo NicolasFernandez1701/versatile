@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuthStore } from '../store/useAuthStore';
-import { Loader } from '@/components/ui';
+import { useAuthStore } from '@/core/store/useAuthStore';
+import { Loader } from '@/ui';
 
 interface ProtectedRouteProps {
   allowedRoles?: ('admin' | 'teacher' | 'student')[];

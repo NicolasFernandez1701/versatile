@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useStudentPlans } from '@/core/hooks/useStudentPlans';
 import { formatCurrency } from '@/core/utils/formatCurrency';
-import { Loader, Button } from '@/components/ui';
+import { Loader, Button } from '@/ui';
 import { Check, Star, CheckCircle } from 'lucide-react';
 import '@/pages/admin/dashboard/dashboard.css';
 

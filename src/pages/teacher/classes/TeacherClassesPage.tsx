@@ -1,4 +1,4 @@
-import { Loader, Button } from '@/components/ui';
+import { Loader, Button } from '@/ui';
 import { CalendarDays, Users, CheckCircle, XCircle, Clock, UserCheck } from 'lucide-react';
 import { useTeacherClasses } from '@/core/hooks/useTeacherClasses';
 import { useClassAttendance } from '@/core/hooks/useClassAttendance';

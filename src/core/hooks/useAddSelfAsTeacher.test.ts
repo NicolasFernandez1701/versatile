@@ -42,7 +42,7 @@ vi.mock('@/core/store/useUsersStore', () => ({
   ),
 }));
 
-vi.mock('@/core/components/GlobalAlertProvider', () => ({
+vi.mock('@/ui/GlobalAlertProvider', () => ({
   useAlert: () => ({
     showSuccess: mockShowSuccess,
     showError: mockShowError,

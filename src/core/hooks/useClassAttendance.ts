@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { attendanceService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
+import { useAlert } from '@/ui/GlobalAlertProvider';
 import type { ClassEntity } from '@/core/types/classes.types';
 import type { EnrollmentEntity } from '@/core/types/enrollments.types';
 import type { AttendanceRecord } from '@/core/types/attendance.types';

@@ -5,8 +5,7 @@ import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLoginForm } from '@/core/hooks/useLoginForm';
 
-import { Button } from '@/components/ui';
-import '../../features/auth/styles/auth.css';
+import { Button } from '@/ui';
 
 export function LoginPage() {
   const { isAuthenticated, role, isLoading } = useAuthStore();

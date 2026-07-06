@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { ConfirmModal } from '@/components/ui';
+import { ConfirmModal } from '@/ui';
 
 interface AlertContextType {
   showAlert: (title: string, message: string) => void;

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
-import type { Role } from '../types/auth.types';
+import type { Role } from '@/core/types/auth.types';
 
 const mockUseAuthStore = vi.hoisted(() => vi.fn());
 

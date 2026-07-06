@@ -6,7 +6,7 @@ import type { ClassEntity } from '@/core/types/classes.types';
 import { ClassCard } from '@/features/classes/components/ClassCard';
 import { ClassForm } from '@/features/classes/components/ClassForm';
 import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStudentsModal';
-import { Modal, ConfirmModal, Loader } from '@/components/ui';
+import { Modal, ConfirmModal, Loader } from '@/ui';
 import '../../../features/classes/styles/classes.css';
 
 export function ClassesPage() {
