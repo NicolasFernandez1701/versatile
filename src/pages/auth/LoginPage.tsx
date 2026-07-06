@@ -4,6 +4,7 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLoginForm } from '@/core/hooks/onboarding/useLoginForm';
+import './auth.css';
 
 import { Button } from '@/ui';
 
