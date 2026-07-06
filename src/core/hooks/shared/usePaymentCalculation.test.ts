@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { usePaymentCalculation } from './usePaymentCalculation';
-import { financesService } from '../services/finances.service';
+import { financesService } from '@/core/services/finances.service';
 
 const mockPlan = {
   id: 'plan-001',

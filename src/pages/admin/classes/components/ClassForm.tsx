@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ClassEntity, Profile } from '@/core/types/classes.types';
-import { useClassForm } from '@/core/hooks/useClassForm';
+import { useClassForm } from '@/core/hooks/shared/useClassForm';
 
 interface Props {
   teachers: Profile[];

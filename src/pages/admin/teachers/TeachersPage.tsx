@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { UserPlus, GraduationCap } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
 import { useAlert } from '@/ui/GlobalAlertProvider';
-import { useAddSelfAsTeacher } from '@/core/hooks/useAddSelfAsTeacher';
+import { useAddSelfAsTeacher } from '@/core/hooks/admin/useAddSelfAsTeacher';
 import { usersService } from '@/core/services';
 import { TeacherList } from './components/TeacherList';
 import { TeacherFormModal } from './components/TeacherFormModal';

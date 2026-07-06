@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import { useEnrollmentForm } from '@/core/hooks/useEnrollmentForm';
+import { useEnrollmentForm } from '@/core/hooks/student/useEnrollmentForm';
 import { Modal, Input, Button } from '@/ui';
 
 interface EnrollmentFormModalProps {

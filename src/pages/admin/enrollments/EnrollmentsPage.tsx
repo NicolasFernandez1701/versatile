@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { UserPlus, Trash2 } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
-import { useEnrollments } from '@/core/hooks/useEnrollments';
+import { useEnrollments } from '@/core/hooks/admin/useEnrollments';
 import type { EnrollmentEntity } from '@/core/types/enrollments.types';
 import { DataTable, type Column } from '@/ui/DataTable';
 import { Button } from '@/ui/Button';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { financesService } from '../services/finances.service';
-import { calculatePayment, type PaymentCalcResult } from '../utils/paymentCalculator';
+import { financesService } from '@/core/services/finances.service';
+import { calculatePayment, type PaymentCalcResult } from '@/core/utils/paymentCalculator';
 
 export interface PlanInfo {
   id: string;

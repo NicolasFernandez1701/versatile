@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Tag, Plus, Trash2, Edit } from 'lucide-react';
-import { usePlansManagement } from '@/core/hooks/usePlansManagement';
+import { usePlansManagement } from '@/core/hooks/admin/usePlansManagement';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PlanEntity } from '@/core/types/plans.types';
 import { PlanForm } from '@/pages/admin/plans/components/PlanForm';

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useHolidays, getHolidayForDate } from './useHolidays';
-import type { Holiday } from '../services/holiday.service';
+import type { Holiday } from '@/core/services/holiday.service';
 
 const { mockGetHolidays } = vi.hoisted(() => ({
   mockGetHolidays: vi.fn(),
 }));
 
-vi.mock('../services/holiday.service', () => ({
+vi.mock('@/core/services/holiday.service', () => ({
   HolidayService: {
     getHolidays: mockGetHolidays,
   },

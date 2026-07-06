@@ -3,7 +3,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { classesService } from '@/core/services';
 import type { ClassEntity, EnrollmentEntity } from '@/core/types/classes.types';
-import { useHolidays, getHolidayForDate } from '@/core/hooks/useHolidays';
+import { useHolidays, getHolidayForDate } from '@/core/hooks/shared/useHolidays';
 import { EnrolledStudentsModal } from '@/pages/admin/classes/components/EnrolledStudentsModal';
 import { User } from 'lucide-react';
 import './calendar.css';

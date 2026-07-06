@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
-import { useLoginForm } from '@/core/hooks/useLoginForm';
+import { useLoginForm } from '@/core/hooks/onboarding/useLoginForm';
 
 import { Button } from '@/ui';
 

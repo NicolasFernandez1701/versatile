@@ -1,5 +1,5 @@
 import { Plus, Trash2, Calculator } from 'lucide-react';
-import { usePlanForm } from '@/core/hooks/usePlanForm';
+import { usePlanForm } from '@/core/hooks/shared/usePlanForm';
 import type { ClassEntity } from '@/core/types/classes.types';
 import type { PlanEntity } from '@/core/types/plans.types';
 

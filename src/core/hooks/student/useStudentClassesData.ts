@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthStore } from '../store/useAuthStore';
-import { classesService, attendanceService, dashboardService } from '../services';
+import { useAuthStore } from '@/core/store/useAuthStore';
+import { classesService, attendanceService, dashboardService } from '@/core/services';
 import { useAlert } from '@/ui/GlobalAlertProvider';
-import type { AttendanceRecord } from '../types/attendance.types';
-import type { ClassEntity } from '../types/classes.types';
-import type { StudentClassLimit } from '../types/dashboard.types';
+import type { AttendanceRecord } from '@/core/types/attendance.types';
+import type { ClassEntity } from '@/core/types/classes.types';
+import type { StudentClassLimit } from '@/core/types/dashboard.types';
 
 export interface UseStudentClassesDataResult {
   loading: boolean;

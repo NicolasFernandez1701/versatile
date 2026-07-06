@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { financesService, plansService } from '@/core/services';
-import { usePaymentCalculation } from './usePaymentCalculation';
+import { usePaymentCalculation } from '../shared/usePaymentCalculation';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useAlert } from '@/ui/GlobalAlertProvider';
 import { formatCurrency } from '@/core/utils/formatCurrency';

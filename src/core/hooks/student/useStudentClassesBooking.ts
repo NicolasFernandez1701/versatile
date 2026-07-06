@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { enrollmentsService } from '../services';
+import { enrollmentsService } from '@/core/services';
 import { useAlert } from '@/ui/GlobalAlertProvider';
-import type { StudentClassLimit } from '../types/dashboard.types';
+import type { StudentClassLimit } from '@/core/types/dashboard.types';
 
 export function isActivityAvailable(
   activityName: string,

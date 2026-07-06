@@ -1,7 +1,7 @@
 import { Loader, Button } from '@/ui';
 import { CalendarDays, Users, CheckCircle, XCircle, Clock, UserCheck } from 'lucide-react';
-import { useTeacherClasses } from '@/core/hooks/useTeacherClasses';
-import { useClassAttendance } from '@/core/hooks/useClassAttendance';
+import { useTeacherClasses } from '@/core/hooks/teacher/useTeacherClasses';
+import { useClassAttendance } from '@/core/hooks/teacher/useClassAttendance';
 import type { AttendanceRecord } from '@/core/types/attendance.types';
 import '@/pages/admin/dashboard/dashboard.css';
 

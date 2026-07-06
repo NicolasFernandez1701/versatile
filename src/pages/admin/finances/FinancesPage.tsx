@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Wallet, Plus, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useFinancesData } from '@/core/hooks/useFinancesData';
+import { useFinancesData } from '@/core/hooks/admin/useFinancesData';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
-import { usePaymentHistory } from '@/core/hooks/usePaymentHistory';
+import { usePaymentHistory } from '@/core/hooks/admin/usePaymentHistory';
 import { DataTable, type Column, Button, Loader, Select, Input } from '@/ui';
 
 export function FinancesPage() {

@@ -42,7 +42,7 @@ const baseCalculation = {
   daysRemaining: 30,
 };
 
-vi.mock('@/core/hooks/useRecordPayment', () => ({
+vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
   useRecordPayment: () => {
     const [isPlanChange, setIsPlanChange] = useState(false);
     const [newPlanId, setNewPlanId] = useState('');

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Plus } from 'lucide-react';
-import { useClassesManagement } from '@/core/hooks/useClassesManagement';
+import { useClassesManagement } from '@/core/hooks/admin/useClassesManagement';
 import type { ClassEntity } from '@/core/types/classes.types';
 import { ClassCard } from '@/pages/admin/classes/components/ClassCard';
 import { ClassForm } from '@/pages/admin/classes/components/ClassForm';

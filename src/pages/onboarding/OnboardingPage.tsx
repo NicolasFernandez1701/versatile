@@ -1,5 +1,5 @@
 import { ChevronRight, ChevronLeft, Check, Upload, Eye, EyeOff } from 'lucide-react';
-import { useStudentOnboarding } from '@/core/hooks/useStudentOnboarding';
+import { useStudentOnboarding } from '@/core/hooks/onboarding/useStudentOnboarding';
 import './onboarding.css';
 import { Input } from '@/ui';
 

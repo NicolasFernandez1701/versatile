@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { HolidayService } from '../services/holiday.service';
-import type { Holiday } from '../types/holiday.types';
+import { HolidayService } from '@/core/services/holiday.service';
+import type { Holiday } from '@/core/types/holiday.types';
 
 export function getHolidayForDate(date: Date, markedDates: Record<string, Holiday>): Holiday | undefined {
   const dayStr = date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 
-import { useTeacherForm } from '@/core/hooks/useTeacherForm';
+import { useTeacherForm } from '@/core/hooks/shared/useTeacherForm';
 import { Modal, Input, Button } from '@/ui';
 
 import type { UserProfile } from '@/core/types/users.types';
