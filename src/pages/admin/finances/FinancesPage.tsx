@@ -4,7 +4,7 @@ import { useFinancesData } from '@/core/hooks/useFinancesData';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PaymentEntity } from '@/core/types/finances.types';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
-import { usePaymentHistory } from './hooks/usePaymentHistory';
+import { usePaymentHistory } from '@/core/hooks/usePaymentHistory';
 import { DataTable, type Column, Button, Loader, Select, Input } from '@/ui';
 
 export function FinancesPage() {
