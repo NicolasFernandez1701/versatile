@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { classesService } from '@/core/services';
 import type { ClassEntity } from '@/core/types/classes.types';
-import { Loader } from '@/components/ui';
+import { Loader } from '@/ui';
 import { Clock, Users } from 'lucide-react';
 import '@/pages/admin/dashboard/dashboard.css'; // Reuse dashboard styles
 

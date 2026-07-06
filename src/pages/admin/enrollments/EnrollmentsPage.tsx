@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { UserPlus, Trash2 } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
-import { useEnrollments } from '@/core/hooks/useEnrollments';
+import { useEnrollments } from '@/core/hooks/admin/useEnrollments';
 import type { EnrollmentEntity } from '@/core/types/enrollments.types';
-import { DataTable, type Column } from '@/components/ui/DataTable';
-import { Button } from '@/components/ui/Button';
+import { DataTable, type Column } from '@/ui/DataTable';
+import { Button } from '@/ui/Button';
 import { EnrollmentFormModal } from './components/EnrollmentFormModal';
-import { ConfirmModal } from '@/components/ui';
+import { ConfirmModal } from '@/ui';
 import { useAuthStore } from '@/core/store/useAuthStore';
 
 export function EnrollmentsPage() {

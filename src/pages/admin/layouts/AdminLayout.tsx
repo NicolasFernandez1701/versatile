@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
-import { ProfileSwitcher } from '@/core/components/ProfileSwitcher';
+import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
 import {
   LayoutDashboard,
   Users,
@@ -16,7 +16,7 @@ import {
   User,
   LayoutGrid
 } from 'lucide-react';
-import { OverflowMenu } from '../components/OverflowMenu';
+import { OverflowMenu } from './OverflowMenu';
 import '../styles/admin.css';
 
 export function AdminLayout() {

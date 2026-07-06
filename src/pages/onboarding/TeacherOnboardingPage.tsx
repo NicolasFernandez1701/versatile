@@ -1,7 +1,7 @@
 import { ChevronRight, ChevronLeft, Check, Eye, EyeOff } from 'lucide-react';
-import { useTeacherOnboarding } from '@/core/hooks/useTeacherOnboarding';
+import { useTeacherOnboarding } from '@/core/hooks/onboarding/useTeacherOnboarding';
 import './onboarding.css';
-import { Loader, Input, Button } from '@/components/ui';
+import { Loader, Input, Button } from '@/ui';
 
 export function TeacherOnboardingPage() {
   const onboarding = useTeacherOnboarding();

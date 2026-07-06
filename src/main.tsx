@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './core/styles/index.css'; // Import the new Design System
 import App from './App.tsx';
-import { GlobalAlertProvider } from './core/components/GlobalAlertProvider';
+import { GlobalAlertProvider } from './ui/GlobalAlertProvider';
 
 import React from 'react';
 

@@ -3,7 +3,7 @@ import { authService } from '@/core/services';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Sun, Moon, Monitor, Shield, Mail } from 'lucide-react';
 import './profile.css';
-import { ConfirmModal } from '@/components/ui';
+import { ConfirmModal } from '@/ui';
 import { useThemeStore } from '@/core/store/useThemeStore';
 import { useState } from 'react';
 

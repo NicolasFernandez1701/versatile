@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
 import { Plus } from 'lucide-react';
-import { useClassesManagement } from '@/core/hooks/useClassesManagement';
+import { useClassesManagement } from '@/core/hooks/admin/useClassesManagement';
 import type { ClassEntity } from '@/core/types/classes.types';
-import { ClassCard } from '@/features/classes/components/ClassCard';
-import { ClassForm } from '@/features/classes/components/ClassForm';
-import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStudentsModal';
-import { Modal, ConfirmModal, Loader } from '@/components/ui';
-import '../../../features/classes/styles/classes.css';
+import { ClassCard } from '@/pages/admin/classes/components/ClassCard';
+import { ClassForm } from '@/pages/admin/classes/components/ClassForm';
+import { EnrolledStudentsModal } from '@/pages/admin/classes/components/EnrolledStudentsModal';
+import { Modal, ConfirmModal, Loader } from '@/ui';
+import './components/classes.css';
 
 export function ClassesPage() {
   const {

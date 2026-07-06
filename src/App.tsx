@@ -7,7 +7,7 @@ import type { AppUser } from './core/types/auth.types';
 import { LoginPage } from './pages/auth/LoginPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { TeacherOnboardingPage } from './pages/onboarding/TeacherOnboardingPage';
-import { ProtectedRoute } from './core/components/ProtectedRoute';
+import { ProtectedRoute } from './ui/ProtectedRoute';
 import { AdminLayout } from './pages/admin/layouts/AdminLayout';
 import { AdminDashboard } from './pages/admin/dashboard/AdminDashboard';
 import { ClassesPage } from './pages/admin/classes/ClassesPage';

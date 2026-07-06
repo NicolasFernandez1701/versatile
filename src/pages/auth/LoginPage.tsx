@@ -3,10 +3,10 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
 import { Eye, EyeOff } from 'lucide-react';
-import { useLoginForm } from '@/core/hooks/useLoginForm';
+import { useLoginForm } from '@/core/hooks/onboarding/useLoginForm';
+import './auth.css';
 
-import { Button } from '@/components/ui';
-import '../../features/auth/styles/auth.css';
+import { Button } from '@/ui';
 
 export function LoginPage() {
   const { isAuthenticated, role, isLoading } = useAuthStore();

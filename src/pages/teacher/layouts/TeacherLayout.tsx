@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { authService } from '@/core/services';
-import { ProfileSwitcher } from '@/core/components/ProfileSwitcher';
+import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
 import { LayoutDashboard, Calendar, CalendarDays, User, LogOut } from 'lucide-react';
 import '@/pages/admin/styles/admin.css';
 

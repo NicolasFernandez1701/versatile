@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { CreditCard, CalendarDays, AlertTriangle } from 'lucide-react';
 import { SummaryCard } from '@/pages/admin/dashboard/components/SummaryCard';
-import { useStudentDashboard } from '@/core/hooks/useStudentDashboard';
-import { Loader } from '@/components/ui';
+import { useStudentDashboard } from '@/core/hooks/student/useStudentDashboard';
+import { Loader } from '@/ui';
 import '@/pages/admin/dashboard/dashboard.css';
 
 function QuotaRow({ name, consumed, total, remaining }: { name: string; consumed: number; total: number; remaining: number }) {
