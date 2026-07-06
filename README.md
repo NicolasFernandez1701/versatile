@@ -25,8 +25,7 @@ src/
 │   ├── hooks/      # Hooks reutilizables
 │   ├── types/      # Interfaces y tipos
 │   └── utils/      # Utilidades puras (quotaTracker, paymentCalculator)
-├── components/ui/  # Sistema de diseño (Botones, Modales, Inputs)
-├── features/       # Componentes de dominio (PlanForm, LoginForm)
+├── ui/             # Sistema de diseño (Botones, Modales, Inputs)
 └── pages/          # Vistas ruteables por rol (admin, student, teacher)
 ```
 

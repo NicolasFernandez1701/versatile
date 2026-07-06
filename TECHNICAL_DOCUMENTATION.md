@@ -21,9 +21,8 @@ La arquitectura de Versatile se apoya en un stack moderno, priorizando rendimien
 ### Estructura del Proyecto
 El proyecto sigue una arquitectura orientada a "Features" (Funcionalidades) para escalar sin acoplamiento:
 - `/src/core`: Lógica fundacional. Contiene servicios (`users.service.ts`, `classes.service.ts`), hooks globales, store de Zustand, y tipos base (`types/`).
-- `/src/components/ui`: Sistema de diseño propio (Botones, Modales, Inputs, DataTables).
-- `/src/features`: Componentes aislados que resuelven lógicas de negocio transversales (ej. `PlanForm.tsx`, `LoginForm.tsx`).
-- `/src/pages`: Las vistas ruteables agrupadas por Rol (`admin`, `student`, `teacher`).
+- `/src/ui`: Sistema de diseño propio (Botones, Modales, Inputs, DataTables).
+- `/src/pages`: Vistas ruteables agrupadas por Rol (`admin`, `student`, `teacher`). Los componentes de dominio viven junto a la página que los consume (ej. `PlanForm.tsx` en `src/pages/admin/plans/components/`).
 
 ---
 
@@ -70,7 +69,7 @@ Se documentan a continuación las decisiones técnicas críticas tomadas durante
 2. **Período de gracia de 10 días:** Los alumnos con pago vencido pueden seguir anotándose a clases durante los primeros 10 días del mes. Pasado ese umbral, el sistema bloquea nuevas inscripciones hasta que registren el pago.
 3. **Hook `usePaymentCalculation`** — encapsula la lógica de fetching del historial de pagos (para determinar `isFirstPayment`) y el cálculo prorrateado, exponiendo `{ calculation, loading, error, isFirstPayment }`.
 **Justificación:** Separar el cálculo (puro) del fetching (async) permite testear la fórmula de prorrateo de forma aislada y reutilizar el hook en cualquier modal de cobro. El período de gracia evita que alumnos regulares pierdan clases por demoras administrativas en el pago.
-**Archivos:** `src/core/utils/paymentCalculator.ts`, `src/core/hooks/usePaymentCalculation.ts`, `src/core/services/finances.service.ts`
+**Archivos:** `src/core/utils/paymentCalculator.ts`, `src/core/hooks/shared/usePaymentCalculation.ts`, `src/core/services/finances.service.ts`
 
 ### ADR-005: Cupos por Actividad y Cambio de Plan a Mitad de Mes
 **Contexto:** Los planes definen cupos por actividad (ej. "2 boxeo + 1 yoga por semana"), no una bolsa general de clases. Cuando un alumno cambia de plan a mitad de mes, sus cupos deben prorratearse según los días restantes y reconciliarse con lo ya consumido.

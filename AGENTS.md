@@ -4,7 +4,7 @@ Este archivo define las reglas inquebrantables de arquitectura y código para el
 
 ## 1. Arquitectura Limpia y Abstracción (Screaming Architecture)
 
-- **Módulos por Feature:** El código debe estar organizado por dominio/feature (ej. `src/features/classes`, `src/features/students`).
+- **Módulos por Feature:** El código debe estar organizado por dominio/feature bajo `src/pages/{rol}/` (ej. `src/pages/admin/classes`, `src/pages/admin/students`).
 - **Separation of Concerns:** Componentes de UI no deben contener lógica de negocio dura ni llamadas directas a APIs. Toda la lógica compleja debe estar abstraída en hooks customizados o en la capa Core.
 - **Aislamiento de Supabase (Pattern Enforcements):** NINGÚN componente de React (`.tsx`) tiene permitido importar `supabase` directamente. Utilizar obligatoriamente la capa de servicios (`src/core/services/`) para formatear y limpiar los datos que vienen de la DB antes de inyectarlos en la aplicación.
 
