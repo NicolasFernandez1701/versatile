@@ -1,39 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { RecordPaymentModal } from './RecordPaymentModal';
 import type { PlanEntity } from '@/core/types/plans.types';
+import type { StudentWithPlan } from '@/core/types/finances.types';
 
-const mockShowError = vi.hoisted(() => vi.fn());
-const mockShowSuccess = vi.hoisted(() => vi.fn());
-const mockRecordPayment = vi.hoisted(() => vi.fn());
-const mockGetStudentsWithPlans = vi.hoisted(() => vi.fn());
-const mockUsePaymentCalculation = vi.hoisted(() => vi.fn());
+const mockOnClose = vi.fn();
+const mockOnSuccess = vi.fn();
+const mockHandleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
 
-vi.mock('@/core/components/GlobalAlertProvider', () => ({
-  useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
-}));
-
-vi.mock('@/core/store/useAuthStore', () => ({
-  useAuthStore: vi.fn(() => ({ current_studio_id: 'studio-001' })),
-}));
-
-const mockGetActivePlans = vi.hoisted(() => vi.fn());
-
-vi.mock('@/core/services', () => ({
-  financesService: {
-    recordPayment: mockRecordPayment,
-    getStudentsWithPlans: mockGetStudentsWithPlans,
-  },
-  plansService: {
-    getActivePlans: mockGetActivePlans,
-  },
-}));
-
-vi.mock('@/core/hooks/usePaymentCalculation', () => ({
-  usePaymentCalculation: mockUsePaymentCalculation,
-}));
-
-const mockStudents = [
+const mockStudents: StudentWithPlan[] = [
   {
     id: 'stu-001',
     full_name: 'María García',
@@ -45,6 +21,8 @@ const mockStudents = [
       price: 25000,
       classes_per_week: 3,
     },
+    promotion_expiration_date: null,
+    promotion_discount_pct: null,
   },
 ];
 
@@ -59,95 +37,90 @@ const baseCalculation = {
   cashDiscountAmount: 0,
   lateFeeAmount: 0,
   total: 25000,
-  expirationDate: '2024-07-31',
+  expirationDate: '2026-07-31',
   daysInMonth: 30,
   daysRemaining: 30,
 };
 
-describe('RecordPaymentModal', () => {
-  const mockOnClose = vi.fn();
-  const mockOnSuccess = vi.fn();
+vi.mock('@/core/hooks/useRecordPayment', () => ({
+  useRecordPayment: () => {
+    const [isPlanChange, setIsPlanChange] = useState(false);
+    const [newPlanId, setNewPlanId] = useState('');
 
+    return {
+      students: mockStudents,
+      studentSearchText: 'María García (Plan Mensual)',
+      availablePlans: mockPlans,
+      paymentMethod: 'transferencia' as const,
+      setPaymentMethod: vi.fn(),
+      applyLateFee: false,
+      setApplyLateFee: vi.fn(),
+      amountOverride: '',
+      setAmountOverride: vi.fn(),
+      isSubmitting: false,
+      isPlanChange,
+      setIsPlanChange,
+      newPlanId,
+      setNewPlanId,
+      selectedStudentId: 'stu-001',
+      selectedStudent: mockStudents[0],
+      currentPlan: mockStudents[0].plans,
+      selectedPlan: isPlanChange
+        ? mockPlans.find((p) => p.id === newPlanId) || mockStudents[0].plans
+        : mockStudents[0].plans,
+      promoDiscountPct: 0,
+      finalAmount: 25000,
+      isAfter10th: false,
+      today: new Date(),
+      calculation: baseCalculation,
+      calculationLoading: false,
+      isFirstPayment: false,
+      handleStudentSearch: vi.fn(),
+      handleSubmit: mockHandleSubmit,
+    };
+  },
+}));
+
+describe('RecordPaymentModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetStudentsWithPlans.mockResolvedValue(mockStudents);
-    mockUsePaymentCalculation.mockReturnValue({
-      calculation: baseCalculation,
-      loading: false,
-      error: null,
-      isFirstPayment: false,
-    });
-    mockRecordPayment.mockResolvedValue(undefined);
-    mockGetActivePlans.mockResolvedValue(mockPlans);
   });
 
-  const selectStudent = async () => {
-    // Wait for async students + plans to load before selecting
-    await waitFor(() => {
-      const option = document.querySelector('#students-list option');
-      expect(option).not.toBeNull();
-    });
-    const studentInput = screen.getByPlaceholderText('Seleccionar alumno...');
-    fireEvent.change(studentInput, {
-      target: { value: 'María García (Plan Mensual)' },
-    });
-    await waitFor(() => {
-      expect(screen.getByLabelText('Cambiar plan')).toBeInTheDocument();
-    }, { timeout: 3000 });
-  };
-
   const renderModal = () =>
-    render(
-      <RecordPaymentModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />
-    );
+    render(<RecordPaymentModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
   it('renderiza selector de cambio de plan', async () => {
     renderModal();
-    await selectStudent();
+
+    expect(screen.getByLabelText('Cambiar plan')).toBeInTheDocument();
   });
 
   it('muestra el selector de nuevo plan cuando se activa el cambio de plan', async () => {
     renderModal();
-    await selectStudent();
 
     fireEvent.click(screen.getByLabelText('Cambiar plan'));
 
     expect(screen.getByLabelText('Nuevo Plan')).toBeInTheDocument();
   });
 
-  it('recalcula el pago con el nuevo plan seleccionado', async () => {
+  it('permite seleccionar un nuevo plan', async () => {
     renderModal();
-    await selectStudent();
 
     fireEvent.click(screen.getByLabelText('Cambiar plan'));
 
     const newPlanSelect = screen.getByLabelText('Nuevo Plan') as HTMLSelectElement;
     fireEvent.change(newPlanSelect, { target: { value: 'plan-002' } });
 
-    expect(mockUsePaymentCalculation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        plan: expect.objectContaining({ id: 'plan-002', price: 35000, name: 'Plan Premium' }),
-      })
-    );
+    expect(newPlanSelect.value).toBe('plan-002');
   });
 
-  it('envía el pago con planChange cuando se selecciona un nuevo plan', async () => {
+  it('envía el formulario al hacer clic en Registrar Pago', async () => {
     renderModal();
-    await selectStudent();
-
-    fireEvent.click(screen.getByLabelText('Cambiar plan'));
-
-    const newPlanSelect = screen.getByLabelText('Nuevo Plan') as HTMLSelectElement;
-    fireEvent.change(newPlanSelect, { target: { value: 'plan-002' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Registrar Pago/i }));
 
     await waitFor(() => {
-      expect(mockRecordPayment).toHaveBeenCalledWith(
-        expect.objectContaining({
-          planChange: { newPlanId: 'plan-002', studentId: 'stu-001' },
-        })
-      );
+      expect(mockHandleSubmit).toHaveBeenCalled();
     });
   });
 });

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { useAuthStore } from '../store/useAuthStore';
 import type { UserProfile } from '../types/users.types';
 import type { Specialty } from '../types/users.types';
+import type { StudentOnboardingPayload, TeacherOnboardingPayload } from '../types/users.types';
 
 // Cliente secundario para no pisar la sesión del administrador al crear usuarios
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -111,7 +112,7 @@ export const usersService = {
     if (authError) throw authError;
   },
 
-  async saveOnboardingDetails(profileId: string, details: Record<string, unknown>): Promise<void> {
+  async saveOnboardingDetails(profileId: string, details: StudentOnboardingPayload): Promise<void> {
     const studioId = useAuthStore.getState().current_studio_id;
 
     // 1. Insert Student Details
@@ -130,7 +131,7 @@ export const usersService = {
     if (profileError) throw profileError;
   },
 
-  async saveTeacherOnboardingDetails(profileId: string, details: Record<string, unknown>): Promise<void> {
+  async saveTeacherOnboardingDetails(profileId: string, details: TeacherOnboardingPayload): Promise<void> {
     const studioId = useAuthStore.getState().current_studio_id;
 
     const { error: detailsError } = await supabase

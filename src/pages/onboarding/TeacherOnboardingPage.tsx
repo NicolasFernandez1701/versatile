@@ -1,109 +1,25 @@
-import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/core/store/useAuthStore';
-import { usersService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { ChevronRight, ChevronLeft, Check, Eye, EyeOff } from 'lucide-react';
+import { useTeacherOnboarding } from '@/core/hooks/useTeacherOnboarding';
 import './onboarding.css';
 import { Loader, Input, Button } from '@/components/ui';
 
 export function TeacherOnboardingPage() {
-  const { user } = useAuthStore();
-  const { showError } = useAlert();
-
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Step 1: Password
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Step 2: Datos Personales
-  const [address, setAddress] = useState('');
-  const [birthDate, setBirthDate] = useState(''); // Visual mask: DD/MM/YYYY
-
-  // Step 3: Especialidades
-  const [specialtiesList, setSpecialtiesList] = useState<{ id: string; name: string }[]>([]);
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
-
-  useEffect(() => {
-    usersService
-      .getSpecialties()
-      .then(setSpecialtiesList)
-      .catch((err) => console.error('Error fetching specialties:', err));
-  }, []);
-
-  const handleNext = async () => {
-    if (step === 1) {
-      if (newPassword.length < 6)
-        return showError('La contraseña debe tener al menos 6 caracteres');
-      if (newPassword !== confirmPassword) return showError('Las contraseñas no coinciden');
-
-      setIsSubmitting(true);
-      try {
-        await usersService.updatePassword(newPassword);
-      } catch (error: unknown) {
-        showError(`Error al actualizar contraseña: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-        setIsSubmitting(false);
-        return;
-      }
-      setIsSubmitting(false);
-    }
-    if (step === 2) {
-      if (!address.trim()) return showError('Completá tu dirección');
-      if (birthDate.length !== 10)
-        return showError('La fecha de nacimiento debe tener el formato DD/MM/YYYY');
-    }
-    setStep((s) => Math.min(s + 1, totalSteps));
-  };
-
-  const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '');
-    if (val.length > 8) val = val.substring(0, 8);
-    if (val.length > 4) {
-      val = val.substring(0, 2) + '/' + val.substring(2, 4) + '/' + val.substring(4, 8);
-    } else if (val.length > 2) {
-      val = val.substring(0, 2) + '/' + val.substring(2, 4);
-    }
-    setBirthDate(val);
-  };
-
-  const toggleSpecialty = (id: string) => {
-    if (selectedSpecialties.includes(id)) {
-      setSelectedSpecialties(selectedSpecialties.filter((s) => s !== id));
-    } else {
-      setSelectedSpecialties([...selectedSpecialties, id]);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (selectedSpecialties.length === 0)
-      return showError('Debés seleccionar al menos una especialidad');
-    if (!user) return showError('No hay sesión activa');
-
-    try {
-      setIsSubmitting(true);
-      // Transform DD/MM/YYYY to YYYY-MM-DD
-      const [dd, mm, yyyy] = birthDate.split('/');
-      const isoDate = `${yyyy}-${mm}-${dd}`;
-
-      await usersService.saveTeacherOnboardingDetails(user.id, {
-        address,
-        birth_date: isoDate,
-        specialties: selectedSpecialties
-      });
-
-      // Reload page to re-evaluate protection logic
-      window.location.href = '/teacher/dashboard';
-    } catch (error: unknown) {
-      showError(error instanceof Error ? error.message : 'Error guardando datos');
-      setIsSubmitting(false);
-    }
-  };
+  const onboarding = useTeacherOnboarding();
+  const {
+    step,
+    totalSteps,
+    isSubmitting,
+    passwordStep,
+    address,
+    setAddress,
+    dateInput,
+    specialtiesList,
+    selectedSpecialties,
+    toggleSpecialty,
+    handleNext,
+    handlePrev,
+    handleSubmit,
+  } = onboarding;
 
   return (
     <div className="onboarding-container">
@@ -134,44 +50,44 @@ export function TeacherOnboardingPage() {
 
               <Input
                 label="Nueva Contraseña"
-                type={showNewPassword ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                type={passwordStep.showNewPassword ? 'text' : 'password'}
+                value={passwordStep.newPassword}
+                onChange={(e) => passwordStep.setNewPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
                 rightElement={
                   <button
                     type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    onClick={passwordStep.toggleShowNewPassword}
                     style={{
                       background: 'none',
                       border: 'none',
                       padding: 0,
                       cursor: 'pointer',
-                      color: 'var(--text-secondary)'
+                      color: 'var(--text-secondary)',
                     }}
                   >
-                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {passwordStep.showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 }
               />
               <Input
                 label="Confirmar Contraseña"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                type={passwordStep.showConfirmPassword ? 'text' : 'password'}
+                value={passwordStep.confirmPassword}
+                onChange={(e) => passwordStep.setConfirmPassword(e.target.value)}
                 rightElement={
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    onClick={passwordStep.toggleShowConfirmPassword}
                     style={{
                       background: 'none',
                       border: 'none',
                       padding: 0,
                       cursor: 'pointer',
-                      color: 'var(--text-secondary)'
+                      color: 'var(--text-secondary)',
                     }}
                   >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {passwordStep.showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 }
               />
@@ -192,8 +108,8 @@ export function TeacherOnboardingPage() {
                 label="Fecha de Nacimiento (DD/MM/AAAA)"
                 type="text"
                 placeholder="Ej: 25/10/1990"
-                value={birthDate}
-                onChange={handleDateChange}
+                value={dateInput.value}
+                onChange={dateInput.handleChange}
               />
             </div>
           )}
@@ -221,7 +137,7 @@ export function TeacherOnboardingPage() {
                         padding: '0.5rem',
                         background: 'var(--surface-color)',
                         borderRadius: '8px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                       }}
                     >
                       <input

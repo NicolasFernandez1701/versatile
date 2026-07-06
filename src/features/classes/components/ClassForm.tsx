@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ClassEntity, Profile } from '@/core/types/classes.types';
-import { usersService } from '@/core/services';
-import { isTimeRangeValid } from '@/core/utils/validation';
+import { useClassForm } from '@/core/hooks/useClassForm';
 
 interface Props {
   teachers: Profile[];
-  onSubmit: (payload: Partial<ClassEntity>) => Promise<void>;
-  loading: boolean;
+  onSuccess?: () => void;
   initialData?: Partial<ClassEntity>;
 }
 
@@ -20,79 +18,57 @@ const days = [
   { label: 'Sábado', value: 6 }
 ];
 
-export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
-  const [specialties, setSpecialties] = useState<{ id: string; name: string }[]>([]);
+export function ClassForm({ teachers, onSuccess, initialData }: Props) {
+  const {
+    activityName,
+    dayOfWeek,
+    startTime,
+    endTime,
+    teacher,
+    maxCapacity,
+    basePrice,
+    teacherCommission,
+    specialties,
+    loading,
+    error,
+    setField,
+    handleSubmit,
+  } = useClassForm({ initialData, onSuccess });
+
   const [showDropdown, setShowDropdown] = useState(false);
-  const [timeError, setTimeError] = useState('');
-  const [formData, setFormData] = useState({
-    activity_name: initialData?.activity_name || '',
-    teacher_id: initialData?.teacher_id || '',
-    day_of_week: initialData?.day_of_week ?? 1,
-    start_time: initialData?.start_time || '18:00',
-    end_time: initialData?.end_time || '19:00',
-    capacity: initialData?.capacity || 15,
-    base_price: initialData?.base_price || 5000,
-    teacher_commission_pct: initialData?.teacher_commission_pct || 50
-  });
 
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        activity_name: initialData.activity_name || '',
-        teacher_id: initialData.teacher_id || '',
-        day_of_week: initialData.day_of_week ?? 1,
-        start_time: initialData.start_time || '18:00',
-        end_time: initialData.end_time || '19:00',
-        capacity: initialData.capacity || 15,
-        base_price: initialData.base_price || 5000,
-        teacher_commission_pct: initialData.teacher_commission_pct || 50
-      });
-    }
-  }, [initialData]);
-
-  useEffect(() => {
-    usersService.getSpecialties().then(setSpecialties).catch(console.error);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setTimeError('');
-
-    if (!isTimeRangeValid(formData.start_time, formData.end_time)) {
-      setTimeError('La hora de fin debe ser posterior a la de inicio.');
-      return;
-    }
-
-    await onSubmit(formData);
+    handleSubmit();
   };
 
   return (
-    <form className="class-form" onSubmit={handleSubmit}>
+    <form className="class-form" onSubmit={onSubmit}>
       <div className="form-group" style={{ position: 'relative' }}>
         <label>Actividad</label>
         <input
           type="text"
           placeholder="Ej: Funcional, Yoga"
           required
-          value={formData.activity_name}
-          onChange={(e) => setFormData({ ...formData, activity_name: e.target.value })}
+          value={activityName}
+          onChange={(e) => setField('activityName', e.target.value)}
           onFocus={() => setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
         />
 
         {showDropdown &&
           specialties.filter((s) =>
-            s.name.toLowerCase().includes(formData.activity_name.toLowerCase())
+            s.name.toLowerCase().includes(activityName.toLowerCase())
           ).length > 0 && (
             <div className="autocomplete-dropdown">
               {specialties
-                .filter((s) => s.name.toLowerCase().includes(formData.activity_name.toLowerCase()))
+                .filter((s) => s.name.toLowerCase().includes(activityName.toLowerCase()))
                 .map((s) => (
                   <div
                     key={s.id}
                     className="autocomplete-option"
                     onClick={() => {
-                      setFormData({ ...formData, activity_name: s.name });
+                      setField('activityName', s.name);
                       setShowDropdown(false);
                     }}
                   >
@@ -108,8 +84,8 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
           <label>Profesora</label>
           <select
             required
-            value={formData.teacher_id}
-            onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
+            value={teacher}
+            onChange={(e) => setField('teacher', e.target.value)}
           >
             <option value="">Seleccionar Profesora</option>
             {teachers.map((t) => (
@@ -123,8 +99,8 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
         <div className="form-group">
           <label>Día</label>
           <select
-            value={formData.day_of_week}
-            onChange={(e) => setFormData({ ...formData, day_of_week: parseInt(e.target.value) })}
+            value={dayOfWeek}
+            onChange={(e) => setField('dayOfWeek', Number(e.target.value))}
           >
             {days.map((d) => (
               <option key={d.value} value={d.value}>
@@ -141,10 +117,9 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
           <input
             type="time"
             required
-            value={formData.start_time}
+            value={startTime}
             onChange={(e) => {
-              setFormData({ ...formData, start_time: e.target.value });
-              if (timeError) setTimeError('');
+              setField('startTime', e.target.value);
             }}
           />
         </div>
@@ -153,15 +128,14 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
           <input
             type="time"
             required
-            value={formData.end_time}
+            value={endTime}
             onChange={(e) => {
-              setFormData({ ...formData, end_time: e.target.value });
-              if (timeError) setTimeError('');
+              setField('endTime', e.target.value);
             }}
           />
         </div>
       </div>
-      {timeError && <div className="error-message">{timeError}</div>}
+      {error && <div className="error-message">{error}</div>}
 
       <div className="form-group">
         <label>Capacidad</label>
@@ -169,8 +143,8 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
           type="number"
           required
           min="1"
-          value={formData.capacity}
-          onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+          value={maxCapacity}
+          onChange={(e) => setField('maxCapacity', Number(e.target.value))}
         />
       </div>
 
@@ -180,8 +154,8 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
           <input
             type="number"
             required
-            value={formData.base_price}
-            onChange={(e) => setFormData({ ...formData, base_price: parseFloat(e.target.value) })}
+            value={basePrice}
+            onChange={(e) => setField('basePrice', Number(e.target.value))}
           />
         </div>
         <div className="form-group">
@@ -191,10 +165,8 @@ export function ClassForm({ teachers, onSubmit, loading, initialData }: Props) {
             required
             min="0"
             max="100"
-            value={formData.teacher_commission_pct}
-            onChange={(e) =>
-              setFormData({ ...formData, teacher_commission_pct: parseFloat(e.target.value) })
-            }
+            value={teacherCommission}
+            onChange={(e) => setField('teacherCommission', Number(e.target.value))}
           />
         </div>
       </div>

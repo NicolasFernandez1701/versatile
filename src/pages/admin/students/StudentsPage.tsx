@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, UserPlus, Bookmark } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
+import { useStudentStatus } from '@/core/hooks/useStudentStatus';
 import { StudentCard } from './components/StudentCard';
 import { StudentFormModal } from './components/StudentFormModal';
 import './students.css'; // Will create this
@@ -10,6 +11,7 @@ import { Loader } from '@/components/ui';
 export function StudentsPage() {
   const navigate = useNavigate();
   const { students, loading, fetchStudents } = useUsersStore();
+  const { getStatus } = useStudentStatus();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
@@ -17,15 +19,6 @@ export function StudentsPage() {
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
-
-  const getStatus = (expirationDate?: string | null, hasPlan?: boolean) => {
-    if (!hasPlan) return 'Sin Plan';
-    if (!expirationDate) return 'Pendiente';
-    const today = new Date();
-    const exp = new Date(expirationDate);
-    if (exp < today) return 'Vencido';
-    return 'Al Día';
-  };
 
   const filteredStudents = students.filter(
     (s) =>

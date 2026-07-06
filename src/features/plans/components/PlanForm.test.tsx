@@ -1,12 +1,24 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PlanForm } from './PlanForm';
 import type { ClassEntity } from '@/core/types/classes.types';
 import type { PlanEntity } from '@/core/types/plans.types';
 
 const mockShowError = vi.hoisted(() => vi.fn());
+const mockShowSuccess = vi.hoisted(() => vi.fn());
+const mockCreatePlanWithActivities = vi.hoisted(() => vi.fn());
+const mockUpdatePlanWithActivities = vi.hoisted(() => vi.fn());
+const mockOnSuccess = vi.hoisted(() => vi.fn());
+
 vi.mock('@/core/components/GlobalAlertProvider', () => ({
-  useAlert: () => ({ showError: mockShowError }),
+  useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
+}));
+
+vi.mock('@/core/services', () => ({
+  plansService: {
+    createPlanWithActivities: mockCreatePlanWithActivities,
+    updatePlanWithActivities: mockUpdatePlanWithActivities,
+  },
 }));
 
 const mockClasses = [
@@ -49,26 +61,23 @@ const mockInitialData: PlanEntity = {
 };
 
 describe('PlanForm', () => {
-  const mockOnSubmit = vi.fn();
   const mockOnCancel = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCreatePlanWithActivities.mockResolvedValue(undefined);
+    mockUpdatePlanWithActivities.mockResolvedValue(undefined);
   });
 
   const renderForm = (overrides: Partial<{
     initialData?: PlanEntity | null;
     availableClasses: ClassEntity[];
-    onSubmit: (
-      data: { name: string; price: number; classes_per_week: number; is_active: boolean },
-      activities: { activity_name: string; classes_per_week: number }[]
-    ) => Promise<void>;
+    onSuccess: () => void;
     onCancel: () => void;
-    loading?: boolean;
   }> = {}) => {
     const props = {
       availableClasses: mockClasses,
-      onSubmit: mockOnSubmit,
+      onSuccess: mockOnSuccess,
       onCancel: mockOnCancel,
       ...overrides,
     };
@@ -96,7 +105,7 @@ describe('PlanForm', () => {
   it('Render con initialData: precarga datos y activities', async () => {
     renderForm({ initialData: mockInitialData });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(
         screen.getByPlaceholderText('Ej: Intermedio A')
       ).toHaveValue('Plan Premium');
@@ -112,11 +121,10 @@ describe('PlanForm', () => {
   it('Agregar actividad: botón "Agregar Actividad" añade una fila', () => {
     renderForm();
 
-    expect(screen.queryByText('Seleccionar actividad...')).not.toBeInTheDocument();
+    expect(screen.queryByText('clases/sem')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Agregar Actividad'));
 
-    expect(screen.getByText('Seleccionar actividad...')).toBeInTheDocument();
     expect(screen.getByText('clases/sem')).toBeInTheDocument();
     expect(document.querySelectorAll('.activity-row')).toHaveLength(1);
   });
@@ -125,25 +133,23 @@ describe('PlanForm', () => {
     renderForm();
 
     fireEvent.click(screen.getByText('Agregar Actividad'));
-    expect(screen.getByText('Seleccionar actividad...')).toBeInTheDocument();
+    expect(screen.getByText('clases/sem')).toBeInTheDocument();
 
     const trashBtn = document.querySelector('.icon-btn.text-danger') as HTMLElement;
     expect(trashBtn).toBeInTheDocument();
     fireEvent.click(trashBtn);
 
-    expect(
-      screen.queryByText('Seleccionar actividad...')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('clases/sem')).not.toBeInTheDocument();
   });
 
-  it('Calcular precio sugerido: sumatoria de basePrice * classes_per_week * 4', () => {
+  it('Calcular precio sugerido: clases por semana x $2000', () => {
     renderForm();
 
     fireEvent.click(screen.getByText('Agregar Actividad'));
-    const activitySelect = document.querySelector(
-      '.activity-row select'
-    ) as HTMLSelectElement;
-    fireEvent.change(activitySelect, { target: { value: 'Yoga' } });
+    const activityInput = document.querySelector(
+      '.activity-row input[type="text"]'
+    ) as HTMLInputElement;
+    fireEvent.change(activityInput, { target: { value: 'Yoga' } });
 
     const cpwInput = document.querySelector(
       '.activity-row input[type="number"]'
@@ -152,22 +158,19 @@ describe('PlanForm', () => {
 
     fireEvent.click(screen.getByText('Agregar Actividad'));
 
-    const selects = document.querySelectorAll('.activity-row select');
-    fireEvent.change(selects[1], { target: { value: 'Funcional' } });
-
-    const cpwInputs = document.querySelectorAll('.activity-row input[type="number"]');
-    fireEvent.change(cpwInputs[1], { target: { value: 1 } });
+    const inputs = document.querySelectorAll('.activity-row input[type="number"]');
+    fireEvent.change(inputs[1], { target: { value: 1 } });
 
     const calcBtn = screen.getByTitle('Calcular Sugerido');
     fireEvent.click(calcBtn);
 
-    const expectedPrice = 5000 * 2 * 4 + 4000 * 1 * 4; // 40000 + 16000 = 56000
+    const expectedPrice = 3 * 2000; // 6000
     expect(
       screen.getByPlaceholderText('Valor final del plan')
     ).toHaveValue(expectedPrice.toString());
   });
 
-  it('Submit con datos válidos: llama a onSubmit con plan + activities filtradas', async () => {
+  it('Submit con datos válidos: crea un plan y llama a onSuccess', async () => {
     renderForm();
 
     fireEvent.change(screen.getByPlaceholderText('Ej: Intermedio A'), {
@@ -176,10 +179,15 @@ describe('PlanForm', () => {
 
     fireEvent.click(screen.getByText('Agregar Actividad'));
 
-    const activitySelect = document.querySelector(
-      '.activity-row select'
-    ) as HTMLSelectElement;
-    fireEvent.change(activitySelect, { target: { value: 'Yoga' } });
+    const activityInput = document.querySelector(
+      '.activity-row input[type="text"]'
+    ) as HTMLInputElement;
+    fireEvent.change(activityInput, { target: { value: 'Yoga' } });
+
+    const cpwInput = document.querySelector(
+      '.activity-row input[type="number"]'
+    ) as HTMLInputElement;
+    fireEvent.change(cpwInput, { target: { value: 2 } });
 
     fireEvent.change(screen.getByPlaceholderText('Valor final del plan'), {
       target: { value: '15000' },
@@ -187,16 +195,45 @@ describe('PlanForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Plan' }));
 
-    await vi.waitFor(() => {
-      expect(mockOnSubmit).toHaveBeenCalledWith(
+    await waitFor(() => {
+      expect(mockCreatePlanWithActivities).toHaveBeenCalledWith(
         {
           name: 'Plan Avanzado',
           price: 15000,
-          classes_per_week: 1,
+          classes_per_week: 2,
           is_active: true,
         },
-        [{ activity_name: 'Yoga', classes_per_week: 1 }]
+        [{ activity_name: 'Yoga', classes_per_week: 2 }]
       );
+      expect(mockOnSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('Submit con initialData actualiza el plan', async () => {
+    renderForm({ initialData: mockInitialData });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Ej: Intermedio A')).toHaveValue('Plan Premium');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar Plan' }));
+
+    await waitFor(() => {
+      expect(mockUpdatePlanWithActivities).toHaveBeenCalledWith(
+        'plan-1',
+        expect.objectContaining({
+          name: 'Plan Premium',
+          price: 25000,
+          classes_per_week: 4,
+          is_active: true,
+        }),
+        [
+          { activity_name: 'Yoga', classes_per_week: 2 },
+          { activity_name: 'Funcional', classes_per_week: 2 },
+        ]
+      );
+      expect(mockCreatePlanWithActivities).not.toHaveBeenCalled();
+      expect(mockOnSuccess).toHaveBeenCalled();
     });
   });
 
@@ -211,50 +248,8 @@ describe('PlanForm', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Plan' }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockShowError).toHaveBeenCalled();
-    });
-  });
-
-  it('Submit con actividad inválida: muestra error', async () => {
-    const { rerender } = render(
-      <PlanForm
-        availableClasses={mockClasses}
-        onSubmit={mockOnSubmit}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.change(screen.getByPlaceholderText('Ej: Intermedio A'), {
-      target: { value: 'Plan Raro' },
-    });
-
-    fireEvent.click(screen.getByText('Agregar Actividad'));
-
-    const activitySelect = document.querySelector(
-      '.activity-row select'
-    ) as HTMLSelectElement;
-    fireEvent.change(activitySelect, { target: { value: 'Yoga' } });
-
-    fireEvent.change(screen.getByPlaceholderText('Valor final del plan'), {
-      target: { value: '9999' },
-    });
-
-    // Re-render with empty availableClasses so Yoga becomes invalid
-    rerender(
-      <PlanForm
-        availableClasses={[]}
-        onSubmit={mockOnSubmit}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.submit(getForm());
-
-    await vi.waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith(
-        expect.stringContaining('Yoga')
-      );
     });
   });
 
@@ -263,10 +258,10 @@ describe('PlanForm', () => {
 
     fireEvent.click(screen.getByText('Agregar Actividad'));
 
-    const activitySelect = document.querySelector(
-      '.activity-row select'
-    ) as HTMLSelectElement;
-    fireEvent.change(activitySelect, { target: { value: 'Yoga' } });
+    const activityInput = document.querySelector(
+      '.activity-row input[type="text"]'
+    ) as HTMLInputElement;
+    fireEvent.change(activityInput, { target: { value: 'Yoga' } });
 
     fireEvent.change(screen.getByPlaceholderText('Valor final del plan'), {
       target: { value: '15000' },
@@ -274,7 +269,7 @@ describe('PlanForm', () => {
 
     fireEvent.submit(getForm());
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockShowError).toHaveBeenCalled();
     });
   });

@@ -1,192 +1,62 @@
-import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '@/core/store/useAuthStore';
-import { usersService } from '@/core/services';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
 import { ChevronRight, ChevronLeft, Check, Upload, Eye, EyeOff } from 'lucide-react';
+import { useStudentOnboarding } from '@/core/hooks/useStudentOnboarding';
 import './onboarding.css';
 import { Input } from '@/components/ui';
 
 export function OnboardingPage() {
-  const { user } = useAuthStore();
-  const { showError } = useAlert();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const step = parseInt(searchParams.get('step') || '1', 10);
-  const setStep = (newStep: number) => setSearchParams({ step: newStep.toString() });
-  const totalSteps = 6;
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Step 1: Password
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Step 2: Datos Personales
-  const [documentId, setDocumentId] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [age, setAge] = useState('');
-  const [address, setAddress] = useState('');
-  const [occupation, setOccupation] = useState('');
-  const [emergencyName, setEmergencyName] = useState('');
-  const [emergencyPhone, setEmergencyPhone] = useState('');
-
-  // Step 3: Historial Médico
-  const [chronicDiseases, setChronicDiseases] = useState('');
-  const [allergies, setAllergies] = useState('');
-  const [recentInjuries, setRecentInjuries] = useState('');
-  const [medications, setMedications] = useState('');
-  const [hasMedicalCert, setHasMedicalCert] = useState<'yes' | 'no'>('no');
-  const [medicalCertFile, setMedicalCertFile] = useState<File | null>(null);
-
-  // Step 4: Estilo de Vida
-  const [currentlyActive, setCurrentlyActive] = useState(false);
-  const [trainingExperience, setTrainingExperience] = useState('');
-  const [dailyActivity, setDailyActivity] = useState('');
-
-  // Step 5: Objetivos
-  const [objectives, setObjectives] = useState<string[]>([]);
-  const [preferredSchedule, setPreferredSchedule] = useState('');
-
-  const objectiveOptions = [
-    'Aumentar masa muscular (Hipertrofia)',
-    'Tonificar',
-    'Bajar de peso / Control de peso',
-    'Mejorar la salud y reducir el estrés',
-    'Rehabilitación de lesión',
-    'Mejorar rendimiento deportivo'
-  ];
-
-  const handleObjectiveToggle = (obj: string) => {
-    if (objectives.includes(obj)) {
-      setObjectives(objectives.filter((o) => o !== obj));
-    } else {
-      setObjectives([...objectives, obj]);
-    }
-  };
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '');
-    if (val.length > 8) val = val.substring(0, 8);
-    if (val.length > 4) {
-      val = val.substring(0, 2) + '/' + val.substring(2, 4) + '/' + val.substring(4, 8);
-    } else if (val.length > 2) {
-      val = val.substring(0, 2) + '/' + val.substring(2, 4);
-    }
-    setBirthDate(val);
-
-    if (val.length === 10) {
-      const [dd, mm, yyyy] = val.split('/');
-      const birth = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
-      const today = new Date();
-      let calculatedAge = today.getFullYear() - birth.getFullYear();
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-        calculatedAge--;
-      }
-      setAge(calculatedAge.toString());
-    }
-  };
-
-  // Step 6: Legales
-  const [agreedData, setAgreedData] = useState(true);
-  const [agreedMedical, setAgreedMedical] = useState(true);
-  const [agreedRules, setAgreedRules] = useState(true);
-  const [agreedImage, setAgreedImage] = useState(true);
-
-  const handleNext = async () => {
-    if (step === 1) {
-      if (!newPassword || newPassword !== confirmPassword || newPassword.length < 6) {
-        showError(
-          'Por favor ingresá una contraseña válida de al menos 6 caracteres que coincida en ambos campos.'
-        );
-        return;
-      }
-      setIsSubmitting(true);
-      try {
-        await usersService.updatePassword(newPassword);
-      } catch (error: unknown) {
-        showError(`Error al actualizar contraseña: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-        setIsSubmitting(false);
-        return;
-      }
-      setIsSubmitting(false);
-    }
-    if (step < totalSteps) setStep(step + 1);
-  };
-
-  const handlePrev = () => {
-    if (step > 1) setStep(step - 1);
-  };
-
-  const handleSubmit = async () => {
-    if (!agreedData || !agreedMedical || !agreedRules) {
-      showError('Debés aceptar los términos y condiciones obligatorios para continuar.');
-      return;
-    }
-
-    if (!user) return;
-
-    setIsSubmitting(true);
-    try {
-      // Si hay un archivo, acá idealmente se subiría a Supabase Storage y se obtendría la URL.
-      // Por ahora simulamos que guardamos el nombre si se seleccionó.
-      const certUrl = medicalCertFile ? medicalCertFile.name : null;
-
-      let formattedDate = null;
-      if (birthDate) {
-        if (birthDate.includes('/')) {
-          const [day, month, year] = birthDate.split('/');
-          let parsedYear = year;
-          if (year && year.length === 2) {
-            const y = parseInt(year, 10);
-            parsedYear = y > new Date().getFullYear() % 100 ? `19${year}` : `20${year}`;
-          }
-          formattedDate = `${parsedYear}-${month}-${day}`;
-        } else {
-          formattedDate = birthDate; // Fallback
-        }
-      }
-
-      const payload = {
-        document_id: documentId,
-        birth_date: formattedDate,
-        age: age ? parseInt(age) : null,
-        address,
-        occupation,
-        emergency_contact_name: emergencyName,
-        emergency_contact_phone: emergencyPhone,
-
-        chronic_diseases: chronicDiseases,
-        allergies,
-        recent_injuries: recentInjuries,
-        medications,
-        medical_certificate_url: certUrl,
-        medical_certificate_status: certUrl ? 'pending' : null,
-
-        currently_active: currentlyActive,
-        training_experience: trainingExperience,
-        daily_work_activity: dailyActivity,
-
-        main_objectives: objectives,
-        preferred_schedule: preferredSchedule,
-
-        agreed_to_data_protection: agreedData,
-        agreed_to_medical_exoneration: agreedMedical,
-        agreed_to_facility_rules: agreedRules,
-        agreed_to_image_rights: agreedImage
-      };
-
-      await usersService.saveOnboardingDetails(user.id, payload);
-
-      // Force reload to update auth context and redirect to dashboard
-      window.location.href = '/';
-    } catch (error: unknown) {
-      showError(`Error al guardar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-      setIsSubmitting(false);
-    }
-  };
+  const onboarding = useStudentOnboarding();
+  const {
+    step,
+    totalSteps,
+    isSubmitting,
+    passwordStep,
+    dateInput,
+    documentId,
+    setDocumentId,
+    age,
+    setAge,
+    address,
+    setAddress,
+    occupation,
+    setOccupation,
+    emergencyName,
+    setEmergencyName,
+    emergencyPhone,
+    setEmergencyPhone,
+    chronicDiseases,
+    setChronicDiseases,
+    allergies,
+    setAllergies,
+    recentInjuries,
+    setRecentInjuries,
+    medications,
+    setMedications,
+    hasMedicalCert,
+    setHasMedicalCert,
+    setMedicalCertFile,
+    currentlyActive,
+    setCurrentlyActive,
+    trainingExperience,
+    setTrainingExperience,
+    dailyActivity,
+    setDailyActivity,
+    objectives,
+    handleObjectiveToggle,
+    objectiveOptions,
+    preferredSchedule,
+    setPreferredSchedule,
+    agreedData,
+    setAgreedData,
+    agreedMedical,
+    setAgreedMedical,
+    agreedRules,
+    setAgreedRules,
+    agreedImage,
+    setAgreedImage,
+    handleNext,
+    handlePrev,
+    handleSubmit,
+  } = onboarding;
 
   const renderStep = () => {
     switch (step) {
@@ -199,43 +69,43 @@ export function OnboardingPage() {
             </p>
             <Input
               label="Nueva Contraseña (mín. 6 caracteres)"
-              type={showNewPassword ? 'text' : 'password'}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              type={passwordStep.showNewPassword ? 'text' : 'password'}
+              value={passwordStep.newPassword}
+              onChange={(e) => passwordStep.setNewPassword(e.target.value)}
               rightElement={
                 <button
                   type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  onClick={passwordStep.toggleShowNewPassword}
                   style={{
                     background: 'none',
                     border: 'none',
                     padding: 0,
                     cursor: 'pointer',
-                    color: 'var(--text-secondary)'
+                    color: 'var(--text-secondary)',
                   }}
                 >
-                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {passwordStep.showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               }
             />
             <Input
               label="Confirmar Contraseña"
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              type={passwordStep.showConfirmPassword ? 'text' : 'password'}
+              value={passwordStep.confirmPassword}
+              onChange={(e) => passwordStep.setConfirmPassword(e.target.value)}
               rightElement={
                 <button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  onClick={passwordStep.toggleShowConfirmPassword}
                   style={{
                     background: 'none',
                     border: 'none',
                     padding: 0,
                     cursor: 'pointer',
-                    color: 'var(--text-secondary)'
+                    color: 'var(--text-secondary)',
                   }}
                 >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {passwordStep.showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               }
             />
@@ -262,8 +132,8 @@ export function OnboardingPage() {
                 <input
                   type="text"
                   placeholder="Ej: 25/10/1990"
-                  value={birthDate}
-                  onChange={handleDateChange}
+                  value={dateInput.value}
+                  onChange={dateInput.handleChange}
                 />
               </div>
               <div className="form-group">
@@ -369,7 +239,7 @@ export function OnboardingPage() {
                   border: '2px dashed var(--border-color)',
                   padding: '1.5rem',
                   borderRadius: '8px',
-                  textAlign: 'center'
+                  textAlign: 'center',
                 }}
               >
                 <Upload size={32} style={{ color: 'var(--primary-color)', marginBottom: '1rem' }} />
@@ -445,7 +315,7 @@ export function OnboardingPage() {
                       cursor: 'pointer',
                       background: 'rgba(255,255,255,0.05)',
                       padding: '0.75rem',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
                     }}
                   >
                     <input

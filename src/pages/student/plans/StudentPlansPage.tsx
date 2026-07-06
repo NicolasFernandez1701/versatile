@@ -1,38 +1,13 @@
-import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { plansService, dashboardService } from '@/core/services';
+import { useStudentPlans } from '@/core/hooks/useStudentPlans';
 import { formatCurrency } from '@/core/utils/formatCurrency';
-import type { PlanEntity } from '@/core/types/plans.types';
 import { Loader, Button } from '@/components/ui';
 import { Check, Star, CheckCircle } from 'lucide-react';
 import '@/pages/admin/dashboard/dashboard.css';
 
 export function StudentPlansPage() {
   const { user } = useAuthStore();
-  const [plans, setPlans] = useState<PlanEntity[]>([]);
-  const [activePlanId, setActivePlanId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const plansData = await plansService.getActivePlans();
-        setPlans(plansData);
-
-        if (user) {
-          const dashboardData = await dashboardService.getStudentDashboardData(user.id);
-          if (dashboardData.activePlan?.plan_id) {
-            setActivePlanId(dashboardData.activePlan.plan_id);
-          }
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user]);
+  const { plans, activePlanId, loading } = useStudentPlans(user?.id);
 
   const handleRequestPlan = (planName: string) => {
     const phone = '5491162676855'; // Número proporcionado por el usuario

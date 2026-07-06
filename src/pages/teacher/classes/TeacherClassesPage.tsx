@@ -1,13 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/core/store/useAuthStore';
-import { classesService, attendanceService } from '@/core/services';
-import type { ClassEntity } from '@/core/types/classes.types';
-import type { EnrollmentEntity } from '@/core/types/enrollments.types';
-import type { AttendanceRecord } from '@/core/types/attendance.types';
 import { Loader, Button } from '@/components/ui';
 import { CalendarDays, Users, CheckCircle, XCircle, Clock, UserCheck } from 'lucide-react';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
-import '@/pages/admin/dashboard/dashboard.css'; // Reusing global layouts
+import { useTeacherClasses } from '@/core/hooks/useTeacherClasses';
+import { useClassAttendance } from '@/core/hooks/useClassAttendance';
+import type { AttendanceRecord } from '@/core/types/attendance.types';
+import '@/pages/admin/dashboard/dashboard.css';
 
 const DAYS_MAP: Record<number, string> = {
   0: 'Domingo',
@@ -16,79 +12,20 @@ const DAYS_MAP: Record<number, string> = {
   3: 'Miércoles',
   4: 'Jueves',
   5: 'Viernes',
-  6: 'Sábado'
+  6: 'Sábado',
 };
 
 export function TeacherClassesPage() {
-  const { user } = useAuthStore();
-  const { showSuccess, showError } = useAlert();
+  const { classes, loading, selectedClass, setSelectedClass, activeTab, setActiveTab, todayStr } =
+    useTeacherClasses();
+  const { enrollments, attendances, loadingDetails, handleToggleAttendance } = useClassAttendance({
+    selectedClass,
+    activeTab,
+    todayStr,
+  });
 
-  const [classes, setClasses] = useState<ClassEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedClass, setSelectedClass] = useState<ClassEntity | null>(null);
-  const [activeTab, setActiveTab] = useState<'padron' | 'asistencia'>('asistencia');
-
-  const [enrollments, setEnrollments] = useState<EnrollmentEntity[]>([]);
-  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  useEffect(() => {
-    if (user?.id) {
-      classesService
-        .getClassesByTeacher(user.id)
-        .then((data) => {
-          setClasses(data);
-          // Auto-select the first class of today if exists
-          const today = new Date().getDay();
-          const todayClass = data.find((c) => c.day_of_week === today);
-          if (todayClass) setSelectedClass(todayClass);
-          else if (data.length > 0) setSelectedClass(data[0]);
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (selectedClass) {
-      loadDetails(selectedClass.id);
-    }
-  }, [selectedClass, activeTab]);
-
-  const loadDetails = async (classId: string) => {
-    try {
-      setLoadingDetails(true);
-      if (activeTab === 'padron') {
-        const data = await attendanceService.getClassEnrollments(classId);
-        setEnrollments(data);
-      } else {
-        const data = await attendanceService.getClassAttendanceByDate(classId, todayStr);
-        setAttendances(data);
-      }
-    } catch (error: unknown) {
-      showError(error instanceof Error ? error.message : 'Error cargando detalles');
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  const handleToggleAttendance = async (
-    attendanceRecord: AttendanceRecord,
-    newStatus: 'present' | 'absent'
-  ) => {
-    try {
-      // Optimistic update
-      setAttendances((prev) =>
-        prev.map((a) => (a.id === attendanceRecord.id ? { ...a, status: newStatus } : a))
-      );
-      await attendanceService.markAttendance(attendanceRecord.enrollment_id, todayStr, newStatus);
-      showSuccess(`Asistencia marcada como ${newStatus === 'present' ? 'Presente' : 'Ausente'}`);
-    } catch (error: unknown) {
-      showError(`Error al marcar asistencia: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-      loadDetails(selectedClass!.id); // Revert on error
-    }
+  const onToggleAttendance = (record: AttendanceRecord, newStatus: 'present' | 'absent') => {
+    handleToggleAttendance(record, newStatus);
   };
 
   if (loading) {
@@ -125,7 +62,7 @@ export function TeacherClassesPage() {
                 borderRadius: '12px',
                 padding: '1rem',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
               }}
             >
               <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
@@ -136,7 +73,7 @@ export function TeacherClassesPage() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   color: 'var(--text-secondary)',
-                  fontSize: '0.85rem'
+                  fontSize: '0.85rem',
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -163,7 +100,7 @@ export function TeacherClassesPage() {
               border: '1px solid var(--border-color)',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
           >
             <div
@@ -172,7 +109,7 @@ export function TeacherClassesPage() {
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
               <div>
@@ -189,7 +126,7 @@ export function TeacherClassesPage() {
                   gap: '0.5rem',
                   background: 'var(--background-color)',
                   padding: '0.25rem',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
                 }}
               >
                 <button
@@ -201,7 +138,7 @@ export function TeacherClassesPage() {
                     cursor: 'pointer',
                     fontWeight: 500,
                     background: activeTab === 'asistencia' ? 'var(--primary-color)' : 'transparent',
-                    color: activeTab === 'asistencia' ? 'white' : 'var(--text-secondary)'
+                    color: activeTab === 'asistencia' ? 'white' : 'var(--text-secondary)',
                   }}
                 >
                   Asistencia de Hoy
@@ -215,7 +152,7 @@ export function TeacherClassesPage() {
                     cursor: 'pointer',
                     fontWeight: 500,
                     background: activeTab === 'padron' ? 'var(--primary-color)' : 'transparent',
-                    color: activeTab === 'padron' ? 'white' : 'var(--text-secondary)'
+                    color: activeTab === 'padron' ? 'white' : 'var(--text-secondary)',
                   }}
                 >
                   Padrón Completo
@@ -236,7 +173,7 @@ export function TeacherClassesPage() {
                       marginBottom: '1rem',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5rem'
+                      gap: '0.5rem',
                     }}
                   >
                     <Users size={20} /> Inscriptos Oficiales ({enrollments.length})
@@ -257,7 +194,7 @@ export function TeacherClassesPage() {
                             padding: '1rem',
                             background: 'var(--background-color)',
                             borderRadius: '8px',
-                            border: '1px solid var(--border-color)'
+                            border: '1px solid var(--border-color)',
                           }}
                         >
                           <div>
@@ -279,7 +216,7 @@ export function TeacherClassesPage() {
                       marginBottom: '1rem',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5rem'
+                      gap: '0.5rem',
                     }}
                   >
                     <UserCheck size={20} /> Alumnos Confirmados ({attendances.length})
@@ -298,7 +235,7 @@ export function TeacherClassesPage() {
                         textAlign: 'center',
                         padding: '3rem',
                         background: 'var(--background-color)',
-                        borderRadius: '12px'
+                        borderRadius: '12px',
                       }}
                     >
                       <p className="text-secondary">Ningún alumno reservó su lugar para hoy.</p>
@@ -315,7 +252,7 @@ export function TeacherClassesPage() {
                             padding: '1rem',
                             background: 'var(--background-color)',
                             borderRadius: '8px',
-                            border: '1px solid var(--border-color)'
+                            border: '1px solid var(--border-color)',
                           }}
                         >
                           <div>
@@ -334,21 +271,21 @@ export function TeacherClassesPage() {
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <Button
                               variant={att.status === 'present' ? 'primary' : 'secondary'}
-                              onClick={() => handleToggleAttendance(att, 'present')}
+                              onClick={() => onToggleAttendance(att, 'present')}
                               style={{ padding: '0.5rem 1rem' }}
                             >
                               <CheckCircle size={18} style={{ marginRight: '0.5rem' }} /> Presente
                             </Button>
                             <Button
                               variant={att.status === 'absent' ? 'primary' : 'secondary'}
-                              onClick={() => handleToggleAttendance(att, 'absent')}
+                              onClick={() => onToggleAttendance(att, 'absent')}
                               style={{
                                 padding: '0.5rem 1rem',
                                 borderColor:
                                   att.status === 'absent' ? 'transparent' : 'var(--error-color)',
                                 color: att.status === 'absent' ? 'white' : 'var(--error-color)',
                                 background:
-                                  att.status === 'absent' ? 'var(--error-color)' : 'transparent'
+                                  att.status === 'absent' ? 'var(--error-color)' : 'transparent',
                               }}
                             >
                               <XCircle size={18} style={{ marginRight: '0.5rem' }} /> Ausente

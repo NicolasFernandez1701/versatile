@@ -1,13 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
 import { Check, AlertTriangle } from 'lucide-react';
-import { financesService, plansService } from '@/core/services';
-import { usePaymentCalculation } from '@/core/hooks/usePaymentCalculation';
+import { useRecordPayment } from '@/core/hooks/useRecordPayment';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import { Modal } from '@/components/ui';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
-import { useAuthStore } from '@/core/store/useAuthStore';
-import type { PlanEntity } from '@/core/types/plans.types';
-import type { StudentWithPlan } from '@/core/types/finances.types';
 import '../finances.css';
 
 interface RecordPaymentModalProps {
@@ -17,128 +12,33 @@ interface RecordPaymentModalProps {
 }
 
 export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPaymentModalProps) {
-  const { showError, showSuccess } = useAlert();
-  const { current_studio_id } = useAuthStore();
-  const [students, setStudents] = useState<StudentWithPlan[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [studentSearchText, setStudentSearchText] = useState('');
-  const [availablePlans, setAvailablePlans] = useState<PlanEntity[]>([]);
+  const payment = useRecordPayment({ isOpen, onClose, onSuccess });
 
-  // Payment Details
-  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('transferencia');
-  const [applyLateFee, setApplyLateFee] = useState(false);
-  const [amountOverride, setAmountOverride] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Plan Change
-  const [isPlanChange, setIsPlanChange] = useState(false);
-  const [newPlanId, setNewPlanId] = useState('');
-
-  // Date context
-  const today = new Date();
-  const isAfter10th = today.getDate() > 10;
-
-  useEffect(() => {
-    if (isOpen) {
-      financesService
-        .getStudentsWithPlans(current_studio_id || '')
-        .then((data) => setStudents(data))
-        .catch(console.error);
-
-      plansService
-        .getActivePlans()
-        .then((data) => setAvailablePlans(data))
-        .catch(console.error);
-
-      setApplyLateFee(isAfter10th);
-      setSelectedStudentId('');
-      setStudentSearchText('');
-      setPaymentMethod('transferencia');
-      setAmountOverride('');
-      setIsPlanChange(false);
-      setNewPlanId('');
-    }
-  }, [isOpen, isAfter10th, current_studio_id]);
-
-  const selectedStudent = students.find((s) => s.id === selectedStudentId);
-  const currentPlan = selectedStudent?.plans;
-  const selectedPlan = isPlanChange
-    ? availablePlans.find((p) => p.id === newPlanId) || currentPlan
-    : currentPlan;
-
-  const promoDiscountPct = useMemo(() => {
-    if (selectedStudent?.promotion_expiration_date) {
-      const promoExp = new Date(selectedStudent.promotion_expiration_date);
-      if (promoExp >= today) {
-        return Number(selectedStudent.promotion_discount_pct || 0);
-      }
-    }
-    return 0;
-  }, [selectedStudent, today]);
-
-  const planInfo = useMemo(
-    () =>
-      selectedPlan
-        ? {
-            id: selectedPlan.id,
-            price: Number(selectedPlan.price),
-            name: selectedPlan.name,
-          }
-        : null,
-    [selectedPlan]
-  );
-
-  const { calculation, loading: calculationLoading, isFirstPayment } = usePaymentCalculation({
-      studentId: selectedStudentId || null,
-      plan: planInfo,
-      paymentMethod,
-      promoDiscountPct,
-      applyLateFee,
-    });
-
-  const finalAmount =
-    amountOverride !== '' ? Number(amountOverride) : (calculation?.total ?? 0);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedStudent || !selectedPlan || !calculation) {
-      showError('Seleccione un alumno con plan activo.');
-      return;
-    }
-    if (isPlanChange && !newPlanId) {
-      showError('Seleccione el nuevo plan.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await financesService.recordPayment({
-        student_id: selectedStudentId,
-        plan_id: selectedPlan?.id ?? currentPlan?.id,
-        amount: finalAmount,
-        expiration_date: calculation.expirationDate,
-        plan_details: `${selectedPlan?.name ?? currentPlan?.name} - ${formatCurrency(selectedPlan?.price ?? currentPlan?.price)}`,
-        payment_method: paymentMethod,
-        original_amount: calculation.proratedBase,
-        discount_applied: calculation.promoDiscountAmount + calculation.cashDiscountAmount,
-        surcharge_applied: calculation.lateFeeAmount,
-        late_payment: isAfter10th,
-        late_fee_applied: applyLateFee,
-        is_first_payment: isFirstPayment,
-        ...(isPlanChange && newPlanId
-          ? { planChange: { newPlanId, studentId: selectedStudentId } }
-          : {}),
-      });
-      showSuccess(isPlanChange ? 'Pago y cambio de plan registrados con éxito.' : 'Pago registrado con éxito.');
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error(error);
-      showError('Error al registrar el pago.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    students,
+    studentSearchText,
+    availablePlans,
+    paymentMethod,
+    setPaymentMethod,
+    applyLateFee,
+    setApplyLateFee,
+    amountOverride,
+    setAmountOverride,
+    isSubmitting,
+    isPlanChange,
+    setIsPlanChange,
+    newPlanId,
+    setNewPlanId,
+    currentPlan,
+    selectedPlan,
+    finalAmount,
+    isAfter10th,
+    today,
+    calculation,
+    calculationLoading,
+    handleStudentSearch,
+    handleSubmit,
+  } = payment;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Registrar Cobro" maxWidth="850px">
@@ -152,20 +52,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               type="text"
               placeholder="Seleccionar alumno..."
               value={studentSearchText}
-              onChange={(e) => {
-                setStudentSearchText(e.target.value);
-                const found = students.find(
-                  (s) =>
-                    `${s.full_name} ${s.plans ? `(${s.plans.name})` : '(Sin Plan)'}` ===
-                    e.target.value
-                );
-                if (found) {
-                  setSelectedStudentId(found.id);
-                  setAmountOverride('');
-                } else {
-                  setSelectedStudentId('');
-                }
-              }}
+              onChange={handleStudentSearch}
               required
             />
             <datalist id="students-list">
@@ -176,7 +63,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                 />
               ))}
             </datalist>
-            {!currentPlan && selectedStudentId && (
+            {!currentPlan && payment.selectedStudentId && (
               <small className="text-danger" style={{ display: 'block', marginTop: '0.5rem' }}>
                 <AlertTriangle
                   size={14}
@@ -212,7 +99,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             </small>
           </div>
 
-          {selectedStudentId && currentPlan && (
+          {payment.selectedStudentId && currentPlan && (
             <div
               className="form-group checkbox-group"
               style={{ background: 'rgba(52, 152, 219, 0.1)', padding: '1rem', borderRadius: '8px' }}
@@ -270,7 +157,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         </form>
 
         {/* Panel de Desglose (Preview) */}
-        {selectedStudentId && selectedPlan && calculation ? (
+        {payment.selectedStudentId && selectedPlan && calculation ? (
           <div className="breakdown-panel">
             <h3 className="breakdown-title">Desglose Financiero</h3>
 
@@ -287,9 +174,9 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                 <span>{formatCurrency(calculation.proratedBase)}</span>
               </div>
 
-              {promoDiscountPct > 0 && (
+              {payment.promoDiscountPct > 0 && (
                 <div className="breakdown-row" style={{ color: 'var(--success-color)' }}>
-                  <span>Promo {promoDiscountPct}% OFF</span>
+                  <span>Promo {payment.promoDiscountPct}% OFF</span>
                   <span>-{formatCurrency(calculation.promoDiscountAmount)}</span>
                 </div>
               )}

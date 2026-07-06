@@ -1,55 +1,37 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Plus } from 'lucide-react';
-import { useAlert } from '@/core/components/GlobalAlertProvider';
-import { classesService } from '@/core/services';
-import type { ClassEntity, EnrollmentEntity, Profile } from '@/core/types/classes.types';
+import { useClassesManagement } from '@/core/hooks/useClassesManagement';
+import type { ClassEntity } from '@/core/types/classes.types';
 import { ClassCard } from '@/features/classes/components/ClassCard';
 import { ClassForm } from '@/features/classes/components/ClassForm';
 import { EnrolledStudentsModal } from '@/features/classes/components/EnrolledStudentsModal';
 import { Modal, ConfirmModal, Loader } from '@/components/ui';
-import { useAuthStore } from '@/core/store/useAuthStore';
 import '../../../features/classes/styles/classes.css';
 
 export function ClassesPage() {
-  const { current_studio_id } = useAuthStore();
-  const { showError, showSuccess } = useAlert();
-  const [classes, setClasses] = useState<ClassEntity[]>([]);
-  const [teachers, setTeachers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    classes,
+    teachers,
+    loading,
+    viewingStudentsClass,
+    students,
+    loadingStudents,
+    fetchClasses,
+    deleteClass,
+    openStudentsModal,
+    closeStudentsModal,
+  } = useClassesManagement();
 
   // Modal State for viewing students
-  const [viewingStudentsClass, setViewingStudentsClass] = useState<ClassEntity | null>(null);
-  const [students, setStudents] = useState<EnrollmentEntity[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
+  // (viewingStudentsClass, students and loadingStudents come from the hook)
 
   // Modal State for Class Form
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassEntity | null>(null);
-  const [saving, setSaving] = useState(false);
 
   // Modal State for Confirm Delete
   const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
-
-  const fetchClasses = async () => {
-    if (!current_studio_id) return;
-    try {
-      setLoading(true);
-      const data = await classesService.getClasses(current_studio_id);
-      setClasses(data);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (current_studio_id) {
-      fetchClasses();
-      classesService.getTeachers().then(setTeachers).catch(console.error);
-    }
-  }, [current_studio_id]);
 
   const handleDeleteClick = (id: string) => {
     setDeletingClassId(id);
@@ -57,28 +39,8 @@ export function ClassesPage() {
 
   const confirmDelete = async () => {
     if (!deletingClassId) return;
-    try {
-      await classesService.deleteClass(deletingClassId);
-      fetchClasses();
-      showSuccess('Clase eliminada con éxito.');
-    } catch (error) {
-      showError('Error eliminando la clase');
-    } finally {
-      setDeletingClassId(null);
-    }
-  };
-
-  const openStudentsModal = async (cls: ClassEntity) => {
-    setViewingStudentsClass(cls);
-    setLoadingStudents(true);
-    try {
-      const data = await classesService.getEnrolledStudents(cls.id);
-      setStudents(data);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    } finally {
-      setLoadingStudents(false);
-    }
+    await deleteClass(deletingClassId);
+    setDeletingClassId(null);
   };
 
   const openFormModal = (cls?: ClassEntity) => {
@@ -91,22 +53,9 @@ export function ClassesPage() {
     setIsFormOpen(false);
   };
 
-  const handleSaveClass = async (payload: Partial<ClassEntity>) => {
-    try {
-      setSaving(true);
-      if (editingClass) {
-        await classesService.updateClass(editingClass.id, payload);
-      } else {
-        await classesService.createClass(payload);
-      }
-      await fetchClasses();
-      closeFormModal();
-      showSuccess('Clase guardada exitosamente.');
-    } catch (error: unknown) {
-      showError(error instanceof Error ? error.message : 'Error guardando la clase');
-    } finally {
-      setSaving(false);
-    }
+  const handleSaveSuccess = () => {
+    closeFormModal();
+    fetchClasses();
   };
 
   return (
@@ -154,7 +103,7 @@ export function ClassesPage() {
       <EnrolledStudentsModal
         title={viewingStudentsClass?.activity_name || ''}
         isOpen={!!viewingStudentsClass}
-        onClose={() => setViewingStudentsClass(null)}
+        onClose={closeStudentsModal}
         students={students}
         isLoading={loadingStudents}
         onStudentRemoved={() => {
@@ -172,8 +121,7 @@ export function ClassesPage() {
       >
         <ClassForm
           teachers={teachers}
-          onSubmit={handleSaveClass}
-          loading={saving}
+          onSuccess={handleSaveSuccess}
           initialData={editingClass || undefined}
         />
       </Modal>

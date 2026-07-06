@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usersService } from './users.service';
-import type { UserProfile } from '../types/users.types';
+import type { UserProfile, StudentOnboardingPayload, TeacherOnboardingPayload } from '../types/users.types';
 
 // ──────────────────────────────────────────────
 // 1. Datos de prueba
@@ -342,7 +342,7 @@ describe('usersService', () => {
         })),
       });
 
-      await usersService.saveOnboardingDetails('stu-001', { birth_date: '2000-01-01' });
+      await usersService.saveOnboardingDetails('stu-001', { birth_date: '2000-01-01' } as StudentOnboardingPayload);
 
       expect(insertFn).toHaveBeenCalledWith([
         expect.objectContaining({ profile_id: 'stu-001', studio_id: STUDIO_ID }),
@@ -358,7 +358,7 @@ describe('usersService', () => {
       });
 
       await expect(
-        usersService.saveOnboardingDetails('stu-001', { birth_date: '2000-01-01' }),
+        usersService.saveOnboardingDetails('stu-001', { birth_date: '2000-01-01' } as StudentOnboardingPayload),
       ).rejects.toThrow('Error al insertar detalles');
     });
 
@@ -373,7 +373,7 @@ describe('usersService', () => {
       });
 
       await expect(
-        usersService.saveOnboardingDetails('stu-001', { birth_date: '2000-01-01' }),
+        usersService.saveOnboardingDetails('stu-001', { birth_date: '2000-01-01' } as StudentOnboardingPayload),
       ).rejects.toThrow('Error al actualizar perfil');
     });
   });
@@ -391,7 +391,7 @@ describe('usersService', () => {
         })),
       });
 
-      await usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] });
+      await usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] } as TeacherOnboardingPayload);
 
       expect(insertFn).toHaveBeenCalledWith([
         expect.objectContaining({ profile_id: 'tea-001', studio_id: STUDIO_ID }),
@@ -407,7 +407,7 @@ describe('usersService', () => {
       });
 
       await expect(
-        usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] }),
+        usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] } as TeacherOnboardingPayload),
       ).rejects.toThrow('Error DB');
     });
 
@@ -422,7 +422,7 @@ describe('usersService', () => {
       });
 
       await expect(
-        usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] }),
+        usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] } as TeacherOnboardingPayload),
       ).rejects.toThrow('Error al actualizar perfil');
     });
   });

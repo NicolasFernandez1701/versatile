@@ -72,3 +72,34 @@ export interface Specialty {
   id: string;
   name: string;
 }
+
+export interface StudentOnboardingPayload {
+  document_id: string;
+  birth_date: string | null;
+  age: number | null;
+  address: string;
+  occupation: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  chronic_diseases: string;
+  allergies: string;
+  recent_injuries: string;
+  medications: string;
+  medical_certificate_url: string | null;
+  medical_certificate_status: 'pending' | null;
+  currently_active: boolean;
+  training_experience: string;
+  daily_work_activity: string;
+  main_objectives: string[];
+  preferred_schedule: string;
+  agreed_to_data_protection: boolean;
+  agreed_to_medical_exoneration: boolean;
+  agreed_to_facility_rules: boolean;
+  agreed_to_image_rights: boolean;
+}
+
+export interface TeacherOnboardingPayload {
+  address: string;
+  birth_date: string;
+  specialties: string[];
+}
