@@ -4,7 +4,6 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
 import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
-import { NotificationBell } from '@/ui/NotificationBell';
 import { NotificationPanel } from '@/ui/NotificationPanel';
 import { LayoutDashboard, CalendarDays, User, LogOut, Tag, Bell } from 'lucide-react';
 import { ConfirmModal } from '@/ui';
@@ -51,6 +50,10 @@ export function StudentLayout() {
             <Bell size={20} />
             <span>Notif.</span>
           </button>
+          <button onClick={() => setPanelOpen(true)} className="nav-item hide-on-mobile">
+            <Bell size={20} />
+            <span>Notificaciones</span>
+          </button>
           <NavLink to="/student/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
@@ -74,9 +77,6 @@ export function StudentLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="notification-area hide-on-mobile">
-            <NotificationBell onClick={() => setPanelOpen(true)} />
-          </div>
           <ProfileSwitcher />
           <button onClick={handleLogout} className="logout-btn">
             <LogOut size={20} />

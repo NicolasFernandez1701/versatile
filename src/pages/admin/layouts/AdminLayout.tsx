@@ -4,7 +4,6 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
 import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
-import { NotificationBell } from '@/ui/NotificationBell';
 import { NotificationPanel } from '@/ui/NotificationPanel';
 import {
   LayoutDashboard,
@@ -77,6 +76,14 @@ export function AdminLayout() {
           >
             <Bell size={20} />
             <span>Notif.</span>
+          </button>
+          {/* Desktop notification bell */}
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="nav-item hide-on-mobile"
+          >
+            <Bell size={20} />
+            <span>Notificaciones</span>
           </button>
           <NavLink
             to="/admin"
@@ -156,9 +163,6 @@ export function AdminLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="notification-area hide-on-mobile">
-            <NotificationBell onClick={() => setPanelOpen(true)} />
-          </div>
           <ProfileSwitcher />
           <button onClick={handleLogout} className="logout-btn">
             <LogOut size={20} />
