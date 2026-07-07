@@ -1,4 +1,4 @@
-import { User, Users, Tag, BookOpen, ClipboardCheck } from 'lucide-react';
+import { User, Users, Tag, BookOpen, ClipboardCheck, Wallet } from 'lucide-react';
 
 interface OverflowMenuProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ const menuItems = [
   { label: 'Planes', icon: Tag, path: '/admin/plans' },
   { label: 'Profesores', icon: BookOpen, path: '/admin/teachers' },
   { label: 'Matrículas', icon: ClipboardCheck, path: '/admin/enrollments' },
+  { label: 'Finanzas', icon: Wallet, path: '/admin/finances' },
 ];
 
 export function OverflowMenu({ isOpen, onClose, onNavigate, currentPath }: OverflowMenuProps) {
