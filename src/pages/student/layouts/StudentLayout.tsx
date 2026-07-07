@@ -6,7 +6,7 @@ import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
 import { NotificationBell } from '@/ui/NotificationBell';
 import { NotificationPanel } from '@/ui/NotificationPanel';
-import { LayoutDashboard, CalendarDays, User, LogOut, Tag } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, User, LogOut, Tag, Bell } from 'lucide-react';
 import { ConfirmModal } from '@/ui';
 import '@/pages/admin/styles/admin.css';
 
@@ -50,11 +50,18 @@ export function StudentLayout() {
           </div>
           <div className="notification-area">
             <NotificationBell onClick={() => setPanelOpen(true)} />
-            <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
           </div>
         </div>
 
         <nav className="sidebar-nav">
+          {/* Notification bell — mobile only (desktop version in sidebar-header) */}
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="nav-item hide-on-desktop"
+          >
+            <Bell size={20} />
+            <span>Notif.</span>
+          </button>
           <NavLink
             to="/student/dashboard"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -103,6 +110,8 @@ export function StudentLayout() {
             <span>Salir</span>
           </button>
         </div>
+
+        <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
       </aside>
 
       {/* Main Content Area */}
