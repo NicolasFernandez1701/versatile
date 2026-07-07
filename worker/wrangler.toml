@@ -1,0 +1,13 @@
+name = "versatile-reminders"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+STUDIO_TIMEZONE = "America/Argentina/Buenos_Aires"
+
+[[kv_namespaces]]
+binding = "NOTIFICATIONS_KV"
+id = "placeholder-id"
