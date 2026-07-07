@@ -221,7 +221,8 @@
     margin-top: 0;
     border-top: none;
     border-left: 1px solid var(--border-color);
-    padding: 0 0.75rem;
+    padding-left: 0.5rem;
+    padding-right: 0;
   }
 
   .sidebar-footer:not(:has(> :not(.logout-btn))) {
@@ -236,6 +237,7 @@
     flex-direction: row;
     justify-content: space-evenly;
     flex: 1;
+    padding-right: 0.5rem;
   }
 
   .nav-item {
