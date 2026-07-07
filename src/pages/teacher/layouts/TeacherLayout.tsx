@@ -6,7 +6,7 @@ import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
 import { NotificationBell } from '@/ui/NotificationBell';
 import { NotificationPanel } from '@/ui/NotificationPanel';
-import { LayoutDashboard, Calendar, CalendarDays, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, CalendarDays, User, LogOut, Bell } from 'lucide-react';
 import '@/pages/admin/styles/admin.css';
 
 export function TeacherLayout() {
@@ -43,41 +43,31 @@ export function TeacherLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          <NavLink
-            to="/teacher/dashboard"
-            end
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
+          <button onClick={() => setPanelOpen(true)} className="nav-item hide-on-desktop">
+            <Bell size={20} />
+            <span>Notif.</span>
+          </button>
+          <NavLink to="/teacher/dashboard" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </NavLink>
-          <NavLink
-            to="/teacher/calendar"
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
+          <NavLink to="/teacher/calendar" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <CalendarDays size={20} />
             <span>Grilla</span>
           </NavLink>
-          <NavLink
-            to="/teacher/classes"
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
+          <NavLink to="/teacher/classes" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <Calendar size={20} />
             <span>Mis Clases</span>
           </NavLink>
-          <NavLink
-            to="/teacher/profile"
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
+          <NavLink to="/teacher/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <User size={20} />
             <span>Mi Perfil</span>
           </NavLink>
         </nav>
 
         <div className="sidebar-footer">
-          <div className="notification-area">
+          <div className="notification-area hide-on-mobile">
             <NotificationBell onClick={() => setPanelOpen(true)} />
-            <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
           </div>
           <ProfileSwitcher />
           <button onClick={handleLogout} className="logout-btn">
@@ -85,6 +75,8 @@ export function TeacherLayout() {
             <span>Salir</span>
           </button>
         </div>
+
+        <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
       </aside>
 
       <main className="admin-content">
