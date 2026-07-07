@@ -220,6 +220,12 @@
     align-items: center;
     margin-top: 0;
     border-top: none;
+    border-left: 1px solid var(--border-color);
+    padding: 0 0.75rem;
+  }
+
+  .sidebar-footer:not(:has(> :not(.logout-btn))) {
+    display: none;
   }
 
   .sidebar-footer .logout-btn {
