@@ -8,12 +8,12 @@ interface OverflowMenuProps {
 }
 
 const menuItems = [
-  { label: 'Perfil', icon: User, path: '/admin/profile' },
   { label: 'Alumnos', icon: Users, path: '/admin/students' },
   { label: 'Planes', icon: Tag, path: '/admin/plans' },
   { label: 'Profesores', icon: BookOpen, path: '/admin/teachers' },
   { label: 'Matrículas', icon: ClipboardCheck, path: '/admin/enrollments' },
   { label: 'Finanzas', icon: Wallet, path: '/admin/finances' },
+  { label: 'Perfil', icon: User, path: '/admin/profile' },
 ];
 
 export function OverflowMenu({ isOpen, onClose, onNavigate, currentPath }: OverflowMenuProps) {
