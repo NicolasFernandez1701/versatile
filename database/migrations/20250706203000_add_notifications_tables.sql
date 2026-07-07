@@ -38,11 +38,17 @@ CREATE TABLE public.notifications (
     body          TEXT              NOT NULL,
     reference_id  UUID,              -- Optional: class_id, plan_id, etc.
     sent_at       TIMESTAMPTZ       NOT NULL DEFAULT timezone('utc'::text, now()),
-    read_at       TIMESTAMPTZ,
-
-    -- Prevent duplicate notifications (same user, type, reference, day)
-    UNIQUE (user_id, type, reference_id, DATE(sent_at))
+    read_at       TIMESTAMPTZ
 );
+
+-- Unique constraints via partial indexes (PostgreSQL doesn't allow expressions in UNIQUE)
+CREATE UNIQUE INDEX idx_notifications_unique_daily
+    ON public.notifications (user_id, type, DATE(sent_at))
+    WHERE reference_id IS NULL;
+
+CREATE UNIQUE INDEX idx_notifications_unique_daily_ref
+    ON public.notifications (user_id, type, reference_id, DATE(sent_at))
+    WHERE reference_id IS NOT NULL;
 
 CREATE INDEX idx_notifications_user_unread
     ON public.notifications (user_id, read_at DESC)

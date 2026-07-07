@@ -719,9 +719,16 @@ CREATE TABLE public.notifications (
     body          TEXT              NOT NULL,
     reference_id  UUID,
     sent_at       TIMESTAMPTZ       NOT NULL DEFAULT timezone('utc'::text, now()),
-    read_at       TIMESTAMPTZ,
-    UNIQUE (user_id, type, reference_id, DATE(sent_at))
+    read_at       TIMESTAMPTZ
 );
+
+CREATE UNIQUE INDEX idx_notifications_unique_daily
+    ON public.notifications (user_id, type, DATE(sent_at))
+    WHERE reference_id IS NULL;
+
+CREATE UNIQUE INDEX idx_notifications_unique_daily_ref
+    ON public.notifications (user_id, type, reference_id, DATE(sent_at))
+    WHERE reference_id IS NOT NULL;
 
 CREATE INDEX idx_notifications_user_unread
     ON public.notifications (user_id, read_at DESC)

@@ -35,9 +35,8 @@ describe('notifications migration', () => {
     expect(sql).toMatch(/\breference_id\s+UUID/i);
     expect(sql).toMatch(/\bsent_at\s+TIMESTAMPTZ\s+NOT NULL/i);
     expect(sql).toMatch(/\bread_at\s+TIMESTAMPTZ/i);
-    expect(sql).toMatch(
-      /UNIQUE\s*\(\s*user_id\s*,\s*type\s*,\s*reference_id\s*,\s*DATE\s*\(\s*sent_at\s*\)\s*\)/i,
-    );
+    expect(sql).toMatch(/CREATE\s+UNIQUE\s+INDEX\s+idx_notifications_unique_daily/i);
+    expect(sql).toMatch(/CREATE\s+UNIQUE\s+INDEX\s+idx_notifications_unique_daily_ref/i);
   });
 
   it('should create the push_subscriptions table with required columns and constraints', () => {

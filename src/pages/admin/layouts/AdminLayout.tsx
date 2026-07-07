@@ -43,7 +43,7 @@ export function AdminLayout() {
     };
   }, [user?.id]);
 
-  const overflowRoutes = ['/admin/students', '/admin/plans', '/admin/teachers', '/admin/enrollments', '/admin/profile'];
+  const overflowRoutes = ['/admin/students', '/admin/plans', '/admin/teachers', '/admin/enrollments', '/admin/finances', '/admin/profile'];
   const isOverflowActive = overflowRoutes.some((route) =>
     location.pathname.startsWith(route),
   );
@@ -105,7 +105,7 @@ export function AdminLayout() {
           </NavLink>
           <NavLink
             to="/admin/finances"
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            className={({ isActive }) => `nav-item hide-on-mobile ${isActive ? 'active' : ''}`}
           >
             <Wallet size={20} />
             <span>Finanzas</span>
