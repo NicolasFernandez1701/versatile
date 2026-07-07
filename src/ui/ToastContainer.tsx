@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
-import type { NotificationEntity } from '@/core/types/notifications.types';
 import './ToastContainer.css';
 
 interface Toast {

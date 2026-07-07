@@ -1,13 +1,31 @@
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
+import { useNotificationStore } from '@/core/store/useNotificationStore';
 import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
+import { NotificationBell } from '@/ui/NotificationBell';
+import { NotificationPanel } from '@/ui/NotificationPanel';
 import { LayoutDashboard, Calendar, CalendarDays, User, LogOut } from 'lucide-react';
 import '@/pages/admin/styles/admin.css';
 
 export function TeacherLayout() {
   const { logout } = useAuthStore();
   const navigate = useNavigate();
+  const [panelOpen, setPanelOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const { fetchNotifications, setupRealtime, teardownRealtime } = useNotificationStore.getState();
+    fetchNotifications(user.id);
+    setupRealtime(user.id);
+
+    return () => {
+      teardownRealtime();
+    };
+  }, [user?.id]);
 
   const handleLogout = async () => {
     await authService.logout();
@@ -20,7 +38,13 @@ export function TeacherLayout() {
       {/* Sidebar para Desktop / Bottom Bar para Mobile */}
       <aside className="admin-sidebar">
         <div className="sidebar-header">
-          <img src="/versatile-logo.png" alt="Logo" className="sidebar-logo" />
+          <div className="sidebar-header__logo">
+            <img src="/versatile-logo.png" alt="Logo" className="sidebar-logo" />
+          </div>
+          <div className="notification-area">
+            <NotificationBell onClick={() => setPanelOpen(true)} />
+            <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
+          </div>
         </div>
 
         <nav className="sidebar-nav">

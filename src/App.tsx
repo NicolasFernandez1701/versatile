@@ -8,6 +8,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { TeacherOnboardingPage } from './pages/onboarding/TeacherOnboardingPage';
 import { ProtectedRoute } from './ui/ProtectedRoute';
+import { ToastContainer } from './ui/ToastContainer';
 import { AdminLayout } from './pages/admin/layouts/AdminLayout';
 import { AdminDashboard } from './pages/admin/dashboard/AdminDashboard';
 import { ClassesPage } from './pages/admin/classes/ClassesPage';
@@ -78,6 +79,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="app-layout">
+        <ToastContainer />
         <Routes>
           {/* Rutas Públicas */}
           <Route path="/login" element={<LoginPage />} />
