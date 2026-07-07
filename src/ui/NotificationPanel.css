@@ -1,9 +1,9 @@
 .notification-panel {
   position: absolute;
   left: 250px;
-  top: 0;
+  top: 70px;
   width: 320px;
-  max-height: 100vh;
+  max-height: calc(100vh - 70px);
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-left: none;
