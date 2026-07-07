@@ -9,6 +9,7 @@ import './NotificationPanel.css';
 interface NotificationPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  style?: React.CSSProperties;
 }
 
 const TYPE_ICONS: Record<NotificationType, string> = {
@@ -52,7 +53,7 @@ function getNavigationPath(type: NotificationType, role: string | null): string 
   return null;
 }
 
-export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
+export function NotificationPanel({ isOpen, onClose, style }: NotificationPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -101,6 +102,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
       ref={panelRef}
       role="dialog"
       aria-label="Panel de notificaciones"
+      style={style}
     >
       <div className="notification-panel__header">
         <h3>Notificaciones</h3>

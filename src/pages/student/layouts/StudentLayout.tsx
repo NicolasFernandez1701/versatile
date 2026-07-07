@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
 import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
-import { NotificationBell } from '@/ui/NotificationBell';
 import { NotificationPanel } from '@/ui/NotificationPanel';
 import { LayoutDashboard, CalendarDays, User, LogOut, Tag, Bell } from 'lucide-react';
 import { ConfirmModal } from '@/ui';
@@ -13,10 +12,19 @@ import '@/pages/admin/styles/admin.css';
 export function StudentLayout() {
   const { logout } = useAuthStore();
   const navigate = useNavigate();
-
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [panelTop, setPanelTop] = useState<number | undefined>(undefined);
+  const desktopBellRef = useRef<HTMLButtonElement>(null);
   const user = useAuthStore((state) => state.user);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+
+  useEffect(() => {
+    if (panelOpen && desktopBellRef.current) {
+      const rect = desktopBellRef.current.getBoundingClientRect();
+      setPanelTop(rect.top);
+    }
+  }, [panelOpen]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -30,9 +38,7 @@ export function StudentLayout() {
     };
   }, [user?.id]);
 
-  const handleLogout = () => {
-    setShowLogoutConfirm(true);
-  };
+  const handleLogout = () => setShowLogoutConfirm(true);
 
   const confirmLogout = async () => {
     await authService.logout();
@@ -42,24 +48,35 @@ export function StudentLayout() {
 
   return (
     <div className="admin-layout">
-      {/* Sidebar Navigation */}
       <aside className="admin-sidebar">
         <div className="sidebar-header">
           <div className="sidebar-header__logo">
             <img src="/versatile-logo.png" alt="Logo" className="sidebar-logo" />
           </div>
-          <div className="notification-area">
-            <NotificationBell onClick={() => setPanelOpen(true)} />
-          </div>
         </div>
 
         <nav className="sidebar-nav">
-          {/* Notification bell — mobile only (desktop version in sidebar-header) */}
+          <button
+            ref={desktopBellRef}
+            onClick={() => setPanelOpen(true)}
+            className="nav-item hide-on-mobile"
+          >
+            <Bell size={20} />
+            <span>Notificaciones</span>
+            {unreadCount > 0 && (
+              <span className="sidebar-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+            )}
+          </button>
           <button
             onClick={() => setPanelOpen(true)}
             className="nav-item hide-on-desktop"
           >
-            <Bell size={20} />
+            <div className="mobile-nav-icon-wrapper">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="mobile-nav-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </div>
             <span>Notif.</span>
           </button>
           <NavLink
@@ -69,7 +86,6 @@ export function StudentLayout() {
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </NavLink>
-
           <NavLink
             to="/student/catalog"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -77,7 +93,6 @@ export function StudentLayout() {
             <CalendarDays size={20} />
             <span>Grilla</span>
           </NavLink>
-
           <NavLink
             to="/student/plans"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -85,7 +100,6 @@ export function StudentLayout() {
             <Tag size={20} />
             <span>Planes</span>
           </NavLink>
-
           <NavLink
             to="/student/classes"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -93,7 +107,6 @@ export function StudentLayout() {
             <CalendarDays size={20} />
             <span>Reservas</span>
           </NavLink>
-
           <NavLink
             to="/student/profile"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -110,14 +123,17 @@ export function StudentLayout() {
             <span>Salir</span>
           </button>
         </div>
-
-        <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
       </aside>
 
-      {/* Main Content Area */}
       <main className="admin-content">
         <Outlet />
       </main>
+
+      <NotificationPanel
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        style={panelTop !== undefined ? { top: `${panelTop}px` } : undefined}
+      />
 
       <ConfirmModal
         isOpen={showLogoutConfirm}

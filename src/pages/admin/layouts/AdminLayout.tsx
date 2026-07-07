@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
@@ -28,7 +28,18 @@ export function AdminLayout() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [panelTop, setPanelTop] = useState<number | undefined>(undefined);
+  const desktopBellRef = useRef<HTMLButtonElement>(null);
   const user = useAuthStore((state) => state.user);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+
+  useEffect(() => {
+    if (panelOpen && desktopBellRef.current) {
+      const rect = desktopBellRef.current.getBoundingClientRect();
+      // align the top of the panel with the top of the button
+      setPanelTop(rect.top);
+    }
+  }, [panelOpen]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -70,18 +81,27 @@ export function AdminLayout() {
         <nav className="sidebar-nav">
           {/* Desktop notification bell */}
           <button
+            ref={desktopBellRef}
             onClick={() => setPanelOpen(true)}
             className="nav-item hide-on-mobile"
           >
             <Bell size={20} />
             <span>Notificaciones</span>
+            {unreadCount > 0 && (
+              <span className="sidebar-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+            )}
           </button>
           {/* Mobile notification bell */}
           <button
             onClick={() => setPanelOpen(true)}
             className="nav-item hide-on-desktop"
           >
-            <Bell size={20} />
+            <div className="mobile-nav-icon-wrapper">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="mobile-nav-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </div>
             <span>Notif.</span>
           </button>
           <NavLink
@@ -172,7 +192,11 @@ export function AdminLayout() {
         <Outlet />
       </main>
 
-      <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
+      <NotificationPanel 
+        isOpen={panelOpen} 
+        onClose={() => setPanelOpen(false)} 
+        style={panelTop !== undefined ? { top: `${panelTop}px` } : undefined}
+      />
 
       <OverflowMenu
         isOpen={menuOpen}
