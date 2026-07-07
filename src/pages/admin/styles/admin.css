@@ -216,17 +216,7 @@
   }
 
   .sidebar-footer {
-    display: flex;
-    align-items: center;
-    margin-top: 0;
-    border-top: none;
-    border-left: 1px solid var(--border-color);
-    padding-left: 0.5rem;
-    padding-right: 0;
-  }
-
-  .sidebar-footer:not(:has(> :not(.logout-btn))) {
-    display: none;
+    display: contents;
   }
 
   .sidebar-footer .logout-btn {
@@ -234,10 +224,7 @@
   }
 
   .sidebar-nav {
-    flex-direction: row;
-    justify-content: space-evenly;
-    flex: 1;
-    padding-right: 0.5rem;
+    display: contents;
   }
 
   .nav-item {
