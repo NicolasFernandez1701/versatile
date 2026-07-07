@@ -1,11 +1,11 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { buildPushPayload, sendPushNotification } from '@pushforge/builder';
+import { buildPushHTTPRequest } from '@pushforge/builder';
 
 interface Env {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   VAPID_PUBLIC_KEY: string;
-  VAPID_PRIVATE_KEY: string;
+  VAPID_PRIVATE_KEY: string; // JWK string for @pushforge/builder
   STUDIO_TIMEZONE: string;
 }
 
@@ -81,20 +81,17 @@ export function buildPlanExpirationPayload(days: number): { title: string; body:
 export default {
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-    const vapidKeys = {
-      publicKey: env.VAPID_PUBLIC_KEY,
-      privateKey: env.VAPID_PRIVATE_KEY,
-    };
+    const privateJWK = env.VAPID_PRIVATE_KEY;
 
-    await sendDailySummaries(supabase, vapidKeys, env.STUDIO_TIMEZONE);
-    await sendPreClassReminders(supabase, vapidKeys);
-    await sendPlanExpirationAlerts(supabase, vapidKeys);
+    await sendDailySummaries(supabase, privateJWK, env.STUDIO_TIMEZONE);
+    await sendPreClassReminders(supabase, privateJWK);
+    await sendPlanExpirationAlerts(supabase, privateJWK);
   },
 };
 
 export async function sendDailySummaries(
   supabase: SupabaseClient,
-  vapidKeys: { publicKey: string; privateKey: string },
+  privateJWK: string,
   timezone: string
 ): Promise<void> {
   const now = new Date();
@@ -147,13 +144,13 @@ export async function sendDailySummaries(
 
     if (insertErr) continue;
 
-    await sendPush(supabase, userId, { title, body }, vapidKeys);
+    await sendPush(supabase, userId, { title, body }, privateJWK);
   }
 }
 
 export async function sendPreClassReminders(
   supabase: SupabaseClient,
-  vapidKeys: { publicKey: string; privateKey: string }
+  privateJWK: string
 ): Promise<void> {
   const now = new Date();
   const { today, nowTime, laterTime } = getPreClassWindow(now);
@@ -172,7 +169,7 @@ export async function sendPreClassReminders(
     const startTime = e.classes?.start_time ?? '';
     const { title, body } = buildPreClassReminderPayload(className, startTime);
 
-    await insertAndPush(supabase, e.student_id, 'pre_class_reminder', title, body, e.class_id, vapidKeys);
+    await insertAndPush(supabase, e.student_id, 'pre_class_reminder', title, body, e.class_id, privateJWK);
 
     if (e.classes?.teacher_id && e.classes.teacher_id !== e.student_id) {
       await insertAndPush(
@@ -182,7 +179,7 @@ export async function sendPreClassReminders(
         title,
         body,
         e.class_id,
-        vapidKeys
+        privateJWK
       );
     }
   }
@@ -190,12 +187,11 @@ export async function sendPreClassReminders(
 
 export async function sendPlanExpirationAlerts(
   supabase: SupabaseClient,
-  vapidKeys: { publicKey: string; privateKey: string }
+  privateJWK: string
 ): Promise<void> {
   const now = new Date();
-  const milestones = [1, 3, 7];
 
-  for (const days of milestones) {
+  for (const days of [1, 3, 7]) {
     const target = new Date(now);
     target.setDate(target.getDate() + days);
     const targetDateStr = target.toISOString().split('T')[0];
@@ -211,7 +207,7 @@ export async function sendPlanExpirationAlerts(
     const { title, body } = buildPlanExpirationPayload(days);
 
     for (const p of profiles as ProfileRow[]) {
-      await insertAndPush(supabase, p.id, 'plan_expiration', title, body, null, vapidKeys);
+      await insertAndPush(supabase, p.id, 'plan_expiration', title, body, null, privateJWK);
     }
   }
 }
@@ -223,7 +219,7 @@ async function insertAndPush(
   title: string,
   body: string,
   referenceId: string | null,
-  vapidKeys: { publicKey: string; privateKey: string }
+  privateJWK: string
 ): Promise<void> {
   const { error } = await supabase.from('notifications').insert({
     user_id: userId,
@@ -235,14 +231,14 @@ async function insertAndPush(
 
   if (error) return;
 
-  await sendPush(supabase, userId, { title, body }, vapidKeys);
+  await sendPush(supabase, userId, { title, body }, privateJWK);
 }
 
 export async function sendPush(
   supabase: SupabaseClient,
   userId: string,
   payload: { title: string; body: string; url?: string },
-  vapidKeys: { publicKey: string; privateKey: string }
+  privateJWK: string
 ): Promise<void> {
   const { data: subs, error } = await supabase.from('push_subscriptions').select('*').eq('user_id', userId);
 
@@ -250,22 +246,23 @@ export async function sendPush(
 
   for (const sub of subs as PushSubscription[]) {
     try {
-      const pushPayload = buildPushPayload(
-        {
+      const request = await buildPushHTTPRequest({
+        privateJWK,
+        message: {
+          payload,
+          adminContact: 'mailto:admin@versa.club',
+        },
+        subscription: {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh_key, auth: sub.auth_key },
         },
-        JSON.stringify(payload),
-        {
-          vapid: {
-            subject: 'mailto:admin@versa.club',
-            publicKey: vapidKeys.publicKey,
-            privateKey: vapidKeys.privateKey,
-          },
-        }
-      );
+      });
 
-      const response = await sendPushNotification(pushPayload);
+      const response = await fetch(request.endpoint, {
+        method: 'POST',
+        headers: request.headers,
+        body: request.body,
+      });
 
       if (response.status === 410 || response.status === 404) {
         await supabase.from('push_subscriptions').delete().eq('id', sub.id);
