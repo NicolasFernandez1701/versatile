@@ -330,6 +330,49 @@ AS $$
 $$;
 
 -- ==========================================
+-- 15. NOTIFICATIONS — Push & In-App Notification System
+-- ==========================================
+CREATE TYPE public.notification_type AS ENUM (
+    'daily_summary',
+    'pre_class_reminder',
+    'plan_expiration'
+);
+
+CREATE TABLE public.notifications (
+    id            UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID              NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type          notification_type NOT NULL,
+    title         VARCHAR(200)      NOT NULL,
+    body          TEXT              NOT NULL,
+    reference_id  UUID,
+    sent_at       TIMESTAMPTZ       NOT NULL DEFAULT timezone('utc'::text, now()),
+    read_at       TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX idx_notifications_unique
+    ON public.notifications (user_id, type, reference_id)
+    WHERE reference_id IS NOT NULL;
+
+CREATE INDEX idx_notifications_user_unread
+    ON public.notifications (user_id, read_at DESC)
+    WHERE read_at IS NULL;
+
+CREATE INDEX idx_notifications_user_sent
+    ON public.notifications (user_id, sent_at DESC);
+
+CREATE TABLE public.push_subscriptions (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID         NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    endpoint    TEXT         NOT NULL UNIQUE,
+    p256dh_key  TEXT         NOT NULL,
+    auth_key    TEXT         NOT NULL,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX idx_push_subscriptions_user
+    ON public.push_subscriptions (user_id);
+
+-- ==========================================
 -- 16. ROW LEVEL SECURITY
 -- ==========================================
 
@@ -701,49 +744,6 @@ BEGIN
     RETURN result;
 END;
 $$;
-
--- ==========================================
--- 17. NOTIFICATIONS — Push & In-App Notification System
--- ==========================================
-CREATE TYPE public.notification_type AS ENUM (
-    'daily_summary',
-    'pre_class_reminder',
-    'plan_expiration'
-);
-
-CREATE TABLE public.notifications (
-    id            UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id       UUID              NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    type          notification_type NOT NULL,
-    title         VARCHAR(200)      NOT NULL,
-    body          TEXT              NOT NULL,
-    reference_id  UUID,
-    sent_at       TIMESTAMPTZ       NOT NULL DEFAULT timezone('utc'::text, now()),
-    read_at       TIMESTAMPTZ
-);
-
-CREATE UNIQUE INDEX idx_notifications_unique
-    ON public.notifications (user_id, type, reference_id)
-    WHERE reference_id IS NOT NULL;
-
-CREATE INDEX idx_notifications_user_unread
-    ON public.notifications (user_id, read_at DESC)
-    WHERE read_at IS NULL;
-
-CREATE INDEX idx_notifications_user_sent
-    ON public.notifications (user_id, sent_at DESC);
-
-CREATE TABLE public.push_subscriptions (
-    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     UUID         NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    endpoint    TEXT         NOT NULL UNIQUE,
-    p256dh_key  TEXT         NOT NULL,
-    auth_key    TEXT         NOT NULL,
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT timezone('utc'::text, now())
-);
-
-CREATE INDEX idx_push_subscriptions_user
-    ON public.push_subscriptions (user_id);
 
 -- ==========================================
 -- BOOTSTRAP — Default studio for fresh installs
