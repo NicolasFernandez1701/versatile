@@ -21,8 +21,9 @@ export function StudentLayout() {
 
   useEffect(() => {
     if (panelOpen && desktopBellRef.current) {
-      const rect = desktopBellRef.current.getBoundingClientRect();
-      setPanelTop(rect.top);
+      const btnTop = desktopBellRef.current.getBoundingClientRect().top;
+      const layoutTop = document.querySelector('.admin-layout')?.getBoundingClientRect().top ?? 0;
+      setPanelTop(btnTop - layoutTop);
     }
   }, [panelOpen]);
 
@@ -112,7 +113,7 @@ export function StudentLayout() {
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <User size={20} />
-            <span>Mi Perfil</span>
+            <span>Perfil</span>
           </NavLink>
         </nav>
 

@@ -35,9 +35,9 @@ export function AdminLayout() {
 
   useEffect(() => {
     if (panelOpen && desktopBellRef.current) {
-      const rect = desktopBellRef.current.getBoundingClientRect();
-      // align the top of the panel with the top of the button
-      setPanelTop(rect.top);
+      const btnTop = desktopBellRef.current.getBoundingClientRect().top;
+      const layoutTop = document.querySelector('.admin-layout')?.getBoundingClientRect().top ?? 0;
+      setPanelTop(btnTop - layoutTop);
     }
   }, [panelOpen]);
 
