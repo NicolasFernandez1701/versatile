@@ -6,7 +6,7 @@ import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
 import { NotificationBell } from '@/ui/NotificationBell';
 import { NotificationPanel } from '@/ui/NotificationPanel';
-import { LayoutDashboard, Calendar, CalendarDays, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, CalendarDays, User, LogOut, Bell } from 'lucide-react';
 import '@/pages/admin/styles/admin.css';
 
 export function TeacherLayout() {
@@ -35,14 +35,26 @@ export function TeacherLayout() {
 
   return (
     <div className="admin-layout">
+      {/* Sidebar para Desktop / Bottom Bar para Mobile */}
       <aside className="admin-sidebar">
         <div className="sidebar-header">
           <div className="sidebar-header__logo">
             <img src="/versatile-logo.png" alt="Logo" className="sidebar-logo" />
           </div>
+          <div className="notification-area">
+            <NotificationBell onClick={() => setPanelOpen(true)} />
+          </div>
         </div>
 
         <nav className="sidebar-nav">
+          {/* Notification bell — mobile only (desktop version in sidebar-header) */}
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="nav-item hide-on-desktop"
+          >
+            <Bell size={20} />
+            <span>Notif.</span>
+          </button>
           <NavLink
             to="/teacher/dashboard"
             end
@@ -75,18 +87,17 @@ export function TeacherLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="notification-area">
-            <NotificationBell onClick={() => setPanelOpen(true)} />
-            <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
-          </div>
           <ProfileSwitcher />
           <button onClick={handleLogout} className="logout-btn">
             <LogOut size={20} />
             <span>Salir</span>
           </button>
         </div>
+
+        <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
       </aside>
 
+      {/* Contenido principal inyectado por el Router */}
       <main className="admin-content">
         <Outlet />
       </main>
