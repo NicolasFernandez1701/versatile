@@ -41,13 +41,10 @@ CREATE TABLE public.notifications (
     read_at       TIMESTAMPTZ
 );
 
--- Unique constraints via partial indexes (PostgreSQL doesn't allow expressions in UNIQUE)
-CREATE UNIQUE INDEX idx_notifications_unique_daily
-    ON public.notifications (user_id, type, DATE(sent_at))
-    WHERE reference_id IS NULL;
-
-CREATE UNIQUE INDEX idx_notifications_unique_daily_ref
-    ON public.notifications (user_id, type, reference_id, DATE(sent_at))
+-- Dedup: same user can't get same notification type for same reference
+-- Daily summaries (reference_id IS NULL) are naturally deduped by the 8 AM guard in the worker
+CREATE UNIQUE INDEX idx_notifications_unique
+    ON public.notifications (user_id, type, reference_id)
     WHERE reference_id IS NOT NULL;
 
 CREATE INDEX idx_notifications_user_unread
