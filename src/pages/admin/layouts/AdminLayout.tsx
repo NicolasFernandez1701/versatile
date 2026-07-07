@@ -17,8 +17,7 @@ import {
   ClipboardCheck,
   CalendarDays,
   User,
-  LayoutGrid,
-  Bell
+  LayoutGrid
 } from 'lucide-react';
 import { OverflowMenu } from './OverflowMenu';
 import '../styles/admin.css';
@@ -70,14 +69,6 @@ export function AdminLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          {/* Mobile notification bell */}
-          <button
-            onClick={() => setPanelOpen(true)}
-            className="nav-item hide-on-desktop"
-          >
-            <Bell size={20} />
-            <span>Notif.</span>
-          </button>
           <NavLink
             to="/admin"
             end
@@ -156,8 +147,9 @@ export function AdminLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="notification-area hide-on-mobile">
+          <div className="notification-area">
             <NotificationBell onClick={() => setPanelOpen(true)} />
+            <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
           </div>
           <ProfileSwitcher />
           <button onClick={handleLogout} className="logout-btn">
@@ -165,8 +157,6 @@ export function AdminLayout() {
             <span>Salir</span>
           </button>
         </div>
-
-        <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
       </aside>
 
       {/* Contenido principal inyectado por el Router */}

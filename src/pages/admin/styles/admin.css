@@ -19,7 +19,6 @@
   min-width: 0;
   height: 100vh;
   overflow-y: auto;
-  position: relative;
 }
 
 .sidebar-header {
