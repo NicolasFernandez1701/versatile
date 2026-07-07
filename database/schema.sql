@@ -24,6 +24,9 @@ DROP TABLE IF EXISTS public.studio_members CASCADE;
 DROP TABLE IF EXISTS public.studios CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP TABLE IF EXISTS public.plans CASCADE;
+DROP TABLE IF EXISTS public.push_subscriptions CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TYPE IF EXISTS public.notification_type CASCADE;
 
 -- ==========================================
 -- 2. STUDIOS TABLE (tenant entity)
@@ -600,6 +603,36 @@ CREATE POLICY commissions_tenant_delete ON public.commissions
     FOR DELETE TO authenticated
     USING (studio_id = ANY(SELECT public.auth_studio_ids()));
 
+-- notifications (user-scoped, not studio-scoped — each user sees their own)
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY notifications_select_own ON public.notifications
+    FOR SELECT TO authenticated
+    USING (user_id = auth.uid());
+
+CREATE POLICY notifications_insert_own ON public.notifications
+    FOR INSERT TO authenticated
+    WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY notifications_update_own ON public.notifications
+    FOR UPDATE TO authenticated
+    USING (user_id = auth.uid());
+
+-- push_subscriptions (user-scoped)
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY push_subscriptions_select_own ON public.push_subscriptions
+    FOR SELECT TO authenticated
+    USING (user_id = auth.uid());
+
+CREATE POLICY push_subscriptions_insert_own ON public.push_subscriptions
+    FOR INSERT TO authenticated
+    WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY push_subscriptions_delete_own ON public.push_subscriptions
+    FOR DELETE TO authenticated
+    USING (user_id = auth.uid());
+
 -- ==========================================
 -- 17. RPC FUNCTIONS
 -- ==========================================
@@ -668,6 +701,46 @@ BEGIN
     RETURN result;
 END;
 $$;
+
+-- ==========================================
+-- 17. NOTIFICATIONS — Push & In-App Notification System
+-- ==========================================
+CREATE TYPE public.notification_type AS ENUM (
+    'daily_summary',
+    'pre_class_reminder',
+    'plan_expiration'
+);
+
+CREATE TABLE public.notifications (
+    id            UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID              NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type          notification_type NOT NULL,
+    title         VARCHAR(200)      NOT NULL,
+    body          TEXT              NOT NULL,
+    reference_id  UUID,
+    sent_at       TIMESTAMPTZ       NOT NULL DEFAULT timezone('utc'::text, now()),
+    read_at       TIMESTAMPTZ,
+    UNIQUE (user_id, type, reference_id, DATE(sent_at))
+);
+
+CREATE INDEX idx_notifications_user_unread
+    ON public.notifications (user_id, read_at DESC)
+    WHERE read_at IS NULL;
+
+CREATE INDEX idx_notifications_user_sent
+    ON public.notifications (user_id, sent_at DESC);
+
+CREATE TABLE public.push_subscriptions (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID         NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    endpoint    TEXT         NOT NULL UNIQUE,
+    p256dh_key  TEXT         NOT NULL,
+    auth_key    TEXT         NOT NULL,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX idx_push_subscriptions_user
+    ON public.push_subscriptions (user_id);
 
 -- ==========================================
 -- BOOTSTRAP — Default studio for fresh installs
