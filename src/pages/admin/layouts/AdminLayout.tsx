@@ -4,7 +4,6 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
 import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
-import { NotificationBell } from '@/ui/NotificationBell';
 import { NotificationPanel } from '@/ui/NotificationPanel';
 import {
   LayoutDashboard,
@@ -61,19 +60,23 @@ export function AdminLayout() {
 
   return (
     <div className="admin-layout">
-      {/* Sidebar para Desktop / Bottom Bar para Mobile */}
       <aside className="admin-sidebar">
         <div className="sidebar-header">
           <div className="sidebar-header__logo">
             <img src="/versatile-logo.png" alt="Logo" className="sidebar-logo" />
           </div>
-          <div className="notification-area">
-            <NotificationBell onClick={() => setPanelOpen(true)} />
-          </div>
         </div>
 
         <nav className="sidebar-nav">
-          {/* Notification bell — mobile only (desktop version in sidebar-header) */}
+          {/* Desktop notification bell */}
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="nav-item hide-on-mobile"
+          >
+            <Bell size={20} />
+            <span>Notificaciones</span>
+          </button>
+          {/* Mobile notification bell */}
           <button
             onClick={() => setPanelOpen(true)}
             className="nav-item hide-on-desktop"
@@ -118,7 +121,6 @@ export function AdminLayout() {
             <span>Perfil</span>
           </NavLink>
 
-          {/* Ocultos en mobile */}
           <NavLink
             to="/admin/students"
             className={({ isActive }) => `nav-item hide-on-mobile ${isActive ? 'active' : ''}`}
@@ -148,7 +150,6 @@ export function AdminLayout() {
             <span>Matrículas</span>
           </NavLink>
 
-          {/* Más — solo visible en mobile bottom bar */}
           <button
             onClick={() => setMenuOpen(true)}
             className={`nav-item hide-on-desktop${isOverflowActive ? ' active' : ''}`}
@@ -165,16 +166,14 @@ export function AdminLayout() {
             <span>Salir</span>
           </button>
         </div>
-
-        <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
       </aside>
 
-      {/* Contenido principal inyectado por el Router */}
       <main className="admin-content">
         <Outlet />
       </main>
 
-      {/* Overflow menu (mobile bottom sheet) */}
+      <NotificationPanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} />
+
       <OverflowMenu
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
