@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { Loader } from './Loader';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
 import { useAuthStore } from '@/core/store/useAuthStore';
@@ -41,6 +42,24 @@ function formatTimeAgo(dateString: string): string {
   return `Hace ${years} año${years > 1 ? 's' : ''}`;
 }
 
+function getDateGroup(dateString: string): 'today' | 'yesterday' | 'older' {
+  const date = new Date(dateString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date >= today) return 'today';
+  if (date >= yesterday) return 'yesterday';
+  return 'older';
+}
+
+const GROUP_LABELS: Record<'today' | 'yesterday' | 'older', string> = {
+  today: 'Hoy',
+  yesterday: 'Ayer',
+  older: 'Anteriores',
+};
+
 function getNavigationPath(type: NotificationType, role: string | null): string | null {
   if (type === 'pre_class_reminder') {
     return role ? `/${role}/classes` : null;
@@ -73,11 +92,27 @@ export function NotificationPanel({ isOpen, onClose, style }: NotificationPanelP
     return () => document.removeEventListener('mousedown', handleMouseDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  const groupedNotifications = useMemo(() => {
+    const sorted = [...notifications].sort(
+      (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
+    );
 
-  const sortedNotifications = [...notifications].sort(
-    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
-  );
+    const groups: { key: 'today' | 'yesterday' | 'older'; label: string; items: NotificationEntity[] }[] = [];
+
+    for (const notification of sorted) {
+      const group = getDateGroup(notification.sent_at);
+      const existing = groups.find((g) => g.key === group);
+      if (existing) {
+        existing.items.push(notification);
+      } else {
+        groups.push({ key: group, label: GROUP_LABELS[group], items: [notification] });
+      }
+    }
+
+    return groups;
+  }, [notifications]);
+
+  if (!isOpen) return null;
 
   const handleMarkAllAsRead = () => {
     if (user?.id) {
@@ -94,6 +129,11 @@ export function NotificationPanel({ isOpen, onClose, style }: NotificationPanelP
     }
 
     onClose();
+  };
+
+  const handleMarkSingle = (e: React.MouseEvent, notification: NotificationEntity) => {
+    e.stopPropagation();
+    markAsRead([notification.id]);
   };
 
   return (
@@ -127,36 +167,54 @@ export function NotificationPanel({ isOpen, onClose, style }: NotificationPanelP
         </div>
       )}
 
-      {!isLoading && !error && sortedNotifications.length === 0 && (
+      {!isLoading && !error && groupedNotifications.length === 0 && (
         <div className="notification-panel__empty">
           <p>No tenés notificaciones</p>
         </div>
       )}
 
-      {!isLoading && !error && sortedNotifications.length > 0 && (
-        <ul className="notification-panel__list" role="list">
-          {sortedNotifications.map((notification) => (
-            <li
-              key={notification.id}
-              className={`notification-panel__item ${
-                notification.read_at ? 'notification-panel__item--read' : ''
-              }`}
-              onClick={() => handleItemClick(notification)}
-              role="listitem"
-            >
-              <span className="notification-panel__icon" aria-hidden="true">
-                {TYPE_ICONS[notification.type]}
-              </span>
-              <div className="notification-panel__content">
-                <p className="notification-panel__title">{notification.title}</p>
-                <p className="notification-panel__body">{notification.body}</p>
-                <time className="notification-panel__time" dateTime={notification.sent_at}>
-                  {formatTimeAgo(notification.sent_at)}
-                </time>
-              </div>
-            </li>
+      {!isLoading && !error && groupedNotifications.length > 0 && (
+        <div className="notification-panel__scroll">
+          {groupedNotifications.map((group) => (
+            <div key={group.key} className="notification-panel__group">
+              <div className="notification-panel__group-label">{group.label}</div>
+              <ul className="notification-panel__list" role="list">
+                {group.items.map((notification) => (
+                  <li
+                    key={notification.id}
+                    className={`notification-panel__item ${
+                      notification.read_at ? 'notification-panel__item--read' : ''
+                    }`}
+                    onClick={() => handleItemClick(notification)}
+                    role="listitem"
+                  >
+                    <span className="notification-panel__icon" aria-hidden="true">
+                      {TYPE_ICONS[notification.type]}
+                    </span>
+                    <div className="notification-panel__content">
+                      <p className="notification-panel__title">{notification.title}</p>
+                      <p className="notification-panel__body">{notification.body}</p>
+                      <time className="notification-panel__time" dateTime={notification.sent_at}>
+                        {formatTimeAgo(notification.sent_at)}
+                      </time>
+                    </div>
+                    {!notification.read_at && (
+                      <button
+                        type="button"
+                        className="notification-panel__mark-read"
+                        onClick={(e) => handleMarkSingle(e, notification)}
+                        aria-label="Marcar como leído"
+                        title="Marcar como leído"
+                      >
+                        <Check size={14} />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
