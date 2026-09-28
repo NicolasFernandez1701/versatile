@@ -25,6 +25,7 @@ import { TeacherDashboard } from '@/pages/teacher/dashboard/TeacherDashboard';
 import { TeacherClassesPage } from '@/pages/teacher/classes/TeacherClassesPage';
 
 import { ProfilePage } from './pages/admin/profile/ProfilePage';
+import { ReportsPage } from './pages/admin/reports/ReportsPage';
 import { StudentLayout } from './pages/student/layouts/StudentLayout';
 import { StudentDashboard } from './pages/student/dashboard/StudentDashboard';
 import { StudentClassesPage } from './pages/student/classes/StudentClassesPage';
@@ -101,6 +102,7 @@ export default function App() {
               <Route path="teachers" element={<TeachersPage />} />
               <Route path="enrollments" element={<EnrollmentsPage />} />
               <Route path="calendar" element={<AdminCalendarPage />} />
+              <Route path="reports" element={<ReportsPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
           </Route>

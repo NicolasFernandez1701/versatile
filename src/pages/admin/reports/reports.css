@@ -1,0 +1,156 @@
+/* Reports Module */
+
+.reports-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.reports-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.reports-tab:hover {
+  color: var(--primary-color);
+}
+
+.reports-tab--active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.reports-date-filter {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.reports-date-filter label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.reports-date-filter input[type='date'] {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.reports-content {
+  min-height: 300px;
+}
+
+.report-table-wrapper {
+  background: var(--surface-color);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+/* Revenue Chart */
+.revenue-chart {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mini-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 120px;
+  padding: 0 0 0.5rem 0;
+}
+
+.mini-bar-chart__bar {
+  flex: 1;
+  background: linear-gradient(to top, var(--primary-color), #8854d0);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+}
+
+.mini-bar-chart__bar:hover {
+  opacity: 0.8;
+}
+
+.revenue-labels {
+  display: flex;
+  gap: 4px;
+}
+
+.revenue-labels span {
+  flex: 1;
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Horizontal Bar (for popular classes) */
+.horizontal-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--input-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.horizontal-bar__fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--primary-color), #8854d0);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .reports-tabs {
+    gap: 0.25rem;
+  }
+
+  .reports-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .reports-tab span {
+    display: none;
+  }
+
+  .reports-date-filter {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .revenue-labels span {
+    font-size: 0.55rem;
+  }
+}

@@ -18,7 +18,8 @@ import {
   CalendarDays,
   User,
   LayoutGrid,
-  Bell
+  Bell,
+  BarChart3
 } from 'lucide-react';
 import { OverflowMenu } from './OverflowMenu';
 import '../styles/admin.css';
@@ -56,7 +57,7 @@ export function AdminLayout() {
     };
   }, [user?.id]);
 
-  const overflowRoutes = ['/admin/students', '/admin/plans', '/admin/teachers', '/admin/enrollments', '/admin/finances', '/admin/profile'];
+  const overflowRoutes = ['/admin/students', '/admin/plans', '/admin/teachers', '/admin/enrollments', '/admin/finances', '/admin/reports', '/admin/profile'];
   const isOverflowActive = overflowRoutes.some((route) =>
     location.pathname.startsWith(route),
   );
@@ -171,6 +172,13 @@ export function AdminLayout() {
           >
             <ClipboardCheck size={20} />
             <span>Matrículas</span>
+          </NavLink>
+          <NavLink
+            to="/admin/reports"
+            className={({ isActive }) => `nav-item hide-on-mobile ${isActive ? 'active' : ''}`}
+          >
+            <BarChart3 size={20} />
+            <span>Reportes</span>
           </NavLink>
 
           <button
