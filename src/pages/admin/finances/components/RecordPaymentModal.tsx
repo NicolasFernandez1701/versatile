@@ -26,6 +26,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     setAmountOverride,
     isSubmitting,
     isPlanChange,
+    isPlanAssignment,
     setIsPlanChange,
     newPlanId,
     setNewPlanId,
@@ -63,13 +64,13 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                 />
               ))}
             </datalist>
-            {!currentPlan && payment.selectedStudentId && (
-              <small className="text-danger" style={{ display: 'block', marginTop: '0.5rem' }}>
+            {isPlanAssignment && (
+              <small className="text-secondary" style={{ display: 'block', marginTop: '0.5rem' }}>
                 <AlertTriangle
                   size={14}
                   style={{ display: 'inline', verticalAlign: 'text-bottom' }}
                 />{' '}
-                El alumno no tiene un plan asignado.
+                El alumno no tiene plan. Asigná uno para registrar el cobro.
               </small>
             )}
           </div>
@@ -122,16 +123,18 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             </div>
           )}
 
-          {isPlanChange && (
+          {(isPlanAssignment || isPlanChange) && (
             <div className="form-group">
-              <label>Nuevo Plan</label>
+              <label>{isPlanAssignment ? 'Plan a Asignar' : 'Nuevo Plan'}</label>
               <select
                 value={newPlanId}
                 onChange={(e) => setNewPlanId(e.target.value)}
                 required
-                aria-label="Nuevo Plan"
+                aria-label={isPlanAssignment ? 'Plan a Asignar' : 'Nuevo Plan'}
               >
-                <option value="">Seleccionar nuevo plan...</option>
+                <option value="">
+                  {isPlanAssignment ? 'Seleccionar plan...' : 'Seleccionar nuevo plan...'}
+                </option>
                 {availablePlans.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} (${p.price})
@@ -165,6 +168,13 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               <div className="breakdown-row" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
                 <span>Cambio de plan</span>
                 <span>{currentPlan?.name} → {selectedPlan.name}</span>
+              </div>
+            )}
+
+            {isPlanAssignment && (
+              <div className="breakdown-row" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
+                <span>Plan asignado</span>
+                <span>{selectedPlan.name}</span>
               </div>
             )}
 
@@ -248,7 +258,13 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           type="submit"
           form="record-payment-form"
           className="btn-primary"
-          disabled={!selectedPlan || !calculation || calculationLoading || isSubmitting || (isPlanChange && !newPlanId)}
+          disabled={
+            !selectedPlan ||
+            !calculation ||
+            calculationLoading ||
+            isSubmitting ||
+            ((isPlanChange || isPlanAssignment) && !newPlanId)
+          }
           style={{ minWidth: '200px', justifyContent: 'center' }}
         >
           <Check size={20} /> {isSubmitting ? 'Registrando...' : 'Registrar Pago'}

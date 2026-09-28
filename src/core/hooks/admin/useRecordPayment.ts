@@ -28,6 +28,7 @@ export interface UseRecordPaymentResult {
   setAmountOverride: (value: string) => void;
   isSubmitting: boolean;
   isPlanChange: boolean;
+  isPlanAssignment: boolean;
   setIsPlanChange: (value: boolean) => void;
   newPlanId: string;
   setNewPlanId: (value: string) => void;
@@ -94,12 +95,16 @@ export function useRecordPayment({
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
   const currentPlan = selectedStudent?.plans;
 
+  // A student without an assigned plan must pick one before a payment can be recorded.
+  // Otherwise the flow dead-locks: no plan selector, and submit stays disabled forever.
+  const isPlanAssignment = Boolean(selectedStudentId) && !currentPlan;
+
   const selectedPlan = useMemo(() => {
-    if (isPlanChange) {
+    if (isPlanChange || isPlanAssignment) {
       return availablePlans.find((p) => p.id === newPlanId) || currentPlan;
     }
     return currentPlan;
-  }, [isPlanChange, availablePlans, newPlanId, currentPlan]);
+  }, [isPlanChange, isPlanAssignment, availablePlans, newPlanId, currentPlan]);
 
   const promoDiscountPct = useMemo(() => {
     if (selectedStudent?.promotion_expiration_date) {
@@ -145,24 +150,36 @@ export function useRecordPayment({
       });
 
       if (found) {
+        // Reset the plan selection only when the chosen student actually changes,
+        // otherwise retyping the same name would discard a valid selection.
+        if (found.id !== selectedStudentId) {
+          setIsPlanChange(false);
+          setNewPlanId('');
+        }
         setSelectedStudentId(found.id);
         setAmountOverride('');
       } else {
         setSelectedStudentId('');
+        setIsPlanChange(false);
+        setNewPlanId('');
       }
     },
-    [students],
+    [students, selectedStudentId],
   );
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!selectedStudent || !selectedPlan || !calculation) {
-        showError('Seleccione un alumno con plan activo.');
+      if (!selectedStudent) {
+        showError('Seleccione un alumno.');
         return;
       }
-      if (isPlanChange && !newPlanId) {
-        showError('Seleccione el nuevo plan');
+      if ((isPlanChange || isPlanAssignment) && !newPlanId) {
+        showError('Seleccione el plan.');
+        return;
+      }
+      if (!selectedPlan || !calculation) {
+        showError('No se pudo calcular el pago. Verifique el plan del alumno.');
         return;
       }
 
@@ -170,10 +187,10 @@ export function useRecordPayment({
       try {
         await financesService.recordPayment({
           student_id: selectedStudentId,
-          plan_id: selectedPlan?.id ?? currentPlan?.id,
+          plan_id: selectedPlan.id,
           amount: finalAmount,
           expiration_date: calculation.expirationDate,
-          plan_details: `${selectedPlan?.name ?? currentPlan?.name} - ${formatCurrency(selectedPlan?.price ?? currentPlan?.price)}`,
+          plan_details: `${selectedPlan.name} - ${formatCurrency(selectedPlan.price)}`,
           payment_method: paymentMethod,
           original_amount: calculation.proratedBase,
           discount_applied: calculation.promoDiscountAmount + calculation.cashDiscountAmount,
@@ -181,12 +198,19 @@ export function useRecordPayment({
           late_payment: isAfter10th,
           late_fee_applied: applyLateFee,
           is_first_payment: isFirstPayment,
-          ...(isPlanChange && newPlanId
+          // `planChange` also covers a first assignment: the service reads the profile's
+          // current plan (null) as old_plan_id and persists the new plan_id. Reusing it
+          // is what keeps the assignment auditable and atomic with the payment.
+          ...((isPlanChange || isPlanAssignment) && newPlanId
             ? { planChange: { newPlanId, studentId: selectedStudentId } }
             : {}),
         });
         showSuccess(
-          isPlanChange ? 'Pago y cambio de plan registrados con éxito.' : 'Pago registrado con éxito.',
+          isPlanChange
+            ? 'Pago y cambio de plan registrados con éxito.'
+            : isPlanAssignment
+              ? 'Pago registrado y plan asignado con éxito.'
+              : 'Pago registrado con éxito.',
         );
         onSuccess();
         onClose();
@@ -202,9 +226,9 @@ export function useRecordPayment({
       selectedPlan,
       calculation,
       isPlanChange,
+      isPlanAssignment,
       newPlanId,
       selectedStudentId,
-      currentPlan,
       finalAmount,
       paymentMethod,
       isAfter10th,
@@ -232,6 +256,7 @@ export function useRecordPayment({
     setAmountOverride,
     isSubmitting,
     isPlanChange,
+    isPlanAssignment,
     setIsPlanChange,
     newPlanId,
     setNewPlanId,

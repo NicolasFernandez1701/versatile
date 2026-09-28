@@ -9,6 +9,9 @@ const mockOnClose = vi.fn();
 const mockOnSuccess = vi.fn();
 const mockHandleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
 
+// Lets each test decide whether the selected student already owns a plan.
+const mockState = vi.hoisted(() => ({ hasPlan: true }));
+
 const mockStudents: StudentWithPlan[] = [
   {
     id: 'stu-001',
@@ -47,9 +50,14 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
     const [isPlanChange, setIsPlanChange] = useState(false);
     const [newPlanId, setNewPlanId] = useState('');
 
+    const currentPlan = mockState.hasPlan ? mockStudents[0].plans : null;
+    const isPlanAssignment = !currentPlan;
+
     return {
       students: mockStudents,
-      studentSearchText: 'María García (Plan Mensual)',
+      studentSearchText: mockState.hasPlan
+        ? 'María García (Plan Mensual)'
+        : 'Juan Pérez (Sin Plan)',
       availablePlans: mockPlans,
       paymentMethod: 'transferencia' as const,
       setPaymentMethod: vi.fn(),
@@ -59,15 +67,17 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
       setAmountOverride: vi.fn(),
       isSubmitting: false,
       isPlanChange,
+      isPlanAssignment,
       setIsPlanChange,
       newPlanId,
       setNewPlanId,
       selectedStudentId: 'stu-001',
       selectedStudent: mockStudents[0],
-      currentPlan: mockStudents[0].plans,
-      selectedPlan: isPlanChange
-        ? mockPlans.find((p) => p.id === newPlanId) || mockStudents[0].plans
-        : mockStudents[0].plans,
+      currentPlan,
+      selectedPlan:
+        isPlanChange || isPlanAssignment
+          ? mockPlans.find((p) => p.id === newPlanId) || currentPlan
+          : currentPlan,
       promoDiscountPct: 0,
       finalAmount: 25000,
       isAfter10th: false,
@@ -84,6 +94,7 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
 describe('RecordPaymentModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.hasPlan = true;
   });
 
   const renderModal = () =>
@@ -121,6 +132,32 @@ describe('RecordPaymentModal', () => {
 
     await waitFor(() => {
       expect(mockHandleSubmit).toHaveBeenCalled();
+    });
+  });
+
+  it('muestra el selector de plan para un alumno sin plan y oculta el de cambio', () => {
+    mockState.hasPlan = false;
+    renderModal();
+
+    expect(screen.getByLabelText('Plan a Asignar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Cambiar plan')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('El alumno no tiene plan. Asigná uno para registrar el cobro.'),
+    ).toBeInTheDocument();
+  });
+
+  it('deshabilita Registrar Pago hasta elegir un plan en una asignación', async () => {
+    mockState.hasPlan = false;
+    renderModal();
+
+    expect(screen.getByRole('button', { name: /Registrar Pago/i })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Plan a Asignar'), {
+      target: { value: 'plan-001' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Registrar Pago/i })).toBeEnabled();
     });
   });
 });

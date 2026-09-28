@@ -48,17 +48,27 @@ const mockPlans: PlanEntity[] = [
   { id: 'plan-002', name: 'Plan Premium', price: 35000, classes_per_week: 5, is_active: true, created_at: '', updated_at: '' },
 ];
 
-const mockStudents: StudentWithPlan[] = [
-  {
-    id: 'stu-001',
-    full_name: 'María García',
-    email: 'maria@test.com',
-    plan_id: 'plan-001',
-    promotion_expiration_date: null,
-    promotion_discount_pct: null,
-    plans: { id: 'plan-001', name: 'Plan Mensual', price: 25000, classes_per_week: 3 },
-  },
-];
+const studentWithPlan: StudentWithPlan = {
+  id: 'stu-001',
+  full_name: 'María García',
+  email: 'maria@test.com',
+  plan_id: 'plan-001',
+  promotion_expiration_date: null,
+  promotion_discount_pct: null,
+  plans: { id: 'plan-001', name: 'Plan Mensual', price: 25000, classes_per_week: 3 },
+};
+
+const studentWithoutPlan: StudentWithPlan = {
+  id: 'stu-002',
+  full_name: 'Juan Pérez',
+  email: 'juan@test.com',
+  plan_id: null,
+  promotion_expiration_date: null,
+  promotion_discount_pct: null,
+  plans: null,
+};
+
+const mockStudents: StudentWithPlan[] = [studentWithPlan, studentWithoutPlan];
 
 const baseCalculation = {
   proratedBase: 25000,
@@ -131,7 +141,7 @@ describe('useRecordPayment', () => {
       await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
     });
 
-    expect(mockShowError).toHaveBeenCalledWith('Seleccione un alumno con plan activo.');
+    expect(mockShowError).toHaveBeenCalledWith('Seleccione un alumno.');
     expect(mockRecordPayment).not.toHaveBeenCalled();
   });
 
@@ -174,7 +184,7 @@ describe('useRecordPayment', () => {
       await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
     });
 
-    expect(mockShowError).toHaveBeenCalledWith('Seleccione el nuevo plan');
+    expect(mockShowError).toHaveBeenCalledWith('Seleccione el plan.');
     expect(mockRecordPayment).not.toHaveBeenCalled();
   });
 
@@ -189,5 +199,104 @@ describe('useRecordPayment', () => {
     });
 
     expect(result.current.finalAmount).toBe(12000);
+  });
+
+  it('flags isPlanAssignment only when the student has no plan', async () => {
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-001');
+    });
+    expect(result.current.isPlanAssignment).toBe(false);
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-002');
+    });
+    expect(result.current.isPlanAssignment).toBe(true);
+  });
+
+  it('resolves selectedPlan from the chosen plan when assigning to a student without plan', async () => {
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-002');
+      result.current.setNewPlanId('plan-001');
+    });
+
+    expect(result.current.isPlanAssignment).toBe(true);
+    expect(result.current.selectedPlan?.id).toBe('plan-001');
+  });
+
+  it('assigns a plan and records the payment for a student without plan', async () => {
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-002');
+      result.current.setNewPlanId('plan-001');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
+    });
+
+    expect(mockRecordPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        student_id: 'stu-002',
+        plan_id: 'plan-001',
+        planChange: { newPlanId: 'plan-001', studentId: 'stu-002' },
+      }),
+    );
+    expect(mockShowSuccess).toHaveBeenCalledWith('Pago registrado y plan asignado con éxito.');
+    expect(mockOnSuccess).toHaveBeenCalled();
+  });
+
+  it('blocks submit when assigning a plan without choosing one', async () => {
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-002');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
+    });
+
+    expect(mockShowError).toHaveBeenCalledWith('Seleccione el plan.');
+    expect(mockRecordPayment).not.toHaveBeenCalled();
+  });
+
+  it('resets the plan selection when the chosen student changes', async () => {
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.handleStudentSearch({
+        target: { value: 'Juan Pérez (Sin Plan)' },
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    act(() => {
+      result.current.setNewPlanId('plan-001');
+      result.current.setIsPlanChange(true);
+    });
+
+    act(() => {
+      result.current.handleStudentSearch({
+        target: { value: 'María García (Plan Mensual)' },
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.selectedStudentId).toBe('stu-001');
+    expect(result.current.newPlanId).toBe('');
+    expect(result.current.isPlanChange).toBe(false);
   });
 });
