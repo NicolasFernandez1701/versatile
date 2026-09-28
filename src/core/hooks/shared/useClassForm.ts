@@ -12,7 +12,7 @@ export interface UseClassFormOptions {
 
 export interface UseClassFormResult {
   activityName: string;
-  dayOfWeek: number;
+  selectedDays: number[];
   startTime: string;
   endTime: string;
   teacher: string;
@@ -22,7 +22,7 @@ export interface UseClassFormResult {
   specialties: Specialty[];
   loading: boolean;
   error: string;
-  setField: (field: string, value: string | number) => void;
+  setField: (field: string, value: string | number | number[]) => void;
   reset: () => void;
   handleSubmit: () => Promise<void>;
 }
@@ -31,7 +31,9 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
   const { showError, showSuccess } = useAlert();
 
   const [activityName, setActivityName] = useState(initialData?.activity_name || '');
-  const [dayOfWeek, setDayOfWeek] = useState(initialData?.day_of_week ?? 1);
+  const [selectedDays, setSelectedDays] = useState<number[]>(
+    initialData?.day_of_week != null ? [initialData.day_of_week] : []
+  );
   const [startTime, setStartTime] = useState(initialData?.start_time || '18:00');
   const [endTime, setEndTime] = useState(initialData?.end_time || '19:00');
   const [teacher, setTeacher] = useState(initialData?.teacher_id || '');
@@ -44,7 +46,7 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
 
   const reset = useCallback(() => {
     setActivityName(initialData?.activity_name || '');
-    setDayOfWeek(initialData?.day_of_week ?? 1);
+    setSelectedDays(initialData?.day_of_week != null ? [initialData.day_of_week] : []);
     setStartTime(initialData?.start_time || '18:00');
     setEndTime(initialData?.end_time || '19:00');
     setTeacher(initialData?.teacher_id || '');
@@ -76,13 +78,13 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
     };
   }, [showError]);
 
-  const setField = useCallback((field: string, value: string | number) => {
+  const setField = useCallback((field: string, value: string | number | number[]) => {
     switch (field) {
       case 'activityName':
         setActivityName(String(value));
         break;
-      case 'dayOfWeek':
-        setDayOfWeek(Number(value));
+      case 'selectedDays':
+        setSelectedDays(value as number[]);
         break;
       case 'startTime':
         setStartTime(String(value));
@@ -113,6 +115,12 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
       showError(`Error: ${message}`);
       return;
     }
+    if (selectedDays.length === 0) {
+      const message = 'Selecciona al menos un día de la semana.';
+      setError(message);
+      showError(`Error: ${message}`);
+      return;
+    }
     if (!isTimeRangeValid(startTime, endTime)) {
       setError('La hora de fin debe ser posterior a la de inicio.');
       showError('Error: La hora de fin debe ser posterior a la de inicio.');
@@ -121,23 +129,37 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
 
     setLoading(true);
     try {
-      const payload: Partial<ClassEntity> = {
-        activity_name: activityName,
-        teacher_id: teacher,
-        day_of_week: dayOfWeek,
-        start_time: startTime,
-        end_time: endTime,
-        capacity: maxCapacity,
-        base_price: basePrice,
-        teacher_commission_pct: teacherCommission,
-      };
-
       if (initialData?.id) {
+        // Edit mode: update single class (keep its day)
+        const payload: Partial<ClassEntity> = {
+          activity_name: activityName,
+          teacher_id: teacher,
+          day_of_week: selectedDays[0],
+          start_time: startTime,
+          end_time: endTime,
+          capacity: maxCapacity,
+          base_price: basePrice,
+          teacher_commission_pct: teacherCommission,
+        };
         await classesService.updateClass(initialData.id, payload);
         showSuccess('Clase actualizada con éxito.');
       } else {
-        await classesService.createClass(payload);
-        showSuccess('Clase creada con éxito.');
+        // Create mode: one class per selected day
+        const payload: Partial<ClassEntity> = {
+          activity_name: activityName,
+          teacher_id: teacher,
+          start_time: startTime,
+          end_time: endTime,
+          capacity: maxCapacity,
+          base_price: basePrice,
+          teacher_commission_pct: teacherCommission,
+        };
+        await classesService.createClasses(payload, selectedDays);
+        showSuccess(
+          selectedDays.length === 1
+            ? 'Clase creada con éxito.'
+            : `${selectedDays.length} clases creadas con éxito.`
+        );
       }
       onSuccess?.();
     } catch (err: unknown) {
@@ -152,7 +174,7 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
     teacher,
     startTime,
     endTime,
-    dayOfWeek,
+    selectedDays,
     maxCapacity,
     basePrice,
     teacherCommission,
@@ -164,7 +186,7 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
 
   return {
     activityName,
-    dayOfWeek,
+    selectedDays,
     startTime,
     endTime,
     teacher,

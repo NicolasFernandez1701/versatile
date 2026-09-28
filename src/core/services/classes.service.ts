@@ -75,6 +75,26 @@ export const classesService = {
     if (error) throw error;
   },
 
+  async createClasses(payload: Partial<ClassEntity>, days: number[]): Promise<void> {
+    const studioId = useAuthStore.getState().current_studio_id;
+    if (!studioId) throw new Error('No active studio');
+
+    if (payload.activity_name) {
+      await supabase
+        .from('specialties')
+        .upsert({ name: payload.activity_name, studio_id: studioId }, { onConflict: 'name,studio_id' });
+    }
+
+    const records = days.map((day) => ({
+      ...payload,
+      day_of_week: day,
+      studio_id: studioId,
+    }));
+
+    const { error } = await supabase.from('classes').insert(records);
+    if (error) throw error;
+  },
+
   async getClassById(id: string): Promise<ClassEntity> {
     const { data, error } = await supabase.from('classes').select('*').eq('id', id).single();
 

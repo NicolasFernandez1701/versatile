@@ -21,7 +21,7 @@ const days = [
 export function ClassForm({ teachers, onSuccess, initialData }: Props) {
   const {
     activityName,
-    dayOfWeek,
+    selectedDays,
     startTime,
     endTime,
     teacher,
@@ -97,17 +97,24 @@ export function ClassForm({ teachers, onSuccess, initialData }: Props) {
         </div>
 
         <div className="form-group">
-          <label>Día</label>
-          <select
-            value={dayOfWeek}
-            onChange={(e) => setField('dayOfWeek', Number(e.target.value))}
-          >
+          <label>Días de la semana</label>
+          <div className="day-selector">
             {days.map((d) => (
-              <option key={d.value} value={d.value}>
+              <button
+                key={d.value}
+                type="button"
+                className={`day-pill ${selectedDays.includes(d.value) ? 'day-pill--selected' : ''}`}
+                onClick={() => {
+                  const newDays = selectedDays.includes(d.value)
+                    ? selectedDays.filter((day) => day !== d.value)
+                    : [...selectedDays, d.value];
+                  setField('selectedDays', newDays);
+                }}
+              >
                 {d.label}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 

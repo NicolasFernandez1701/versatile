@@ -5,7 +5,7 @@ import type { ClassEntity } from '@/core/types/classes.types';
 import type { Specialty } from '@/core/types/users.types';
 
 const mockGetSpecialties = vi.hoisted(() => vi.fn());
-const mockCreateClass = vi.hoisted(() => vi.fn());
+const mockCreateClasses = vi.hoisted(() => vi.fn());
 const mockUpdateClass = vi.hoisted(() => vi.fn());
 const mockShowError = vi.hoisted(() => vi.fn());
 const mockShowSuccess = vi.hoisted(() => vi.fn());
@@ -16,7 +16,7 @@ vi.mock('@/core/services', () => ({
     getSpecialties: mockGetSpecialties,
   },
   classesService: {
-    createClass: mockCreateClass,
+    createClasses: mockCreateClasses,
     updateClass: mockUpdateClass,
   },
 }));
@@ -46,7 +46,7 @@ describe('useClassForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSpecialties.mockResolvedValue(mockSpecialties);
-    mockCreateClass.mockResolvedValue(undefined);
+    mockCreateClasses.mockResolvedValue(undefined);
     mockUpdateClass.mockResolvedValue(undefined);
   });
 
@@ -54,7 +54,7 @@ describe('useClassForm', () => {
     const { result } = renderHook(() => useClassForm());
 
     expect(result.current.activityName).toBe('');
-    expect(result.current.dayOfWeek).toBe(1);
+    expect(result.current.selectedDays).toEqual([]);
     expect(result.current.startTime).toBe('18:00');
     expect(result.current.endTime).toBe('19:00');
     expect(result.current.teacher).toBe('');
@@ -72,7 +72,7 @@ describe('useClassForm', () => {
     const { result } = renderHook(() => useClassForm({ initialData: baseClass }));
 
     expect(result.current.activityName).toBe('Yoga');
-    expect(result.current.dayOfWeek).toBe(2);
+    expect(result.current.selectedDays).toEqual([2]);
     expect(result.current.startTime).toBe('09:00');
     expect(result.current.endTime).toBe('10:00');
     expect(result.current.teacher).toBe('tea-001');
@@ -88,7 +88,7 @@ describe('useClassForm', () => {
 
     act(() => {
       result.current.setField('activityName', 'Funcional');
-      result.current.setField('dayOfWeek', 3);
+      result.current.setField('selectedDays', [1, 3]);
       result.current.setField('startTime', '08:00');
       result.current.setField('endTime', '09:00');
       result.current.setField('teacher', 'tea-002');
@@ -98,7 +98,7 @@ describe('useClassForm', () => {
     });
 
     expect(result.current.activityName).toBe('Funcional');
-    expect(result.current.dayOfWeek).toBe(3);
+    expect(result.current.selectedDays).toEqual([1, 3]);
     expect(result.current.startTime).toBe('08:00');
     expect(result.current.endTime).toBe('09:00');
     expect(result.current.teacher).toBe('tea-002');
@@ -132,12 +132,13 @@ describe('useClassForm', () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it('creates a class on submit', async () => {
+  it('creates classes on submit', async () => {
     const { result } = renderHook(() => useClassForm({ onSuccess: mockOnSuccess }));
 
     act(() => {
       result.current.setField('activityName', 'Pilates');
       result.current.setField('teacher', 'tea-001');
+      result.current.setField('selectedDays', [1, 3]);
       result.current.setField('startTime', '10:00');
       result.current.setField('endTime', '11:00');
     });
@@ -146,15 +147,16 @@ describe('useClassForm', () => {
       await result.current.handleSubmit();
     });
 
-    expect(mockCreateClass).toHaveBeenCalledWith(
+    expect(mockCreateClasses).toHaveBeenCalledWith(
       expect.objectContaining({
         activity_name: 'Pilates',
         teacher_id: 'tea-001',
         start_time: '10:00',
         end_time: '11:00',
       }),
+      [1, 3],
     );
-    expect(mockShowSuccess).toHaveBeenCalledWith('Clase creada con éxito.');
+    expect(mockShowSuccess).toHaveBeenCalledWith('2 clases creadas con éxito.');
     expect(mockOnSuccess).toHaveBeenCalled();
     expect(result.current.loading).toBe(false);
   });
@@ -178,9 +180,29 @@ describe('useClassForm', () => {
         capacity: 30,
       }),
     );
-    expect(mockCreateClass).not.toHaveBeenCalled();
+    expect(mockCreateClasses).not.toHaveBeenCalled();
     expect(mockShowSuccess).toHaveBeenCalledWith('Clase actualizada con éxito.');
     expect(mockOnSuccess).toHaveBeenCalled();
+  });
+
+  it('prevents submit when no days selected', async () => {
+    const { result } = renderHook(() => useClassForm());
+
+    act(() => {
+      result.current.setField('activityName', 'Yoga');
+      result.current.setField('teacher', 'tea-001');
+      result.current.setField('selectedDays', []);
+      result.current.setField('startTime', '10:00');
+      result.current.setField('endTime', '11:00');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockCreateClasses).not.toHaveBeenCalled();
+    expect(result.current.error).toBe('Selecciona al menos un día de la semana.');
+    expect(result.current.loading).toBe(false);
   });
 
   it('prevents submit when end time is not after start time', async () => {
@@ -189,6 +211,7 @@ describe('useClassForm', () => {
     act(() => {
       result.current.setField('activityName', 'Yoga');
       result.current.setField('teacher', 'tea-001');
+      result.current.setField('selectedDays', [1]);
       result.current.setField('startTime', '10:00');
       result.current.setField('endTime', '09:00');
     });
@@ -197,19 +220,20 @@ describe('useClassForm', () => {
       await result.current.handleSubmit();
     });
 
-    expect(mockCreateClass).not.toHaveBeenCalled();
+    expect(mockCreateClasses).not.toHaveBeenCalled();
     expect(mockUpdateClass).not.toHaveBeenCalled();
     expect(result.current.error).toBe('La hora de fin debe ser posterior a la de inicio.');
     expect(result.current.loading).toBe(false);
   });
 
   it('surfaces service errors and stops loading', async () => {
-    mockCreateClass.mockRejectedValueOnce(new Error('Duplicate activity'));
+    mockCreateClasses.mockRejectedValueOnce(new Error('Duplicate activity'));
     const { result } = renderHook(() => useClassForm());
 
     act(() => {
       result.current.setField('activityName', 'Yoga');
       result.current.setField('teacher', 'tea-001');
+      result.current.setField('selectedDays', [1]);
       result.current.setField('startTime', '10:00');
       result.current.setField('endTime', '11:00');
     });

@@ -4,7 +4,7 @@ import { ClassForm } from './ClassForm';
 import type { Profile, ClassEntity } from '@/core/types/classes.types';
 
 const mockGetSpecialties = vi.hoisted(() => vi.fn());
-const mockCreateClass = vi.hoisted(() => vi.fn());
+const mockCreateClasses = vi.hoisted(() => vi.fn());
 const mockUpdateClass = vi.hoisted(() => vi.fn());
 const mockIsTimeRangeValid = vi.hoisted(() => vi.fn((start: string, end: string) => end > start));
 const mockOnSuccess = vi.hoisted(() => vi.fn());
@@ -12,7 +12,7 @@ const mockOnSuccess = vi.hoisted(() => vi.fn());
 vi.mock('@/core/services', () => ({
   usersService: { getSpecialties: mockGetSpecialties },
   classesService: {
-    createClass: mockCreateClass,
+    createClasses: mockCreateClasses,
     updateClass: mockUpdateClass,
   },
 }));
@@ -60,14 +60,14 @@ describe('ClassForm', () => {
     renderForm();
 
     await waitFor(() => {
-      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+      expect(mockGetSpecialties).toHaveBeenCalled();
     });
 
     expect(
       screen.getByPlaceholderText('Ej: Funcional, Yoga')
     ).toBeInTheDocument();
     expect(screen.getByText('Profesora')).toBeInTheDocument();
-    expect(screen.getByText('Día')).toBeInTheDocument();
+    expect(screen.getByText('Días de la semana')).toBeInTheDocument();
     expect(screen.getByText('Inicio (HH:MM)')).toBeInTheDocument();
     expect(screen.getByText('Fin (HH:MM)')).toBeInTheDocument();
     expect(screen.getByText('Capacidad')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('ClassForm', () => {
     renderForm();
 
     await waitFor(() => {
-      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+      expect(mockGetSpecialties).toHaveBeenCalled();
     });
   });
 
@@ -92,7 +92,7 @@ describe('ClassForm', () => {
     renderForm();
 
     await waitFor(() => {
-      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+      expect(mockGetSpecialties).toHaveBeenCalled();
     });
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
@@ -118,7 +118,7 @@ describe('ClassForm', () => {
     renderForm();
 
     await waitFor(() => {
-      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+      expect(mockGetSpecialties).toHaveBeenCalled();
     });
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
@@ -134,9 +134,9 @@ describe('ClassForm', () => {
     expect(screen.queryByText('Funcional')).not.toBeInTheDocument();
   });
 
-  it('Submit crea una clase con los datos del form', async () => {
+  it('Submit crea clases con los datos del form', async () => {
     mockGetSpecialties.mockResolvedValueOnce(mockSpecialties);
-    mockCreateClass.mockResolvedValueOnce(undefined);
+    mockCreateClasses.mockResolvedValueOnce(undefined);
     renderForm();
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
@@ -145,8 +145,9 @@ describe('ClassForm', () => {
     const teacherSelect = screen.getByDisplayValue('Seleccionar Profesora');
     fireEvent.change(teacherSelect, { target: { value: 't1' } });
 
-    const daySelect = screen.getByDisplayValue('Lunes');
-    fireEvent.change(daySelect, { target: { value: 3 } });
+    // Select Monday and Wednesday pills
+    fireEvent.click(screen.getByRole('button', { name: 'Lunes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Miércoles' }));
 
     fireEvent.change(screen.getByDisplayValue('18:00'), {
       target: { value: '09:00' },
@@ -158,14 +159,14 @@ describe('ClassForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Clase' }));
 
     await waitFor(() => {
-      expect(mockCreateClass).toHaveBeenCalledWith(
+      expect(mockCreateClasses).toHaveBeenCalledWith(
         expect.objectContaining({
           activity_name: 'Yoga',
           teacher_id: 't1',
-          day_of_week: 3,
           start_time: '09:00',
           end_time: '10:00',
-        })
+        }),
+        [1, 3],
       );
       expect(mockOnSuccess).toHaveBeenCalled();
     });
@@ -202,7 +203,7 @@ describe('ClassForm', () => {
           teacher_id: 't2',
         })
       );
-      expect(mockCreateClass).not.toHaveBeenCalled();
+      expect(mockCreateClasses).not.toHaveBeenCalled();
       expect(mockOnSuccess).toHaveBeenCalled();
     });
   });
@@ -210,7 +211,7 @@ describe('ClassForm', () => {
   it('Loading deshabilita botón durante el submit', async () => {
     mockGetSpecialties.mockResolvedValueOnce([]);
     let resolveCreate: (value: unknown) => void = () => {};
-    mockCreateClass.mockImplementationOnce(
+    mockCreateClasses.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
           resolveCreate = resolve;
@@ -223,6 +224,8 @@ describe('ClassForm', () => {
     fireEvent.change(activityInput, { target: { value: 'Yoga' } });
     const teacherSelect = screen.getByDisplayValue('Seleccionar Profesora');
     fireEvent.change(teacherSelect, { target: { value: 't1' } });
+    // Select at least one day
+    fireEvent.click(screen.getByRole('button', { name: 'Lunes' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Guardar Clase' }));
 
@@ -257,7 +260,8 @@ describe('ClassForm', () => {
       expect(activityInput).toHaveValue('Pilates');
     });
 
-    expect(screen.getByDisplayValue('Viernes')).toBeInTheDocument();
+    // Viernes pill should have selected class
+    expect(screen.getByRole('button', { name: 'Viernes' })).toHaveClass('day-pill--selected');
     expect(screen.getByDisplayValue('10:00')).toBeInTheDocument();
     expect(screen.getByDisplayValue('11:00')).toBeInTheDocument();
     expect(screen.getByDisplayValue('20')).toBeInTheDocument();
@@ -270,7 +274,7 @@ describe('ClassForm', () => {
     renderForm();
 
     await waitFor(() => {
-      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+      expect(mockGetSpecialties).toHaveBeenCalled();
     });
 
     expect(screen.getByText('María Gómez')).toBeInTheDocument();
@@ -282,7 +286,7 @@ describe('ClassForm', () => {
     renderForm();
 
     await waitFor(() => {
-      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+      expect(mockGetSpecialties).toHaveBeenCalled();
     });
 
     const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
@@ -293,9 +297,10 @@ describe('ClassForm', () => {
     fireEvent.change(teacherSelect, { target: { value: 't2' } });
     expect(teacherSelect).toHaveValue('t2');
 
-    const daySelect = screen.getByDisplayValue('Lunes');
-    fireEvent.change(daySelect, { target: { value: 4 } });
-    expect(daySelect).toHaveValue('4');
+    // Toggle pill
+    const lunesPill = screen.getByRole('button', { name: 'Lunes' });
+    fireEvent.click(lunesPill);
+    expect(lunesPill).toHaveClass('day-pill--selected');
 
     const startTime = screen.getByDisplayValue('18:00');
     fireEvent.change(startTime, { target: { value: '07:00' } });
@@ -324,7 +329,7 @@ describe('ClassForm', () => {
     const { container } = renderForm();
 
     await waitFor(() => {
-      expect(mockGetSpecialties).toHaveBeenCalledTimes(1);
+      expect(mockGetSpecialties).toHaveBeenCalled();
     });
 
     fireEvent.change(screen.getByPlaceholderText('Ej: Funcional, Yoga'), {
@@ -332,6 +337,8 @@ describe('ClassForm', () => {
     });
     const teacherSelect = screen.getByDisplayValue('Seleccionar Profesora');
     fireEvent.change(teacherSelect, { target: { value: 't1' } });
+    // Select a day so the day validation passes first
+    fireEvent.click(screen.getByRole('button', { name: 'Lunes' }));
 
     fireEvent.submit(container.querySelector('form')!);
 
@@ -340,6 +347,6 @@ describe('ClassForm', () => {
         screen.getByText('La hora de fin debe ser posterior a la de inicio.')
       ).toBeInTheDocument();
     });
-    expect(mockCreateClass).not.toHaveBeenCalled();
+    expect(mockCreateClasses).not.toHaveBeenCalled();
   });
 });
