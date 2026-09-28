@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useNotificationStore } from '@/core/store/useNotificationStore';
+import { usePushNotifications } from '@/core/hooks/shared/usePushNotifications';
 import { authService } from '@/core/services';
 import { ProfileSwitcher } from '@/ui/ProfileSwitcher';
 import { NotificationPanel } from '@/ui/NotificationPanel';
@@ -16,6 +17,8 @@ export function TeacherLayout() {
   const desktopBellRef = useRef<HTMLButtonElement>(null);
   const user = useAuthStore((state) => state.user);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
+
+  usePushNotifications(user?.id);
 
   useEffect(() => {
     if (panelOpen && desktopBellRef.current) {
