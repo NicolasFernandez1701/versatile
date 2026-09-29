@@ -92,7 +92,7 @@ export function StudentDashboard() {
               padding: '0.75rem 1rem',
               marginBottom: '1.5rem'
             }}>
-              {Object.entries(classLimit.perActivity).map(([_, quota]) => (
+              {Object.values(classLimit.perActivity).map((quota) => (
                 <QuotaRow
                   key={quota.activity_name}
                   name={quota.activity_name}

@@ -79,7 +79,7 @@ export function buildPlanExpirationPayload(days: number): { title: string; body:
 }
 
 export default {
-  async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+  async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     const privateJWK = env.VAPID_PRIVATE_KEY;
 

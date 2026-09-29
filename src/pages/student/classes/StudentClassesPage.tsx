@@ -81,7 +81,7 @@ export function StudentClassesPage() {
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {Object.keys(planLimits.perActivity).length > 0 ? (
-            Object.entries(planLimits.perActivity).map(([_, quota]) => (
+            Object.values(planLimits.perActivity).map((quota) => (
               <span
                 key={quota.activity_name}
                 style={{

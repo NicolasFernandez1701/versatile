@@ -12,7 +12,6 @@ interface PlanFormProps {
 
 export function PlanForm({
   initialData,
-  availableClasses: _availableClasses,
   onSuccess,
   onCancel,
 }: PlanFormProps) {
