@@ -47,6 +47,26 @@ const mockClasses: ClassEntity[] = [
   },
 ];
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
 describe('useEnrollmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -192,5 +212,90 @@ describe('useEnrollmentForm', () => {
     expect(result.current.error).toBe('Capacidad máxima alcanzada');
     expect(mockShowError).toHaveBeenCalledWith('Error: Capacidad máxima alcanzada');
     expect(result.current.loading).toBe(false);
+  });
+
+  it('shows fetch errors via toast and surfaces the message while stopping loading', async () => {
+    mockGetStudents.mockRejectedValueOnce(new Error('Network error'));
+    const { result } = renderHook(() => useEnrollmentForm({ studioId: 'studio-001' }));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(mockShowError).toHaveBeenCalledWith('Error: Network error');
+    expect(result.current.error).toBe('Network error');
+  });
+
+  it('keeps the typed filter when the fetch resolves after typing (delta #6)', async () => {
+    // results is derived from (students, query): typing before the fetch
+    // settles must not be overwritten by the late full list.
+    const studentsGate = deferred<UserProfile[]>();
+    const classesGate = deferred<ClassEntity[]>();
+    mockGetStudents.mockImplementationOnce(() => studentsGate.promise);
+    mockGetClasses.mockImplementationOnce(() => classesGate.promise);
+
+    const { result } = renderHook(() => useEnrollmentForm({ studioId: 'studio-001' }));
+
+    act(() => {
+      result.current.searchStudents('Juan');
+    });
+    expect(result.current.results).toEqual([]);
+
+    studentsGate.resolve(mockStudents);
+    classesGate.resolve(mockClasses);
+    await waitFor(() => expect(result.current.results).toEqual([mockStudents[1]]));
+    expect(result.current.query).toBe('Juan');
+  });
+
+  it('newest-wins: a stale studio-A response settling late never clobbers newer studio-B data', async () => {
+    const studentsGateA = deferred<UserProfile[]>();
+    const classesGateA = deferred<ClassEntity[]>();
+    const studentsGateB = deferred<UserProfile[]>();
+    const classesGateB = deferred<ClassEntity[]>();
+    mockGetStudents
+      .mockImplementationOnce(() => studentsGateA.promise)
+      .mockImplementationOnce(() => studentsGateB.promise);
+    mockGetClasses
+      .mockImplementationOnce(() => classesGateA.promise)
+      .mockImplementationOnce(() => classesGateB.promise);
+
+    const studioBStudents: UserProfile[] = [
+      { id: 'stu-009', full_name: 'Ana Ruiz', email: 'ana@test.com', role: 'student', created_at: '' },
+    ];
+    const { result, rerender } = renderHook(
+      ({ studioId }: { studioId: string }) => useEnrollmentForm({ studioId }),
+      { initialProps: { studioId: 'studio-001' } },
+    );
+
+    rerender({ studioId: 'studio-002' });
+
+    studentsGateB.resolve(studioBStudents);
+    classesGateB.resolve(mockClasses);
+    await waitFor(() => expect(result.current.results).toEqual(studioBStudents));
+
+    studentsGateA.resolve(mockStudents);
+    classesGateA.resolve(mockClasses);
+    await flushSettles();
+
+    expect(result.current.results).toEqual(studioBStudents);
+    expect(result.current.classes).toEqual(mockClasses);
+    expect(mockGetStudents).toHaveBeenCalledTimes(2);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const studentsGate = deferred<UserProfile[]>();
+    const classesGate = deferred<ClassEntity[]>();
+    mockGetStudents.mockImplementationOnce(() => studentsGate.promise);
+    mockGetClasses.mockImplementationOnce(() => classesGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useEnrollmentForm({ studioId: 'studio-001' }));
+    unmount();
+
+    studentsGate.resolve(mockStudents);
+    classesGate.resolve(mockClasses);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });

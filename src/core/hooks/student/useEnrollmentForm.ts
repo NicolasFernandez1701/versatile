@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { usersService, classesService, enrollmentsService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import type { UserProfile } from '@/core/types/users.types';
 import type { ClassEntity } from '@/core/types/classes.types';
 
@@ -30,59 +31,58 @@ export interface UseEnrollmentFormResult {
   handleSubmit: () => Promise<void>;
 }
 
+interface EnrollmentFormResource {
+  students: UserProfile[];
+  classes: ClassEntity[];
+}
+
 export function useEnrollmentForm({
   studioId,
   onSuccess,
 }: UseEnrollmentFormOptions): UseEnrollmentFormResult {
   const { showError, showSuccess } = useAlert();
 
-  const [students, setStudents] = useState<UserProfile[]>([]);
-  const [classes, setClasses] = useState<ClassEntity[]>([]);
+  const resource = useAsyncResource<EnrollmentFormResource>(
+    async () => {
+      const [loadedStudents, loadedClasses] = await Promise.all([
+        usersService.getStudents(studioId),
+        classesService.getClasses(studioId),
+      ]);
+      return { students: loadedStudents, classes: loadedClasses };
+    },
+    [studioId],
+    {
+      onError: (error) => {
+        showError(`Error: ${error.message}`);
+      },
+    },
+  );
+
+  const students = resource.data?.students ?? [];
+  const classes = resource.data?.classes ?? [];
+
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<UserProfile[]>([]);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [studentDropdownOpen, setStudentDropdownOpen] = useState(false);
   const [classDropdownOpen, setClassDropdownOpen] = useState(false);
   const [reservationDate, setReservationDate] = useState(new Date().toISOString().split('T')[0]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+  // Derived from (students, query): typing before the fetch resolves is never
+  // overwritten by the late full list (delta #6) — the filter simply applies
+  // to whatever has loaded so far.
+  const term = query.toLowerCase();
+  const results = query === '' ? students : students.filter((s) => s.full_name?.toLowerCase().includes(term));
 
-    Promise.all([usersService.getStudents(studioId), classesService.getClasses(studioId)])
-      .then(([loadedStudents, loadedClasses]) => {
-        if (!mounted) return;
-        setStudents(loadedStudents);
-        setClasses(loadedClasses);
-        setResults(loadedStudents);
-      })
-      .catch((err: unknown) => {
-        if (!mounted) return;
-        const message = err instanceof Error ? err.message : 'Error cargando datos';
-        setError(message);
-        showError(`Error: ${message}`);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+  const loading = resource.loading || submitLoading;
+  const error = submitError || resource.error?.message || '';
 
-    return () => {
-      mounted = false;
-    };
-  }, [studioId, showError]);
-
-  const searchStudents = useCallback(
-    (value: string) => {
-      setQuery(value);
-      setStudentDropdownOpen(true);
-      const term = value.toLowerCase();
-      setResults(students.filter((s) => s.full_name?.toLowerCase().includes(term)));
-    },
-    [students],
-  );
+  const searchStudents = useCallback((value: string) => {
+    setQuery(value);
+    setStudentDropdownOpen(true);
+  }, []);
 
   const selectStudent = useCallback((student: UserProfile) => {
     setQuery(student.full_name || '');
@@ -100,29 +100,29 @@ export function useEnrollmentForm({
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    setError('');
+    setSubmitError('');
     if (!selectedStudent) {
-      setError('Selecciona un alumno');
+      setSubmitError('Selecciona un alumno');
       showError('Por favor selecciona un alumno válido de la lista.');
       return;
     }
     if (!selectedClass) {
-      setError('Selecciona una clase');
+      setSubmitError('Selecciona una clase');
       showError('Por favor selecciona una clase válida de la lista.');
       return;
     }
 
-    setLoading(true);
+    setSubmitLoading(true);
     try {
       await enrollmentsService.enrollStudent(selectedStudent, selectedClass, reservationDate);
       showSuccess('Alumno inscripto correctamente.');
       onSuccess?.();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al inscribir alumno';
-      setError(message);
+      setSubmitError(message);
       showError(`Error: ${message}`);
     } finally {
-      setLoading(false);
+      setSubmitLoading(false);
     }
   }, [selectedStudent, selectedClass, reservationDate, onSuccess, showError, showSuccess]);
 
