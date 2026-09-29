@@ -60,6 +60,37 @@ const mockClass: ClassEntity = {
   is_active: true,
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
+const mockEnrollmentB: EnrollmentEntity = {
+  ...mockEnrollment,
+  id: 'enr-002',
+};
+
+const mockClassB: ClassEntity = {
+  ...mockClass,
+  id: 'class-002',
+  activity_name: 'Pilates',
+};
+
 describe('useEnrollments', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,9 +136,12 @@ describe('useEnrollments', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.deleteEnrollment('enr-001');
+      refresh = result.current.deleteEnrollment('enr-001');
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockUnenrollStudent).toHaveBeenCalledWith('enr-001');
     expect(mockGetEnrollments).toHaveBeenCalledTimes(2);
@@ -120,9 +154,12 @@ describe('useEnrollments', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.loadData();
+      refresh = result.current.loadData();
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockGetEnrollments).toHaveBeenCalledTimes(2);
     expect(mockGetClasses).toHaveBeenCalledTimes(2);
@@ -136,5 +173,54 @@ describe('useEnrollments', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockShowError).toHaveBeenCalledWith('Error cargando las reservas.');
+  });
+
+  it('newest-wins: a stale studio-A response settling late never clobbers newer studio-B data', async () => {
+    const enrollmentsGateA = deferred<EnrollmentEntity[]>();
+    const classesGateA = deferred<ClassEntity[]>();
+    const enrollmentsGateB = deferred<EnrollmentEntity[]>();
+    const classesGateB = deferred<ClassEntity[]>();
+    mockGetEnrollments
+      .mockImplementationOnce(() => enrollmentsGateA.promise)
+      .mockImplementationOnce(() => enrollmentsGateB.promise);
+    mockGetClasses
+      .mockImplementationOnce(() => classesGateA.promise)
+      .mockImplementationOnce(() => classesGateB.promise);
+
+    const { result, rerender } = renderHook(() => useEnrollments());
+
+    mockUseAuthStore.mockReturnValue({ current_studio_id: 'studio-B' });
+    rerender();
+
+    enrollmentsGateB.resolve([mockEnrollmentB]);
+    classesGateB.resolve([mockClassB]);
+    await waitFor(() => expect(result.current.enrollments).toEqual([mockEnrollmentB]));
+    expect(result.current.classesList).toEqual([mockClassB]);
+
+    enrollmentsGateA.resolve([mockEnrollment]);
+    classesGateA.resolve([mockClass]);
+    await flushSettles();
+
+    expect(result.current.enrollments).toEqual([mockEnrollmentB]);
+    expect(result.current.classesList).toEqual([mockClassB]);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const enrollmentsGate = deferred<EnrollmentEntity[]>();
+    const classesGate = deferred<ClassEntity[]>();
+    mockGetEnrollments.mockImplementationOnce(() => enrollmentsGate.promise);
+    mockGetClasses.mockImplementationOnce(() => classesGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useEnrollments());
+    unmount();
+
+    enrollmentsGate.resolve([mockEnrollment]);
+    classesGate.resolve([mockClass]);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
