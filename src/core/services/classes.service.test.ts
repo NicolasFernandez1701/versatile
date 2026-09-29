@@ -294,7 +294,8 @@ describe('classesService', () => {
     });
 
     it('debería crear una clase sin upsert si no tiene activity_name', async () => {
-      const { activity_name: _a, ...payloadWithoutActivity } = payload;
+      const payloadWithoutActivity: Partial<typeof payload> = { ...payload };
+      delete payloadWithoutActivity.activity_name;
 
       mockFrom.mockReturnValue({
         insert: vi.fn().mockResolvedValue({ error: null }),

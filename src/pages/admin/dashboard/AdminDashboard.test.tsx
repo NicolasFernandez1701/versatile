@@ -140,7 +140,7 @@ describe('AdminDashboard', () => {
         end_time: '11:00:00',
       },
     ];
-    mockGetTodayClasses.mockResolvedValue(mockClasses as any);
+    mockGetTodayClasses.mockResolvedValue(mockClasses);
 
     renderDashboard();
 

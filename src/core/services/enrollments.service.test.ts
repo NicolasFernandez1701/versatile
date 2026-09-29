@@ -24,7 +24,7 @@ const mockQuotaMap = (overrides: Record<string, Partial<{ total: number; consume
   Yoga: { activity_id: 'pa-002', activity_name: 'Yoga', total: 4, consumed: 1, remaining: 3, ...overrides.Yoga },
 });
 
-const mockEnrollments: any[] = [
+const mockEnrollments: unknown[] = [
   {
     id: 'enr-001',
     student_id: 'stu-001',
