@@ -49,7 +49,6 @@ vi.mock('@/core/store/useAuthStore', () => ({
 
 async function advanceToStep(result: { current: ReturnType<typeof useTeacherOnboarding> }, targetStep: number) {
   while (result.current.step < targetStep) {
-    // eslint-disable-next-line no-await-in-loop
     await act(async () => {
       await result.current.handleNext();
     });

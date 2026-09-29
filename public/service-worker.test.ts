@@ -30,7 +30,6 @@ function loadServiceWorker(mockSelf: MockSelf): void {
   const filePath = resolve(__dirname, 'service-worker.js');
   const code = readFileSync(filePath, 'utf-8');
 
-  // eslint-disable-next-line no-new-func
   const run = new Function('self', code);
   run(mockSelf);
 }
