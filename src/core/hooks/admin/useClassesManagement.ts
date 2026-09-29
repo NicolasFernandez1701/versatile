@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useAlert } from '@/ui/useAlert';
 import { classesService, usersService } from '@/core/services';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import type { ClassEntity, EnrollmentEntity, Profile } from '@/core/types/classes.types';
 
 export interface UseClassesManagementResult {
@@ -20,49 +21,61 @@ export interface UseClassesManagementResult {
   closeStudentsModal: () => void;
 }
 
+interface ClassesResource {
+  classes: ClassEntity[];
+  teachers: Profile[];
+}
+
 export function useClassesManagement(): UseClassesManagementResult {
   const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
 
-  const [classes, setClasses] = useState<ClassEntity[]>([]);
-  const [teachers, setTeachers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [viewingStudentsClass, setViewingStudentsClass] = useState<ClassEntity | null>(null);
-  const [students, setStudents] = useState<EnrollmentEntity[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-
-  const fetchClasses = useCallback(async () => {
-    if (!current_studio_id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
+  const resource = useAsyncResource<ClassesResource>(
+    async () => {
+      if (!current_studio_id) {
+        throw new Error('useClassesManagement requires a studio id');
+      }
       const [classesData, teachersData] = await Promise.all([
         classesService.getClasses(current_studio_id),
         usersService.getTeachers(current_studio_id),
       ]);
-      setClasses(classesData);
-      setTeachers(teachersData);
-    } catch (error: unknown) {
-      showError('Error cargando las clases.');
-      console.error('Error fetching classes:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [current_studio_id, showError]);
+      return { classes: classesData, teachers: teachersData };
+    },
+    [current_studio_id],
+    {
+      enabled: !!current_studio_id,
+      onError: (error) => {
+        showError('Error cargando las clases.');
+        console.error('Error fetching classes:', error);
+      },
+    },
+  );
 
-  useEffect(() => {
-    fetchClasses();
-  }, [fetchClasses]);
+  const fetchClasses = resource.refetch;
+
+  // Optimistic status overrides: toggleStatus applies instantly and keeps the
+  // value until the next server refresh replaces the whole list (mirroring the
+  // previous local-state behavior, where any refetch wiped the optimistic
+  // value). A failed toggle drops its override, revealing the server value.
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, boolean>>({});
+
+  const classes = (resource.data?.classes ?? []).map((cls) => {
+    const override = statusOverrides[cls.id];
+    return override === undefined ? cls : { ...cls, is_active: override };
+  });
+  const teachers = resource.data?.teachers ?? [];
+  const loading = resource.loading;
+
+  const [viewingStudentsClass, setViewingStudentsClass] = useState<ClassEntity | null>(null);
+  const [students, setStudents] = useState<EnrollmentEntity[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const createClass = useCallback(
     async (payload: Partial<ClassEntity>) => {
       try {
         await classesService.createClass(payload);
         await fetchClasses();
+        setStatusOverrides({});
         showSuccess('Clase creada con éxito.');
       } catch (error: unknown) {
         showError(error instanceof Error ? error.message : 'Error creando la clase.');
@@ -76,6 +89,7 @@ export function useClassesManagement(): UseClassesManagementResult {
       try {
         await classesService.updateClass(id, payload);
         await fetchClasses();
+        setStatusOverrides({});
         showSuccess('Clase actualizada con éxito.');
       } catch (error: unknown) {
         showError(error instanceof Error ? error.message : 'Error actualizando la clase.');
@@ -89,6 +103,7 @@ export function useClassesManagement(): UseClassesManagementResult {
       try {
         await classesService.deleteClass(id);
         await fetchClasses();
+        setStatusOverrides({});
         showSuccess('Clase eliminada con éxito.');
       } catch {
         showError('Error eliminando la clase.');
@@ -100,17 +115,17 @@ export function useClassesManagement(): UseClassesManagementResult {
   const toggleStatus = useCallback(
     async (id: string, currentStatus: boolean) => {
       const nextStatus = !currentStatus;
-      setClasses((prev) =>
-        prev.map((cls) => (cls.id === id ? { ...cls, is_active: nextStatus } : cls)),
-      );
+      setStatusOverrides((prev) => ({ ...prev, [id]: nextStatus }));
 
       try {
         await classesService.updateClass(id, { is_active: nextStatus });
         showSuccess('Estado actualizado con éxito.');
       } catch {
-        setClasses((prev) =>
-          prev.map((cls) => (cls.id === id ? { ...cls, is_active: currentStatus } : cls)),
-        );
+        setStatusOverrides((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
         showError('Error actualizando el estado.');
       }
     },

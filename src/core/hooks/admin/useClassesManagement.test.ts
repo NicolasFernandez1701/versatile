@@ -73,6 +73,39 @@ const mockEnrollment: EnrollmentEntity = {
   profiles: { id: 'student-001', full_name: 'Juan Pérez', email: 'juan@test.com' },
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
+const mockClassB: ClassEntity = {
+  ...mockClass,
+  id: 'class-002',
+  activity_name: 'Pilates',
+};
+
+const mockTeacherB: UserProfile = {
+  ...mockTeacher,
+  id: 'teacher-002',
+  full_name: 'Bruno Díaz',
+  email: 'bruno@test.com',
+};
+
 describe('useClassesManagement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -125,9 +158,12 @@ describe('useClassesManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const payload = { activity_name: 'Pilates' };
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.createClass(payload);
+      refresh = result.current.createClass(payload);
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockCreateClass).toHaveBeenCalledWith(payload);
     expect(mockGetClasses).toHaveBeenCalledTimes(2);
@@ -140,9 +176,12 @@ describe('useClassesManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const payload = { capacity: 20 };
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.updateClass('class-001', payload);
+      refresh = result.current.updateClass('class-001', payload);
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockUpdateClass).toHaveBeenCalledWith('class-001', payload);
     expect(mockGetClasses).toHaveBeenCalledTimes(2);
@@ -154,9 +193,12 @@ describe('useClassesManagement', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.deleteClass('class-001');
+      refresh = result.current.deleteClass('class-001');
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockDeleteClass).toHaveBeenCalledWith('class-001');
     expect(mockGetClasses).toHaveBeenCalledTimes(2);
@@ -217,5 +259,54 @@ describe('useClassesManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockShowError).toHaveBeenCalledWith('Error cargando las clases.');
+  });
+
+  it('newest-wins: a stale studio-A response settling late never clobbers newer studio-B data', async () => {
+    const classesGateA = deferred<ClassEntity[]>();
+    const teachersGateA = deferred<UserProfile[]>();
+    const classesGateB = deferred<ClassEntity[]>();
+    const teachersGateB = deferred<UserProfile[]>();
+    mockGetClasses
+      .mockImplementationOnce(() => classesGateA.promise)
+      .mockImplementationOnce(() => classesGateB.promise);
+    mockGetTeachers
+      .mockImplementationOnce(() => teachersGateA.promise)
+      .mockImplementationOnce(() => teachersGateB.promise);
+
+    const { result, rerender } = renderHook(() => useClassesManagement());
+
+    mockUseAuthStore.mockReturnValue({ current_studio_id: 'studio-B' });
+    rerender();
+
+    classesGateB.resolve([mockClassB]);
+    teachersGateB.resolve([mockTeacherB]);
+    await waitFor(() => expect(result.current.classes).toEqual([mockClassB]));
+    expect(result.current.teachers).toEqual([mockTeacherB]);
+
+    classesGateA.resolve([mockClass]);
+    teachersGateA.resolve([mockTeacher]);
+    await flushSettles();
+
+    expect(result.current.classes).toEqual([mockClassB]);
+    expect(result.current.teachers).toEqual([mockTeacherB]);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const classesGate = deferred<ClassEntity[]>();
+    const teachersGate = deferred<UserProfile[]>();
+    mockGetClasses.mockImplementationOnce(() => classesGate.promise);
+    mockGetTeachers.mockImplementationOnce(() => teachersGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useClassesManagement());
+    unmount();
+
+    classesGate.resolve([mockClass]);
+    teachersGate.resolve([mockTeacher]);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
