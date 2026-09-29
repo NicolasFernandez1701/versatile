@@ -38,6 +38,6 @@ export interface TeacherCommission {
 export interface RetentionMetric {
   student_id: string;
   full_name: string;
-  last_attendance: string;
-  days_since_last: number;
+  last_attendance: string | null;
+  days_since_last: number | null;
 }

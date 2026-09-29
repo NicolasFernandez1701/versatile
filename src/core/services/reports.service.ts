@@ -38,6 +38,24 @@ function attendanceRate(attended: number, total: number): number {
   return total > 0 ? Math.round((attended / total) * 100) : 0;
 }
 
+// reservation_date is a SQL DATE ('YYYY-MM-DD'). Parsing it with
+// `new Date(value)` anchors it at UTC midnight, which shifts the calendar day
+// for timezones behind UTC (e.g. UTC-3) and off-by-ones the day count.
+// These helpers compare date-only parts at local midnight instead.
+function toLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function daysSinceDateOnly(fromDateOnly: string, today: Date): number {
+  const [year, month, day] = fromDateOnly.split('-').map(Number);
+  const from = new Date(year, month - 1, day);
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((startOfToday.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 interface ProfileJoin {
   full_name: string;
 }
@@ -264,9 +282,12 @@ export const reportsService = {
     const studioId = useAuthStore.getState().current_studio_id;
     if (!studioId) throw new Error('No active studio');
 
+    // No server-side status filter on purpose: every student with at least
+    // one enrollment row must appear in the churn ranking, including students
+    // with no real attendance yet (they report nulls and sort last).
     const { data, error } = await supabase
       .from('enrollments')
-      .select('student_id, reservation_date, profiles(full_name)')
+      .select('student_id, reservation_date, attendance_status, profiles(full_name)')
       .eq('studio_id', studioId)
       .order('reservation_date', { ascending: false });
 
@@ -274,21 +295,41 @@ export const reportsService = {
 
     const map = new Map<string, RetentionMetric>();
     const today = new Date();
+    const todayKey = toLocalDateKey(today);
 
     for (const row of data || []) {
       const id = row.student_id;
       if (!map.has(id)) {
-        const lastDate = new Date(row.reservation_date);
-        const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
         map.set(id, {
           student_id: id,
           full_name: resolveProfileName(row.profiles as ProfileJoin | ProfileJoin[] | null),
-          last_attendance: row.reservation_date,
-          days_since_last: diffDays,
+          last_attendance: null,
+          days_since_last: null,
         });
+      }
+      // Only real attendance counts: 'attended' rows dated on or before
+      // today. Future or non-attended rows never set last_attendance (a
+      // future 'attended' row is inconsistent data and is ignored).
+      if (row.attendance_status !== 'attended') continue;
+      const reservationDate: string = row.reservation_date;
+      if (reservationDate > todayKey) continue;
+      const entry = map.get(id)!;
+      if (entry.last_attendance === null || reservationDate > entry.last_attendance) {
+        entry.last_attendance = reservationDate;
+        entry.days_since_last = daysSinceDateOnly(reservationDate, today);
       }
     }
 
-    return Array.from(map.values()).sort((a, b) => b.days_since_last - a.days_since_last);
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.days_since_last === null && b.days_since_last === null) {
+        return a.full_name.localeCompare(b.full_name);
+      }
+      if (a.days_since_last === null) return 1;
+      if (b.days_since_last === null) return -1;
+      if (b.days_since_last !== a.days_since_last) {
+        return b.days_since_last - a.days_since_last;
+      }
+      return a.full_name.localeCompare(b.full_name);
+    });
   },
 };

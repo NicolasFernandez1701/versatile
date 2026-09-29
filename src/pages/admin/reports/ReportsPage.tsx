@@ -353,12 +353,16 @@ export function ReportsPage() {
                       {retention.map((r) => (
                         <tr key={r.student_id}>
                           <td><strong>{r.full_name}</strong></td>
-                          <td>{new Date(r.last_attendance).toLocaleDateString('es-AR')}</td>
-                          <td style={{ textAlign: 'right' }}>{r.days_since_last}</td>
+                          <td>{r.last_attendance ? new Date(`${r.last_attendance}T00:00:00`).toLocaleDateString('es-AR') : 'Sin asistencias'}</td>
+                          <td style={{ textAlign: 'right' }}>{r.days_since_last ?? '—'}</td>
                           <td style={{ textAlign: 'right' }}>
-                            <span className={`badge ${r.days_since_last <= 7 ? 'badge-active' : r.days_since_last <= 30 ? 'badge-pending' : 'badge-inactive'}`}>
-                              {r.days_since_last <= 7 ? 'Activo' : r.days_since_last <= 30 ? 'En riesgo' : 'Inactivo'}
-                            </span>
+                            {r.days_since_last === null ? (
+                              <span className="badge badge-inactive">Sin asistencias</span>
+                            ) : (
+                              <span className={`badge ${r.days_since_last <= 7 ? 'badge-active' : r.days_since_last <= 30 ? 'badge-pending' : 'badge-inactive'}`}>
+                                {r.days_since_last <= 7 ? 'Activo' : r.days_since_last <= 30 ? 'En riesgo' : 'Inactivo'}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}
