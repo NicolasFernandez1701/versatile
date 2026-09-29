@@ -11,6 +11,26 @@ const mockPlan = {
 
 const fixedToday = new Date(2024, 5, 15); // June 15, 2024
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
 describe('usePaymentCalculation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,5 +140,62 @@ describe('usePaymentCalculation', () => {
     expect(result.current.error).toBeInstanceOf(Error);
     expect(result.current.error?.message).toBe('Network error');
     // calculation is computed independently — defaults to isFirstPayment=false on fetch error
+  });
+
+  it('newest-wins: a stale student response settling late never clobbers newer isFirstPayment', async () => {
+    const gateA = deferred<boolean>();
+    const gateB = deferred<boolean>();
+    vi.spyOn(financesService, 'hasExistingPayments')
+      .mockImplementationOnce(() => gateA.promise)
+      .mockImplementationOnce(() => gateB.promise);
+
+    const { result, rerender } = renderHook(
+      ({ studentId }: { studentId: string | null }) =>
+        usePaymentCalculation({
+          studentId,
+          plan: mockPlan,
+          paymentMethod: 'transferencia',
+          promoDiscountPct: 0,
+          applyLateFee: false,
+          today: fixedToday,
+        }),
+      { initialProps: { studentId: 'stu-A' as string | null } },
+    );
+
+    rerender({ studentId: 'stu-B' });
+
+    gateB.resolve(true);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isFirstPayment).toBe(false);
+
+    gateA.resolve(false);
+    await flushSettles();
+
+    expect(result.current.isFirstPayment).toBe(false);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const gate = deferred<boolean>();
+    vi.spyOn(financesService, 'hasExistingPayments').mockImplementationOnce(() => gate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() =>
+      usePaymentCalculation({
+        studentId: 'stu-009',
+        plan: mockPlan,
+        paymentMethod: 'transferencia',
+        promoDiscountPct: 0,
+        applyLateFee: false,
+        today: fixedToday,
+      })
+    );
+    unmount();
+
+    gate.resolve(false);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });

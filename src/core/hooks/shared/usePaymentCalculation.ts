@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { financesService } from '@/core/services/finances.service';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import { calculatePayment, type PaymentCalcResult } from '@/core/utils/paymentCalculator';
 
 export interface PlanInfo {
@@ -32,40 +33,27 @@ export function usePaymentCalculation({
   applyLateFee = false,
   today = new Date(),
 }: UsePaymentCalculationParams): UsePaymentCalculationResult {
-  const [isFirstPayment, setIsFirstPayment] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const enabled = !!(studentId && plan);
 
-  // Fetch whether student has existing payments
-  useEffect(() => {
-    if (!studentId || !plan) {
-      setIsFirstPayment(false);
-      return;
-    }
+  // Whether the student has existing payments. Keyed on the student only:
+  // the fetcher never depends on the plan, so a plan-only change does not
+  // refetch (removes a pointless loading flash). Newest-wins and unmount
+  // safety come from the shared primitive.
+  const resource = useAsyncResource<boolean>(
+    async () => {
+      if (!studentId) {
+        throw new Error('usePaymentCalculation requires a studentId');
+      }
+      const hasExistingPayments = await financesService.hasExistingPayments(studentId);
+      return !hasExistingPayments;
+    },
+    [studentId],
+    { enabled },
+  );
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    financesService
-      .hasExistingPayments(studentId)
-      .then((hasExistingPayments) => {
-        if (cancelled) return;
-        setIsFirstPayment(!hasExistingPayments);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [studentId, plan]);
+  const isFirstPayment = enabled ? (resource.data ?? false) : false;
+  const loading = resource.loading;
+  const error = resource.error;
 
   // Pure calculation — no side effects
   const calculation = useMemo<PaymentCalcResult | null>(() => {
