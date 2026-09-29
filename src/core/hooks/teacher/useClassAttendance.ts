@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { attendanceService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import type { ClassEntity } from '@/core/types/classes.types';
 import type { EnrollmentEntity } from '@/core/types/enrollments.types';
 import type { AttendanceRecord } from '@/core/types/attendance.types';
@@ -25,42 +26,58 @@ export function useClassAttendance({
 }: UseClassAttendanceParams): UseClassAttendanceResult {
   const { showSuccess, showError } = useAlert();
 
-  const [enrollments, setEnrollments] = useState<EnrollmentEntity[]>([]);
-  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
-  const [loadingDetails, setLoadingDetails] = useState(false);
+  // Stable scalar id: fetching depends on the id string, so keying on it
+  // (rather than the whole class object) also avoids refetching when the
+  // parent recreates an identical object each render.
+  const classId = selectedClass?.id;
 
-  const loadDetails = useCallback(
-    async (classId: string) => {
-      try {
-        setLoadingDetails(true);
-        if (activeTab === 'padron') {
-          const data = await attendanceService.getClassEnrollments(classId);
-          setEnrollments(data);
-        } else {
-          const data = await attendanceService.getClassAttendanceByDate(classId, todayStr);
-          setAttendances(data);
-        }
-      } catch (error: unknown) {
-        showError(error instanceof Error ? error.message : 'Error cargando detalles');
-      } finally {
-        setLoadingDetails(false);
+  const enrollmentsResource = useAsyncResource<EnrollmentEntity[]>(
+    async () => {
+      if (!classId) {
+        throw new Error('useClassAttendance requires a class id');
       }
+      return attendanceService.getClassEnrollments(classId);
     },
-    [activeTab, todayStr, showError],
+    [classId],
+    {
+      enabled: !!selectedClass && activeTab === 'padron',
+    },
   );
 
-  useEffect(() => {
-    if (selectedClass) {
-      loadDetails(selectedClass.id);
-    }
-  }, [selectedClass, activeTab, loadDetails]);
+  const attendancesResource = useAsyncResource<AttendanceRecord[]>(
+    async () => {
+      if (!classId) {
+        throw new Error('useClassAttendance requires a class id');
+      }
+      return attendanceService.getClassAttendanceByDate(classId, todayStr);
+    },
+    [classId, todayStr],
+    {
+      enabled: !!selectedClass && activeTab === 'asistencia',
+    },
+  );
+
+  // Destructure the stable refetch before the callback so the failure path
+  // below introduces no new exhaustive-deps warning.
+  const { refetch: refetchAttendances } = attendancesResource;
+
+  // Optimistic status overrides: the toggle applies instantly and keeps the
+  // value (the previous local-state behavior never re-read the server value
+  // on success). A failed toggle drops its override and reloads the server
+  // values, revealing the authoritative state.
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, 'present' | 'absent'>>({});
+
+  const enrollments = enrollmentsResource.data ?? [];
+  const attendances = (attendancesResource.data ?? []).map((record) => {
+    const override = statusOverrides[record.id];
+    return override === undefined ? record : { ...record, status: override };
+  });
+  const loadingDetails = enrollmentsResource.loading || attendancesResource.loading;
 
   const handleToggleAttendance = useCallback(
     async (attendanceRecord: AttendanceRecord, newStatus: 'present' | 'absent') => {
+      setStatusOverrides((prev) => ({ ...prev, [attendanceRecord.id]: newStatus }));
       try {
-        setAttendances((prev) =>
-          prev.map((a) => (a.id === attendanceRecord.id ? { ...a, status: newStatus } : a)),
-        );
         await attendanceService.markAttendance(
           attendanceRecord.enrollment_id,
           todayStr,
@@ -68,15 +85,20 @@ export function useClassAttendance({
         );
         showSuccess(`Asistencia marcada como ${newStatus === 'present' ? 'Presente' : 'Ausente'}`);
       } catch (error: unknown) {
+        setStatusOverrides((prev) => {
+          const next = { ...prev };
+          delete next[attendanceRecord.id];
+          return next;
+        });
         showError(
           `Error al marcar asistencia: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         );
         if (selectedClass) {
-          loadDetails(selectedClass.id);
+          refetchAttendances();
         }
       }
     },
-    [todayStr, selectedClass, loadDetails, showSuccess, showError],
+    [todayStr, selectedClass, refetchAttendances, showSuccess, showError],
   );
 
   return {

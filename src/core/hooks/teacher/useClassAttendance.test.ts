@@ -25,6 +25,39 @@ vi.mock('@/ui/useAlert', () => ({
 
 const todayStr = '2026-07-01';
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
+function makeRecord(id: string, classId: string): AttendanceRecord {
+  return {
+    id,
+    enrollment_id: id,
+    date: todayStr,
+    status: 'confirmed',
+    enrollments: {
+      student_id: 'stu-001',
+      class_id: classId,
+    },
+  };
+}
+
 function makeClass(id: string): ClassEntity {
   return {
     id,
@@ -135,5 +168,85 @@ describe('useClassAttendance', () => {
     });
 
     expect(mockShowError).toHaveBeenCalledWith('Error al marcar asistencia: Network error');
+  });
+
+  it('fetches the newly-selected tab without re-fetching the other resource', async () => {
+    // Parity: only the active tab fetches. Switching tabs enables the other
+    // resource exactly once and leaves the idle one untouched. The class
+    // object is hoisted so tab identity — not object identity — drives the
+    // fetch.
+    mockGetClassEnrollments.mockResolvedValue([
+      {
+        id: 'enr-001',
+        student_id: 'stu-001',
+        class_id: 'cls-001',
+        reservation_date: todayStr,
+        attendance_status: 'pending',
+        created_at: todayStr,
+      },
+    ]);
+    const stableClass = makeClass('cls-001');
+
+    const { result, rerender } = renderHook(
+      ({ activeTab }: { activeTab: 'asistencia' | 'padron' }) =>
+        useClassAttendance({ selectedClass: stableClass, activeTab, todayStr }),
+      { initialProps: { activeTab: 'padron' as 'asistencia' | 'padron' } },
+    );
+
+    await waitFor(() => expect(result.current.loadingDetails).toBe(false));
+    expect(mockGetClassEnrollments).toHaveBeenCalledTimes(1);
+    expect(mockGetClassAttendanceByDate).not.toHaveBeenCalled();
+
+    rerender({ activeTab: 'asistencia' as const });
+
+    await waitFor(() => expect(mockGetClassAttendanceByDate).toHaveBeenCalledTimes(1));
+    expect(mockGetClassEnrollments).toHaveBeenCalledTimes(1);
+  });
+
+  it('newest-wins: a stale class-A response settling late never clobbers newer class-B data', async () => {
+    const gateA = deferred<AttendanceRecord[]>();
+    const gateB = deferred<AttendanceRecord[]>();
+    mockGetClassAttendanceByDate
+      .mockImplementationOnce(() => gateA.promise)
+      .mockImplementationOnce(() => gateB.promise);
+
+    const recordsA = [makeRecord('enr-A', 'cls-001')];
+    const recordsB = [makeRecord('enr-B', 'cls-002')];
+    const classA = makeClass('cls-001');
+    const classB = makeClass('cls-002');
+    const { result, rerender } = renderHook(
+      ({ selectedClass }: { selectedClass: ReturnType<typeof makeClass> }) =>
+        useClassAttendance({ selectedClass, activeTab: 'asistencia', todayStr }),
+      { initialProps: { selectedClass: classA } },
+    );
+
+    rerender({ selectedClass: classB });
+
+    gateB.resolve(recordsB);
+    await waitFor(() => expect(result.current.attendances).toEqual(recordsB));
+
+    gateA.resolve(recordsA);
+    await flushSettles();
+
+    expect(result.current.attendances).toEqual(recordsB);
+    expect(mockGetClassAttendanceByDate).toHaveBeenCalledTimes(2);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const gate = deferred<AttendanceRecord[]>();
+    mockGetClassAttendanceByDate.mockImplementationOnce(() => gate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() =>
+      useClassAttendance({ selectedClass: makeClass('cls-001'), activeTab: 'asistencia', todayStr }),
+    );
+    unmount();
+
+    gate.resolve([makeRecord('enr-001', 'cls-001')]);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
