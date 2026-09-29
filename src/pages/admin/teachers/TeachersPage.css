@@ -4,6 +4,14 @@
   gap: 0.5rem;
 }
 
+.teachers-search-bar {
+  margin-bottom: 1.5rem;
+}
+
+.teachers-search-input {
+  max-width: 400px;
+}
+
 .teachers-page-actions .btn-add-self-teacher {
   background-color: var(--surface-hover);
   color: var(--primary-color);

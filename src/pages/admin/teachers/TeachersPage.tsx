@@ -3,7 +3,6 @@ import { UserPlus, GraduationCap } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
 import { useAlert } from '@/ui/useAlert';
 import { useAddSelfAsTeacher } from '@/core/hooks/admin/useAddSelfAsTeacher';
-import { usersService } from '@/core/services';
 import { TeacherList } from './components/TeacherList';
 import { TeacherFormModal } from './components/TeacherFormModal';
 import { ConfirmModal } from '@/ui';
@@ -15,6 +14,7 @@ export function TeachersPage() {
   const teachers = useUsersStore((state) => state.teachers);
   const loading = useUsersStore((state) => state.loading);
   const fetchTeachers = useUsersStore((state) => state.fetchTeachers);
+  const deleteTeacher = useUsersStore((state) => state.deleteUser);
   const { canAdd: showAddSelfAsTeacher, addSelfAsTeacher: handleAddSelfAsTeacher, isLoading: isAddingSelf } = useAddSelfAsTeacher();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,8 +32,7 @@ export function TeachersPage() {
   const confirmDelete = async () => {
     if (!deletingId) return;
     try {
-      await usersService.deleteUser(deletingId);
-      fetchTeachers();
+      await deleteTeacher(deletingId, 'teacher');
       showSuccess('Profesor eliminado.');
     } catch {
       showError('Error al borrar profesor');
@@ -75,13 +74,13 @@ export function TeachersPage() {
         </div>
       </div>
 
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div className="teachers-search-bar">
         <input
           type="text"
           placeholder="Buscar profesor..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ maxWidth: '400px' }}
+          className="teachers-search-input"
         />
       </div>
 

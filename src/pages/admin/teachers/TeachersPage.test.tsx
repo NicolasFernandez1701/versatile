@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TeachersPage } from './TeachersPage';
 import type { StudioMembership } from '@/core/types/auth.types';
+import type { UserProfile } from '@/core/types/users.types';
 
 // --- Hoisted mocks ---
 
@@ -11,6 +12,7 @@ const mockFetchTeachers = vi.hoisted(() => vi.fn());
 const mockShowSuccess = vi.hoisted(() => vi.fn());
 const mockShowError = vi.hoisted(() => vi.fn());
 const mockSetUser = vi.hoisted(() => vi.fn());
+const mockDeleteUser = vi.hoisted(() => vi.fn());
 const mockUseAuthStore = vi.hoisted(() => vi.fn());
 const mockUseUsersStore = vi.hoisted(() => vi.fn());
 
@@ -65,13 +67,22 @@ function setupAuthStore(memberships: StudioMembership[]) {
   });
 }
 
-function setupUsersStore() {
+function setupUsersStore(teachers: UserProfile[] = []) {
   mockUseUsersStore.mockReturnValue({
-    teachers: [],
+    teachers,
     loading: false,
     fetchTeachers: mockFetchTeachers,
+    deleteUser: mockDeleteUser,
   });
 }
+
+const TEACHER: UserProfile = {
+  id: 't-1',
+  full_name: 'Ana Docente',
+  role: 'teacher',
+  email: 'ana@example.com',
+  created_at: '2024-01-01',
+};
 
 function renderPage() {
   return render(<TeachersPage />);
@@ -86,6 +97,7 @@ describe('TeachersPage', () => {
     vi.clearAllMocks();
     mockAddSelfAsTeacher.mockResolvedValue(undefined);
     mockGetCurrentUser.mockResolvedValue(null);
+    mockDeleteUser.mockResolvedValue(undefined);
     setupUsersStore();
   });
 
@@ -204,5 +216,41 @@ describe('TeachersPage', () => {
     await waitFor(() => {
       expect(mockShowError).toHaveBeenCalledWith('Ya sos profesor de este estudio');
     });
+  });
+
+  it('elimina al profesor mediante el store y muestra éxito al confirmar', async () => {
+    setupAuthStore([{ studio_id: STUDIO_ID, studio_name: 'Studio', role: 'admin' }]);
+    setupUsersStore([TEACHER]);
+
+    const { container } = renderPage();
+    const deleteBtn = container.querySelector('button.icon-btn.text-danger');
+    expect(deleteBtn).not.toBeNull();
+    fireEvent.click(deleteBtn!);
+
+    expect(screen.getByText('Eliminar Profesor')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+
+    await waitFor(() => {
+      expect(mockDeleteUser).toHaveBeenCalledWith('t-1', 'teacher');
+    });
+    expect(mockShowSuccess).toHaveBeenCalledWith('Profesor eliminado.');
+  });
+
+  it('muestra error cuando el store rechaza la eliminación', async () => {
+    mockDeleteUser.mockRejectedValueOnce(new Error('boom'));
+    setupAuthStore([{ studio_id: STUDIO_ID, studio_name: 'Studio', role: 'admin' }]);
+    setupUsersStore([TEACHER]);
+
+    const { container } = renderPage();
+    const deleteBtn = container.querySelector('button.icon-btn.text-danger');
+    expect(deleteBtn).not.toBeNull();
+    fireEvent.click(deleteBtn!);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+
+    await waitFor(() => {
+      expect(mockShowError).toHaveBeenCalledWith('Error al borrar profesor');
+    });
+    expect(mockDeleteUser).toHaveBeenCalledWith('t-1', 'teacher');
   });
 });
