@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import { plansService, classesService } from '@/core/services';
 import type { PlanEntity, CreatePlanDTO, CreatePlanActivityDTO } from '@/core/types/plans.types';
 import type { ClassEntity } from '@/core/types/classes.types';
@@ -82,7 +82,7 @@ export function usePlansManagement(): UsePlansManagementResult {
         await plansService.deletePlan(id);
         await fetchPlans();
         showSuccess('Plan eliminado con éxito.');
-      } catch (error: unknown) {
+      } catch {
         showError('Error eliminando el plan.');
       }
     },
@@ -99,7 +99,7 @@ export function usePlansManagement(): UsePlansManagementResult {
       try {
         await plansService.togglePlanStatus(id, nextStatus);
         showSuccess('Estado actualizado con éxito.');
-      } catch (error: unknown) {
+      } catch {
         setPlans((prev) =>
           prev.map((plan) => (plan.id === id ? { ...plan, is_active: currentStatus } : plan)),
         );

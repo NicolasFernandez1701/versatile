@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import { enrollmentsService, classesService } from '@/core/services';
 import type { EnrollmentEntity } from '@/core/types/enrollments.types';
 import type { ClassEntity } from '@/core/types/classes.types';
@@ -53,7 +53,7 @@ export function useEnrollments(): UseEnrollmentsResult {
         await enrollmentsService.unenrollStudent(id);
         await loadData();
         showSuccess('Alumno desinscripto.');
-      } catch (error: unknown) {
+      } catch {
         showError('Error al desinscribir.');
       }
     },

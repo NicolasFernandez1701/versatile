@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import { classesService, usersService } from '@/core/services';
 import type { ClassEntity, EnrollmentEntity, Profile } from '@/core/types/classes.types';
 
@@ -90,7 +90,7 @@ export function useClassesManagement(): UseClassesManagementResult {
         await classesService.deleteClass(id);
         await fetchClasses();
         showSuccess('Clase eliminada con éxito.');
-      } catch (error: unknown) {
+      } catch {
         showError('Error eliminando la clase.');
       }
     },
@@ -107,7 +107,7 @@ export function useClassesManagement(): UseClassesManagementResult {
       try {
         await classesService.updateClass(id, { is_active: nextStatus });
         showSuccess('Estado actualizado con éxito.');
-      } catch (error: unknown) {
+      } catch {
         setClasses((prev) =>
           prev.map((cls) => (cls.id === id ? { ...cls, is_active: currentStatus } : cls)),
         );
