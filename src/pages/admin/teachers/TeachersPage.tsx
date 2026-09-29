@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { UserPlus, GraduationCap } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import { useAddSelfAsTeacher } from '@/core/hooks/admin/useAddSelfAsTeacher';
 import { usersService } from '@/core/services';
 import { TeacherList } from './components/TeacherList';
@@ -35,7 +35,7 @@ export function TeachersPage() {
       await usersService.deleteUser(deletingId);
       fetchTeachers();
       showSuccess('Profesor eliminado.');
-    } catch (error) {
+    } catch {
       showError('Error al borrar profesor');
     } finally {
       setDeletingId(null);
