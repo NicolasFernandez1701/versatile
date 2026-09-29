@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useAlert } from '@/ui/useAlert';
 import { plansService, classesService } from '@/core/services';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import type { PlanEntity, CreatePlanDTO, CreatePlanActivityDTO } from '@/core/types/plans.types';
 import type { ClassEntity } from '@/core/types/classes.types';
 
@@ -16,45 +17,55 @@ export interface UsePlansManagementResult {
   toggleStatus: (id: string, currentStatus: boolean) => Promise<void>;
 }
 
+interface PlansResource {
+  plans: PlanEntity[];
+  availableClasses: ClassEntity[];
+}
+
 export function usePlansManagement(): UsePlansManagementResult {
   const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
 
-  const [plans, setPlans] = useState<PlanEntity[]>([]);
-  const [availableClasses, setAvailableClasses] = useState<ClassEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchPlans = useCallback(async () => {
-    if (!current_studio_id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
+  const resource = useAsyncResource<PlansResource>(
+    async () => {
+      if (!current_studio_id) {
+        throw new Error('usePlansManagement requires a studio id');
+      }
       const [plansData, classesData] = await Promise.all([
         plansService.getPlans(),
         classesService.getClasses(current_studio_id),
       ]);
-      setPlans(plansData);
-      setAvailableClasses(classesData);
-    } catch (error: unknown) {
-      showError('Error cargando los planes.');
-      console.error('Error fetching plans:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [current_studio_id, showError]);
+      return { plans: plansData, availableClasses: classesData };
+    },
+    [current_studio_id],
+    {
+      enabled: !!current_studio_id,
+      onError: (error) => {
+        showError('Error cargando los planes.');
+        console.error('Error fetching plans:', error);
+      },
+    },
+  );
 
-  useEffect(() => {
-    fetchPlans();
-  }, [fetchPlans]);
+  const fetchPlans = resource.refetch;
+
+  // Optimistic status overrides: same contract as useClassesManagement —
+  // instant toggle, kept until the next server refresh, dropped on failure.
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, boolean>>({});
+
+  const plans = (resource.data?.plans ?? []).map((plan) => {
+    const override = statusOverrides[plan.id];
+    return override === undefined ? plan : { ...plan, is_active: override };
+  });
+  const availableClasses = resource.data?.availableClasses ?? [];
+  const loading = resource.loading;
 
   const createPlan = useCallback(
     async (data: CreatePlanDTO, activities: CreatePlanActivityDTO[]) => {
       try {
         await plansService.createPlanWithActivities(data, activities);
         await fetchPlans();
+        setStatusOverrides({});
         showSuccess('Plan creado con éxito.');
       } catch (error: unknown) {
         showError(error instanceof Error ? error.message : 'Error creando el plan.');
@@ -68,6 +79,7 @@ export function usePlansManagement(): UsePlansManagementResult {
       try {
         await plansService.updatePlanWithActivities(id, data, activities);
         await fetchPlans();
+        setStatusOverrides({});
         showSuccess('Plan actualizado con éxito.');
       } catch (error: unknown) {
         showError(error instanceof Error ? error.message : 'Error actualizando el plan.');
@@ -81,6 +93,7 @@ export function usePlansManagement(): UsePlansManagementResult {
       try {
         await plansService.deletePlan(id);
         await fetchPlans();
+        setStatusOverrides({});
         showSuccess('Plan eliminado con éxito.');
       } catch {
         showError('Error eliminando el plan.');
@@ -92,17 +105,17 @@ export function usePlansManagement(): UsePlansManagementResult {
   const toggleStatus = useCallback(
     async (id: string, currentStatus: boolean) => {
       const nextStatus = !currentStatus;
-      setPlans((prev) =>
-        prev.map((plan) => (plan.id === id ? { ...plan, is_active: nextStatus } : plan)),
-      );
+      setStatusOverrides((prev) => ({ ...prev, [id]: nextStatus }));
 
       try {
         await plansService.togglePlanStatus(id, nextStatus);
         showSuccess('Estado actualizado con éxito.');
       } catch {
-        setPlans((prev) =>
-          prev.map((plan) => (plan.id === id ? { ...plan, is_active: currentStatus } : plan)),
-        );
+        setStatusOverrides((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
         showError('Error actualizando el estado.');
       }
     },

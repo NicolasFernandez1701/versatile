@@ -78,6 +78,38 @@ const mockActivities: CreatePlanActivityDTO[] = [
   { activity_name: 'Pilates', classes_per_week: 2 },
 ];
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
+const mockPlanB: PlanEntity = {
+  ...mockPlan,
+  id: 'plan-002',
+  name: 'Plan Trimestral',
+};
+
+const mockClassB: ClassEntity = {
+  ...mockClass,
+  id: 'class-002',
+  activity_name: 'Pilates',
+};
+
 describe('usePlansManagement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -126,9 +158,12 @@ describe('usePlansManagement', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.createPlan(mockPlanData, mockActivities);
+      refresh = result.current.createPlan(mockPlanData, mockActivities);
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockCreatePlanWithActivities).toHaveBeenCalledWith(mockPlanData, mockActivities);
     expect(mockGetPlans).toHaveBeenCalledTimes(2);
@@ -140,9 +175,12 @@ describe('usePlansManagement', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.updatePlan('plan-001', mockPlanData, mockActivities);
+      refresh = result.current.updatePlan('plan-001', mockPlanData, mockActivities);
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockUpdatePlanWithActivities).toHaveBeenCalledWith('plan-001', mockPlanData, mockActivities);
     expect(mockGetPlans).toHaveBeenCalledTimes(2);
@@ -154,9 +192,12 @@ describe('usePlansManagement', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.deletePlan('plan-001');
+      refresh = result.current.deletePlan('plan-001');
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockDeletePlan).toHaveBeenCalledWith('plan-001');
     expect(mockGetPlans).toHaveBeenCalledTimes(2);
@@ -198,9 +239,12 @@ describe('usePlansManagement', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.fetchPlans();
+      refresh = result.current.fetchPlans();
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockGetPlans).toHaveBeenCalledTimes(2);
   });
@@ -213,5 +257,54 @@ describe('usePlansManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockShowError).toHaveBeenCalledWith('Error cargando los planes.');
+  });
+
+  it('newest-wins: a stale studio-A response settling late never clobbers newer studio-B data', async () => {
+    const plansGateA = deferred<PlanEntity[]>();
+    const classesGateA = deferred<ClassEntity[]>();
+    const plansGateB = deferred<PlanEntity[]>();
+    const classesGateB = deferred<ClassEntity[]>();
+    mockGetPlans
+      .mockImplementationOnce(() => plansGateA.promise)
+      .mockImplementationOnce(() => plansGateB.promise);
+    mockGetClasses
+      .mockImplementationOnce(() => classesGateA.promise)
+      .mockImplementationOnce(() => classesGateB.promise);
+
+    const { result, rerender } = renderHook(() => usePlansManagement());
+
+    mockUseAuthStore.mockReturnValue({ current_studio_id: 'studio-B' });
+    rerender();
+
+    plansGateB.resolve([mockPlanB]);
+    classesGateB.resolve([mockClassB]);
+    await waitFor(() => expect(result.current.plans).toEqual([mockPlanB]));
+    expect(result.current.availableClasses).toEqual([mockClassB]);
+
+    plansGateA.resolve([mockPlan]);
+    classesGateA.resolve([mockClass]);
+    await flushSettles();
+
+    expect(result.current.plans).toEqual([mockPlanB]);
+    expect(result.current.availableClasses).toEqual([mockClassB]);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const plansGate = deferred<PlanEntity[]>();
+    const classesGate = deferred<ClassEntity[]>();
+    mockGetPlans.mockImplementationOnce(() => plansGate.promise);
+    mockGetClasses.mockImplementationOnce(() => classesGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => usePlansManagement());
+    unmount();
+
+    plansGate.resolve([mockPlan]);
+    classesGate.resolve([mockClass]);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
