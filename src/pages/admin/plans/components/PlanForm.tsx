@@ -1,14 +1,7 @@
 import { Plus, Trash2, Calculator } from 'lucide-react';
 import { usePlanForm } from '@/core/hooks/shared/usePlanForm';
-import type { ClassEntity } from '@/core/types/classes.types';
-import type { PlanEntity } from '@/core/types/plans.types';
-
-interface PlanFormProps {
-  initialData?: PlanEntity | null;
-  availableClasses: ClassEntity[];
-  onSuccess?: () => void;
-  onCancel: () => void;
-}
+import type { PlanFormProps } from './PlanForm.types';
+import './PlanForm.css';
 
 export function PlanForm({
   initialData,
@@ -54,7 +47,7 @@ export function PlanForm({
         <div className="activities-list">
           {activities.map((act, idx) => (
             <div key={idx} className="activity-row">
-              <div style={{ position: 'relative' }}>
+              <div className="plan-activity-icon-wrap">
                 <input
                   type="text"
                   placeholder="Ej: Yoga"
@@ -77,7 +70,7 @@ export function PlanForm({
                 }
                 required
               />
-              <span style={{ alignSelf: 'center' }}>clases/sem</span>
+              <span className="plan-activity-unit">clases/sem</span>
 
               <button
                 type="button"
@@ -91,9 +84,8 @@ export function PlanForm({
         </div>
         <button
           type="button"
-          className="btn-secondary"
+          className="btn-secondary plan-add-activity-btn"
           onClick={addActivity}
-          style={{ marginTop: '10px' }}
         >
           <Plus size={16} /> Agregar Actividad
         </button>
@@ -107,7 +99,7 @@ export function PlanForm({
 
         <div className="form-group">
           <label>Precio Mensual ($)</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="plan-price-row">
             <input
               type="text"
               inputMode="numeric"
@@ -115,19 +107,18 @@ export function PlanForm({
               value={price}
               onChange={(e) => setField('price', e.target.value)}
               required
-              style={{ flex: 1 }}
+              className="plan-price-input"
             />
             <button
               type="button"
-              className="btn-secondary"
+              className="btn-secondary plan-calc-btn"
               onClick={calculateSuggestedPrice}
               title="Calcular Sugerido"
-              style={{ padding: '0 0.75rem' }}
             >
               <Calculator size={20} />
             </button>
           </div>
-          <small className="text-secondary" style={{ display: 'block', marginTop: '0.25rem' }}>
+          <small className="text-secondary plan-hint">
             Precio sugerido: {classesPerWeek} clases x $2000
           </small>
         </div>
@@ -136,8 +127,8 @@ export function PlanForm({
       {error && <div className="error-message">{error}</div>}
 
       <div className="plan-form-footer">
-        <div className="form-group checkbox-group" style={{ margin: 0 }}>
-          <label style={{ margin: 0 }}>
+        <div className="form-group checkbox-group plan-footer-group">
+          <label className="plan-footer-label">
             <input
               type="checkbox"
               checked={isActive}
@@ -147,7 +138,7 @@ export function PlanForm({
           </label>
         </div>
 
-        <div className="form-actions" style={{ marginTop: 0 }}>
+        <div className="form-actions plan-footer-actions">
           <button type="button" className="btn-secondary" onClick={onCancel}>
             Cancelar
           </button>

@@ -1,0 +1,41 @@
+.plan-activity-icon-wrap {
+  position: relative;
+}
+
+.plan-activity-unit {
+  align-self: center;
+}
+
+.plan-add-activity-btn {
+  margin-top: 10px;
+}
+
+.plan-price-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.plan-price-input {
+  flex: 1;
+}
+
+.plan-calc-btn {
+  padding: 0 0.75rem;
+}
+
+.plan-hint {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.plan-footer-group {
+  margin: 0;
+}
+
+.plan-footer-label {
+  margin: 0;
+}
+
+.plan-footer-actions {
+  margin-top: 0;
+}
