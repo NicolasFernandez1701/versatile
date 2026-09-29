@@ -14,6 +14,7 @@ export interface AttendanceByClass {
   total_enrolled: number;
   attended: number;
   absent: number;
+  cancelled: number;
   attendance_rate: number;
 }
 

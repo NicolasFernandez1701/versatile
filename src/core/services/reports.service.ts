@@ -38,6 +38,39 @@ function attendanceRate(attended: number, total: number): number {
   return total > 0 ? Math.round((attended / total) * 100) : 0;
 }
 
+interface ProfileJoin {
+  full_name: string;
+}
+
+interface ClassJoin {
+  activity_name: string;
+  day_of_week: number;
+}
+
+interface PopularClassJoin {
+  activity_name: string;
+}
+
+// Supabase infers embedded to-one joins as arrays; PostgREST returns a single
+// object for them at runtime. These helpers make that explicit: object shapes
+// pass through untouched, array shapes resolve to their first row.
+function resolveProfileName(profiles: ProfileJoin | ProfileJoin[] | null | undefined): string {
+  const profile = Array.isArray(profiles) ? profiles[0] : profiles;
+  return profile?.full_name || 'Desconocido';
+}
+
+function resolveClassJoin(classes: ClassJoin | ClassJoin[] | null | undefined): ClassJoin | null {
+  const cls = Array.isArray(classes) ? classes[0] : classes;
+  return cls ?? null;
+}
+
+function resolvePopularJoin(
+  classes: PopularClassJoin | PopularClassJoin[] | null | undefined
+): PopularClassJoin | null {
+  const cls = Array.isArray(classes) ? classes[0] : classes;
+  return cls ?? null;
+}
+
 export const reportsService = {
   async getAttendanceByStudent(
     startDate: string,
@@ -62,7 +95,7 @@ export const reportsService = {
       if (!map.has(id)) {
         map.set(id, {
           student_id: id,
-          full_name: (row.profiles as { full_name: string } | null)?.full_name || 'Desconocido',
+          full_name: resolveProfileName(row.profiles as ProfileJoin | ProfileJoin[] | null),
           ...createEmptyCounts(),
           total: 0,
         });
@@ -101,7 +134,7 @@ export const reportsService = {
 
     for (const row of data || []) {
       const id = row.class_id;
-      const cls = row.classes as { activity_name: string; day_of_week: number } | null;
+      const cls = resolveClassJoin(row.classes as ClassJoin | ClassJoin[] | null);
       if (!cls) continue;
 
       if (!map.has(id)) {
@@ -181,7 +214,7 @@ export const reportsService = {
     const map = new Map<string, number>();
 
     for (const row of data || []) {
-      const cls = row.classes as { activity_name: string } | null;
+      const cls = resolvePopularJoin(row.classes as PopularClassJoin | PopularClassJoin[] | null);
       if (!cls) continue;
       map.set(cls.activity_name, (map.get(cls.activity_name) || 0) + 1);
     }
@@ -214,7 +247,7 @@ export const reportsService = {
       if (!map.has(id)) {
         map.set(id, {
           teacher_id: id,
-          full_name: (row.profiles as { full_name: string } | null)?.full_name || 'Desconocido',
+          full_name: resolveProfileName(row.profiles as ProfileJoin | ProfileJoin[] | null),
           total_earned: 0,
           class_count: 0,
         });
@@ -249,7 +282,7 @@ export const reportsService = {
         const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
         map.set(id, {
           student_id: id,
-          full_name: (row.profiles as { full_name: string } | null)?.full_name || 'Desconocido',
+          full_name: resolveProfileName(row.profiles as ProfileJoin | ProfileJoin[] | null),
           last_attendance: row.reservation_date,
           days_since_last: diffDays,
         });
