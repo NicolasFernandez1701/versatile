@@ -198,4 +198,56 @@ describe('usePaymentCalculation', () => {
 
     consoleSpy.mockRestore();
   });
+
+  it('recomputes the calculation when only studentId changes (null -> selected)', async () => {
+    // hasExistingPayments=true keeps isFirstPayment=false before AND after,
+    // so only the studentId change can trigger a recompute.
+    vi.spyOn(financesService, 'hasExistingPayments').mockResolvedValue(true);
+
+    const { result, rerender } = renderHook(
+      ({ studentId }: { studentId: string | null }) =>
+        usePaymentCalculation({
+          studentId,
+          plan: mockPlan,
+          paymentMethod: 'transferencia',
+          promoDiscountPct: 0,
+          applyLateFee: false,
+          today: fixedToday,
+        }),
+      { initialProps: { studentId: null as string | null } },
+    );
+
+    expect(result.current.calculation).toBeNull();
+
+    rerender({ studentId: 'stu-010' });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(financesService.hasExistingPayments).toHaveBeenCalledWith('stu-010');
+    expect(result.current.calculation).not.toBeNull();
+  });
+
+  it('clears the calculation when the student is deselected (selected -> null)', async () => {
+    vi.spyOn(financesService, 'hasExistingPayments').mockResolvedValueOnce(true);
+
+    const { result, rerender } = renderHook(
+      ({ studentId }: { studentId: string | null }) =>
+        usePaymentCalculation({
+          studentId,
+          plan: mockPlan,
+          paymentMethod: 'transferencia',
+          promoDiscountPct: 0,
+          applyLateFee: false,
+          today: fixedToday,
+        }),
+      { initialProps: { studentId: 'stu-011' as string | null } },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.calculation).not.toBeNull();
+
+    rerender({ studentId: null });
+
+    expect(result.current.calculation).toBeNull();
+  });
 });

@@ -67,7 +67,7 @@ export function usePaymentCalculation({
       isFirstPayment,
       today,
     });
-  }, [plan, paymentMethod, promoDiscountPct, applyLateFee, isFirstPayment, today]);
+  }, [studentId, plan, paymentMethod, promoDiscountPct, applyLateFee, isFirstPayment, today]);
 
   return { calculation, loading, error, isFirstPayment };
 }
