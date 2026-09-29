@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { dashboardService } from '@/core/services';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import type { StudentDashboardData, StudentClassLimit } from '@/core/types/dashboard.types';
 
 export interface UseStudentDashboardResult {
@@ -8,45 +8,35 @@ export interface UseStudentDashboardResult {
   loading: boolean;
 }
 
+interface StudentDashboardResource {
+  data: StudentDashboardData;
+  classLimit: StudentClassLimit;
+}
+
 export function useStudentDashboard(userId: string | undefined): UseStudentDashboardResult {
-  const [data, setData] = useState<StudentDashboardData | null>(null);
-  const [classLimit, setClassLimit] = useState<StudentClassLimit | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    let mounted = true;
-    setLoading(true);
-
-    Promise.all([
-      dashboardService.getStudentDashboardData(userId),
-      dashboardService.getStudentClassLimit(userId),
-    ])
-      .then(([dashboardData, limitData]) => {
-        if (!mounted) return;
-        setData(dashboardData);
-        setClassLimit(limitData);
-      })
-      .catch((error: unknown) => {
-        if (!mounted) return;
+  const resource = useAsyncResource<StudentDashboardResource>(
+    async () => {
+      if (!userId) {
+        throw new Error('useStudentDashboard requires a userId');
+      }
+      const [dashboardData, limitData] = await Promise.all([
+        dashboardService.getStudentDashboardData(userId),
+        dashboardService.getStudentClassLimit(userId),
+      ]);
+      return { data: dashboardData, classLimit: limitData };
+    },
+    [userId],
+    {
+      enabled: !!userId,
+      onError: (error) => {
         console.error('Error fetching student dashboard:', error);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [userId]);
+      },
+    },
+  );
 
   return {
-    data,
-    classLimit,
-    loading,
+    data: resource.data?.data ?? null,
+    classLimit: resource.data?.classLimit ?? null,
+    loading: resource.loading,
   };
 }

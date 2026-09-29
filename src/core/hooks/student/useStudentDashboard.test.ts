@@ -13,8 +13,27 @@ vi.mock('@/core/services', () => ({
   },
 }));
 
-const mockDashboardData: StudentDashboardData = {
-  activePlan: {
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
+const mockDashboardData: StudentDashboardData = {  activePlan: {
     plan_id: 'plan-001',
     plan_details: 'Plan Mensual',
     expiration_date: '2026-07-31',
@@ -88,5 +107,66 @@ describe('useStudentDashboard', () => {
 
     expect(result.current.data).toBeNull();
     expect(result.current.classLimit).toBeNull();
+  });
+
+  it('newest-wins: a stale userId response settling late never clobbers newer data', async () => {
+    const dashboardGateA = deferred<StudentDashboardData>();
+    const limitGateA = deferred<StudentClassLimit>();
+    const dashboardGateB = deferred<StudentDashboardData>();
+    const limitGateB = deferred<StudentClassLimit>();
+    mockGetStudentDashboardData
+      .mockImplementationOnce(() => dashboardGateA.promise)
+      .mockImplementationOnce(() => dashboardGateB.promise);
+    mockGetStudentClassLimit
+      .mockImplementationOnce(() => limitGateA.promise)
+      .mockImplementationOnce(() => limitGateB.promise);
+
+    const dashboardB: StudentDashboardData = {
+      activePlan: {
+        plan_id: 'plan-B',
+        plan_details: 'Plan B',
+        expiration_date: '2026-08-31',
+      },
+      nextClass: null,
+    };
+    const limitB: StudentClassLimit = { ...mockClassLimit, limit: 7 };
+
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId: string | undefined }) => useStudentDashboard(userId),
+      { initialProps: { userId: 'student-A' as string | undefined } },
+    );
+
+    rerender({ userId: 'student-B' });
+
+    dashboardGateB.resolve(dashboardB);
+    limitGateB.resolve(limitB);
+    await waitFor(() => expect(result.current.data?.activePlan?.plan_id).toBe('plan-B'));
+    expect(result.current.classLimit?.limit).toBe(7);
+
+    dashboardGateA.resolve(mockDashboardData);
+    limitGateA.resolve(mockClassLimit);
+    await flushSettles();
+
+    expect(result.current.data?.activePlan?.plan_id).toBe('plan-B');
+    expect(result.current.classLimit?.limit).toBe(7);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const dashboardGate = deferred<StudentDashboardData>();
+    const limitGate = deferred<StudentClassLimit>();
+    mockGetStudentDashboardData.mockImplementationOnce(() => dashboardGate.promise);
+    mockGetStudentClassLimit.mockImplementationOnce(() => limitGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useStudentDashboard('student-001'));
+    unmount();
+
+    dashboardGate.resolve(mockDashboardData);
+    limitGate.resolve(mockClassLimit);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
