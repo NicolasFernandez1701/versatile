@@ -26,8 +26,11 @@ function toError(reason: unknown): Error {
 }
 
 /**
- * Shared async-resource state machine and the single sanctioned
- * `react-hooks/set-state-in-effect` location in production code.
+ * Shared async-resource state machine. Carries no
+ * `react-hooks/set-state-in-effect` suppression: the installed plugin does
+ * not trace the functional-updater setState form used here, so the rule
+ * reports nothing at this site (the single sanctioned suppression was
+ * removed 2026-09-29 as a dead directive).
  *
  * Contract: keyed effect + effect-updated refs (AD-1/AD-6), keep-previous-data
  * with blocking/silent refetch parity (AD-2), single-resource instances
@@ -78,13 +81,12 @@ export function useAsyncResource<T>(
     const blocking = !silentRef.current;
     silentRef.current = false;
 
-    // The single sanctioned synchronous state write (spec: centralized
-    // suppression): the functional updater covers the disabled / blocking /
-    // silent branches in one call. Kept even though
-    // eslint-plugin-react-hooks 7.1.1 does not trace the updater form (hence
-    // the unused-directive warning): it documents the sanctioned site and
-    // future-proofs a plugin upgrade that traces updaters.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Single synchronous state write for this effect run: the functional
+    // updater covers the disabled / blocking / silent branches in one call.
+    // No suppression is carried here: eslint-plugin-react-hooks 7.1.1 does
+    // not trace the functional-updater form, so the rule reports nothing at
+    // this site (verified 2026-09-29 — the former disable directive was an
+    // unused-directive warning and was removed).
     setLoading((previous) => {
       if (!enabled) return false;
       if (blocking) return true;
