@@ -299,4 +299,23 @@ describe('useRecordPayment', () => {
     expect(result.current.newPlanId).toBe('');
     expect(result.current.isPlanChange).toBe(false);
   });
+
+  it('keeps a stable today value across re-renders', () => {
+    const { result, rerender } = renderWithOpen();
+
+    const first = result.current.today;
+    expect(first).toBeInstanceOf(Date);
+
+    rerender({ isOpen: true });
+
+    expect(result.current.today).toBe(first);
+  });
+
+  it('keeps isAfter10th consistent with the frozen today after re-render', () => {
+    const { result, rerender } = renderWithOpen();
+
+    rerender({ isOpen: true });
+
+    expect(result.current.isAfter10th).toBe(result.current.today.getDate() > 10);
+  });
 });

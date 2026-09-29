@@ -67,7 +67,10 @@ export function useRecordPayment({
   const [isPlanChange, setIsPlanChange] = useState(false);
   const [newPlanId, setNewPlanId] = useState('');
 
-  const today = new Date();
+  // Frozen at mount: a per-render `new Date()` would change identity every
+  // render and defeat the `promoDiscountPct` useMemo below (exhaustive-deps).
+  // Day-boundary rollover mid-session is out of scope for this modal.
+  const today = useMemo(() => new Date(), []);
   const isAfter10th = today.getDate() > 10;
 
   useEffect(() => {
