@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { classesService, attendanceService, dashboardService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
@@ -14,58 +14,70 @@ export interface UseStudentClassesDataResult {
   loadData: () => Promise<void>;
 }
 
+const EMPTY_PLAN_LIMITS: StudentClassLimit = {
+  limit: 0,
+  classesPerWeek: 0,
+  perActivity: {},
+};
+
+interface StudentClassesResource {
+  classesList: ClassEntity[];
+  reservations: AttendanceRecord[];
+  planLimits: StudentClassLimit;
+}
+
+// Content-derived fetch key: `weekDates` is recreated per render, so the key
+// depends on day content rather than object identity — otherwise every render
+// would refetch. Empty content yields an empty key, which disables the fetch
+// (G-Q1: a disabled gate reports loading:false, never a stuck spinner).
+function weekKeyFor(weekDates: Record<number, Date>): string {
+  return Object.keys(weekDates)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((day) => weekDates[day].getTime())
+    .join(',');
+}
+
 export function useStudentClassesData(weekDates: Record<number, Date>): UseStudentClassesDataResult {
   const { user, current_studio_id } = useAuthStore();
   const { showError } = useAlert();
   // Stable scalar id: the fetcher only needs the id string, so depend on the
-  // id itself instead of the whole user object. This keeps the manual memo
-  // deps exactly matching what the compiler infers (no behavior change:
-  // loadData is still recreated exactly when the id changes).
+  // id itself instead of the whole user object.
   const userId = user?.id;
+  const weekKey = weekKeyFor(weekDates);
 
-  const [loading, setLoading] = useState(true);
-  const [classesList, setClassesList] = useState<ClassEntity[]>([]);
-  const [reservations, setReservations] = useState<AttendanceRecord[]>([]);
-  const [planLimits, setPlanLimits] = useState<StudentClassLimit>({
-    limit: 0,
-    classesPerWeek: 0,
-    perActivity: {},
-  });
-
-  const loadData = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
-
+  const resource = useAsyncResource<StudentClassesResource>(
+    async () => {
+      if (!userId) {
+        throw new Error('useStudentClassesData requires a user id');
+      }
       const [cData, resData, classLimit] = await Promise.all([
         classesService.getClasses(current_studio_id || ''),
         attendanceService.getStudentAttendances(userId),
         dashboardService.getStudentClassLimit(userId),
       ]);
+      return {
+        classesList: cData.filter((c) => c.is_active !== false),
+        reservations: resData,
+        planLimits: classLimit,
+      };
+    },
+    [weekKey],
+    {
+      enabled: weekKey !== '' && !!userId,
+      onError: (error) => {
+        showError('Error cargando los datos: ' + error.message);
+      },
+    },
+  );
 
-      setClassesList(cData.filter((c) => c.is_active !== false));
-      setReservations(resData);
-      setPlanLimits(classLimit);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error desconocido';
-      showError('Error cargando los datos: ' + message);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, current_studio_id, showError]);
-
-  useEffect(() => {
-    if (Object.keys(weekDates).length > 0) {
-      loadData();
-    }
-  }, [weekDates, loadData]);
+  const loadData = resource.refetch;
 
   return {
-    loading,
-    classesList,
-    reservations,
-    planLimits,
+    loading: resource.loading,
+    classesList: resource.data?.classesList ?? [],
+    reservations: resource.data?.reservations ?? [],
+    planLimits: resource.data?.planLimits ?? EMPTY_PLAN_LIMITS,
     loadData,
   };
 }

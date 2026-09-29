@@ -89,6 +89,26 @@ const baseWeekDates: Record<number, Date> = {
   6: new Date('2026-07-11'),
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
 describe('useStudentClassesData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -150,7 +170,11 @@ describe('useStudentClassesData', () => {
     expect(result.current.classesList).toEqual([]);
   });
 
-  it('does not fetch when user.id is null', async () => {
+  it('reports loading=false while disabled by a null user (G-Q1: never a stuck spinner)', async () => {
+    // Spec Disabled-gate scenario (async-resource-primitive): a disabled gate
+    // performs no work and reports loading:false. User-authorized 2026-09-29
+    // (G-Q1): the previous loading:true observable encoded a spinner that
+    // never stopped, so this asserts the fixed behavior, not the old one.
     mockUseAuthStore.mockReturnValue({
       user: null,
       current_studio_id: 'studio-001',
@@ -158,17 +182,41 @@ describe('useStudentClassesData', () => {
 
     const { result } = renderHook(() => useStudentClassesData(baseWeekDates));
 
-    expect(result.current.loading).toBe(true);
+    expect(result.current.loading).toBe(false);
+    await flushSettles();
+    expect(result.current.loading).toBe(false);
     expect(mockGetClasses).not.toHaveBeenCalled();
     expect(mockGetStudentAttendances).not.toHaveBeenCalled();
     expect(mockGetStudentClassLimit).not.toHaveBeenCalled();
   });
 
-  it('does not fetch when weekDates is empty', async () => {
+  it('reports loading=false while disabled by empty weekDates (G-Q1: never a stuck spinner)', async () => {
+    // Same G-Q1 guarantee for the other gate: empty weekDates disables the
+    // fetch, so no loader may be shown while nothing is being fetched.
     const { result } = renderHook(() => useStudentClassesData({}));
 
-    expect(result.current.loading).toBe(true);
+    expect(result.current.loading).toBe(false);
+    await flushSettles();
+    expect(result.current.loading).toBe(false);
     expect(mockGetClasses).not.toHaveBeenCalled();
+  });
+
+  it('never leaves a disabled gate stuck at loading=true (stuck-spinner regression pin)', async () => {
+    // Both gates disabled at once. Fails if the pre-G-Q1 stuck-true behavior
+    // ever returns: no fetch may fire and no loader may be shown, even after
+    // effects have flushed.
+    mockUseAuthStore.mockReturnValue({
+      user: null,
+      current_studio_id: 'studio-001',
+    });
+
+    const { result } = renderHook(() => useStudentClassesData({}));
+
+    await flushSettles();
+    expect(mockGetClasses).not.toHaveBeenCalled();
+    expect(mockGetStudentAttendances).not.toHaveBeenCalled();
+    expect(mockGetStudentClassLimit).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(false);
   });
 
   it('respects weekDates dependency', async () => {
@@ -187,5 +235,87 @@ describe('useStudentClassesData', () => {
     rerender({ weekDates: newWeekDates });
 
     await waitFor(() => expect(mockGetClasses).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not refetch when weekDates identity changes but content is unchanged', async () => {
+    // The fetch key is derived from weekDates content, so a new object with
+    // identical days must not trigger a second fetch (kills the refetch loop).
+    const { result, rerender } = renderHook(
+      ({ weekDates }: { weekDates: Record<number, Date> }) => useStudentClassesData(weekDates),
+      { initialProps: { weekDates: baseWeekDates } },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockGetClasses).toHaveBeenCalledTimes(1);
+
+    rerender({ weekDates: { ...baseWeekDates } });
+    await flushSettles();
+
+    expect(mockGetClasses).toHaveBeenCalledTimes(1);
+  });
+
+  it('newest-wins: a stale week-A response settling late never clobbers newer week-B data', async () => {
+    const classesGateA = deferred<ClassEntity[]>();
+    const attendancesGateA = deferred<AttendanceRecord[]>();
+    const limitsGateA = deferred<StudentClassLimit>();
+    const classesGateB = deferred<ClassEntity[]>();
+    const attendancesGateB = deferred<AttendanceRecord[]>();
+    const limitsGateB = deferred<StudentClassLimit>();
+    mockGetClasses
+      .mockImplementationOnce(() => classesGateA.promise)
+      .mockImplementationOnce(() => classesGateB.promise);
+    mockGetStudentAttendances
+      .mockImplementationOnce(() => attendancesGateA.promise)
+      .mockImplementationOnce(() => attendancesGateB.promise);
+    mockGetStudentClassLimit
+      .mockImplementationOnce(() => limitsGateA.promise)
+      .mockImplementationOnce(() => limitsGateB.promise);
+
+    const weekB: Record<number, Date> = {
+      0: new Date('2026-07-12'),
+    };
+    const { result, rerender } = renderHook(
+      ({ weekDates }: { weekDates: Record<number, Date> }) => useStudentClassesData(weekDates),
+      { initialProps: { weekDates: baseWeekDates } },
+    );
+
+    rerender({ weekDates: weekB });
+
+    const classB: ClassEntity = { ...mockClass, id: 'class-009', activity_name: 'Boxeo' };
+    classesGateB.resolve([classB, mockInactiveClass]);
+    attendancesGateB.resolve([]);
+    limitsGateB.resolve(mockPlanLimits);
+    await waitFor(() => expect(result.current.classesList).toEqual([classB]));
+    expect(result.current.reservations).toEqual([]);
+
+    classesGateA.resolve([mockClass, mockInactiveClass]);
+    attendancesGateA.resolve([mockReservation]);
+    limitsGateA.resolve(mockPlanLimits);
+    await flushSettles();
+
+    expect(result.current.classesList).toEqual([classB]);
+    expect(result.current.reservations).toEqual([]);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const classesGate = deferred<ClassEntity[]>();
+    const attendancesGate = deferred<AttendanceRecord[]>();
+    const limitsGate = deferred<StudentClassLimit>();
+    mockGetClasses.mockImplementationOnce(() => classesGate.promise);
+    mockGetStudentAttendances.mockImplementationOnce(() => attendancesGate.promise);
+    mockGetStudentClassLimit.mockImplementationOnce(() => limitsGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useStudentClassesData(baseWeekDates));
+    unmount();
+
+    classesGate.resolve([mockClass]);
+    attendancesGate.resolve([mockReservation]);
+    limitsGate.resolve(mockPlanLimits);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
