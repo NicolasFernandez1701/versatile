@@ -58,6 +58,39 @@ const mockBalance: FinancialBalance = {
   annualByPlan: { 'Plan Mensual': 150000 },
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
+const mockPaymentB: PaymentEntity = {
+  ...mockPayment,
+  id: 'pay-002',
+  amount: 30000,
+};
+
+const mockBalanceB: FinancialBalance = {
+  monthlyTotal: 30000,
+  annualTotal: 180000,
+  monthlyByPlan: { 'Plan Trimestral': 30000 },
+  annualByPlan: { 'Plan Trimestral': 180000 },
+};
+
 describe('useFinancesData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -102,9 +135,12 @@ describe('useFinancesData', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.fetchPayments();
+      refresh = result.current.fetchPayments();
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockGetPayments).toHaveBeenCalledTimes(2);
     expect(mockGetFinancialBalance).toHaveBeenCalledTimes(1);
@@ -115,9 +151,12 @@ describe('useFinancesData', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    let refresh!: Promise<void>;
     await act(async () => {
-      await result.current.fetchBalance();
+      refresh = result.current.fetchBalance();
     });
+    await act(async () => {});
+    await refresh;
 
     expect(mockGetPayments).toHaveBeenCalledTimes(1);
     expect(mockGetFinancialBalance).toHaveBeenCalledTimes(2);
@@ -131,5 +170,73 @@ describe('useFinancesData', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockShowError).toHaveBeenCalledWith('Error cargando los pagos.');
+  });
+
+  it('newest-wins: a stale studio-A response settling late never clobbers newer studio-B data', async () => {
+    const paymentsGateA = deferred<PaymentEntity[]>();
+    const balanceGateA = deferred<FinancialBalance>();
+    const paymentsGateB = deferred<PaymentEntity[]>();
+    const balanceGateB = deferred<FinancialBalance>();
+    mockGetPayments
+      .mockImplementationOnce(() => paymentsGateA.promise)
+      .mockImplementationOnce(() => paymentsGateB.promise);
+    mockGetFinancialBalance
+      .mockImplementationOnce(() => balanceGateA.promise)
+      .mockImplementationOnce(() => balanceGateB.promise);
+
+    const { result, rerender } = renderHook(() => useFinancesData());
+
+    mockUseAuthStore.mockReturnValue({ current_studio_id: 'studio-B' });
+    rerender();
+
+    paymentsGateB.resolve([mockPaymentB]);
+    balanceGateB.resolve(mockBalanceB);
+    await waitFor(() => expect(result.current.payments).toEqual([mockPaymentB]));
+    expect(result.current.balance).toEqual(mockBalanceB);
+
+    paymentsGateA.resolve([mockPayment]);
+    balanceGateA.resolve(mockBalance);
+    await flushSettles();
+
+    expect(result.current.payments).toEqual([mockPaymentB]);
+    expect(result.current.balance).toEqual(mockBalanceB);
+  });
+
+  it('refreshing both resources together never flips loading (no loader flash)', async () => {
+    const { result } = renderHook(() => useFinancesData());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let refresh!: Promise<void>;
+    await act(async () => {
+      refresh = Promise.all([result.current.fetchPayments(), result.current.fetchBalance()]).then(
+        () => undefined,
+      );
+    });
+    await act(async () => {});
+    await refresh;
+
+    expect(result.current.loading).toBe(false);
+    expect(mockGetPayments).toHaveBeenCalledTimes(2);
+    expect(mockGetFinancialBalance).toHaveBeenCalledTimes(2);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const paymentsGate = deferred<PaymentEntity[]>();
+    const balanceGate = deferred<FinancialBalance>();
+    mockGetPayments.mockImplementationOnce(() => paymentsGate.promise);
+    mockGetFinancialBalance.mockImplementationOnce(() => balanceGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useFinancesData());
+    unmount();
+
+    paymentsGate.resolve([mockPayment]);
+    balanceGate.resolve(mockBalance);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
