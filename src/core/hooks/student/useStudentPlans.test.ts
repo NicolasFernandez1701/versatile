@@ -16,6 +16,26 @@ vi.mock('@/core/services', () => ({
   },
 }));
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
+
 const mockPlans: PlanEntity[] = [
   {
     id: 'plan-001',
@@ -109,5 +129,57 @@ describe('useStudentPlans', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.plans).toEqual([]);
+  });
+
+  it('newest-wins: a stale userId dashboard response settling late never clobbers newer activePlanId', async () => {
+    const dashboardGates: Array<{ userId: string; gate: ReturnType<typeof deferred<StudentDashboardData>> }> = [];
+    mockGetStudentDashboardData.mockImplementation((userId: string) => {
+      const gate = deferred<StudentDashboardData>();
+      dashboardGates.push({ userId, gate });
+      return gate.promise;
+    });
+
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId: string | undefined }) => useStudentPlans(userId),
+      { initialProps: { userId: 'student-A' as string | undefined } },
+    );
+
+    rerender({ userId: 'student-B' });
+    await flushSettles();
+
+    const gateB = dashboardGates.find((entry) => entry.userId === 'student-B');
+    expect(gateB).toBeDefined();
+    gateB?.gate.resolve(mockDashboardWithPlan);
+    await waitFor(() => expect(result.current.activePlanId).toBe('plan-002'));
+
+    const gateA = dashboardGates.find((entry) => entry.userId === 'student-A');
+    gateA?.gate.resolve({
+      activePlan: {
+        plan_id: 'plan-A',
+        plan_details: 'Plan A',
+        expiration_date: '2026-08-31',
+      },
+      nextClass: null,
+    });
+    await flushSettles();
+
+    expect(result.current.activePlanId).toBe('plan-002');
+    expect(result.current.plans).toEqual(mockPlans);
+  });
+
+  it('commits no state after unmount (no act warnings)', async () => {
+    const dashboardGate = deferred<StudentDashboardData>();
+    mockGetStudentDashboardData.mockImplementationOnce(() => dashboardGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useStudentPlans('student-001'));
+    unmount();
+
+    dashboardGate.resolve(mockDashboardWithPlan);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
