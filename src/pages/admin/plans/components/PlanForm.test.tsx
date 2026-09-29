@@ -10,7 +10,7 @@ const mockCreatePlanWithActivities = vi.hoisted(() => vi.fn());
 const mockUpdatePlanWithActivities = vi.hoisted(() => vi.fn());
 const mockOnSuccess = vi.hoisted(() => vi.fn());
 
-vi.mock('@/ui/GlobalAlertProvider', () => ({
+vi.mock('@/ui/useAlert', () => ({
   useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
 }));
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { plansService } from '@/core/services';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import type { PlanEntity } from '@/core/types/plans.types';
 
 export interface PlanFormActivity {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usersService } from '@/core/services';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import type { UserProfile } from '@/core/types/users.types';
 

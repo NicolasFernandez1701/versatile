@@ -34,7 +34,7 @@ vi.mock('@/core/services', () => ({
   },
 }));
 
-vi.mock('@/ui/GlobalAlertProvider', () => ({
+vi.mock('@/ui/useAlert', () => ({
   useAlert: () => ({ showError: mockShowError }),
 }));
 

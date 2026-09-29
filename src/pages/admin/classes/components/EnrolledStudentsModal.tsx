@@ -2,7 +2,7 @@ import { X, User, Mail, Phone, Trash2 } from 'lucide-react';
 import type { EnrollmentEntity } from '@/core/types/classes.types';
 import { Loader, ConfirmModal } from '@/ui';
 import { classesService } from '@/core/services';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import { useState } from 'react';
 
 interface Props {

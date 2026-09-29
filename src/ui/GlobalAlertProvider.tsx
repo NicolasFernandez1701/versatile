@@ -1,19 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ConfirmModal } from '@/ui';
-
-interface AlertContextType {
-  showAlert: (title: string, message: string) => void;
-  showError: (message: string) => void;
-  showSuccess: (message: string) => void;
-}
-
-const AlertContext = createContext<AlertContextType | null>(null);
-
-export const useAlert = () => {
-  const ctx = useContext(AlertContext);
-  if (!ctx) throw new Error('useAlert must be used within GlobalAlertProvider');
-  return ctx;
-};
+import { AlertContext } from './useAlert';
 
 export const GlobalAlertProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { financesService, plansService } from '@/core/services';
 import { usePaymentCalculation } from '../shared/usePaymentCalculation';
 import { useAuthStore } from '@/core/store/useAuthStore';
-import { useAlert } from '@/ui/GlobalAlertProvider';
+import { useAlert } from '@/ui/useAlert';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PlanEntity } from '@/core/types/plans.types';
 import type { StudentWithPlan } from '@/core/types/finances.types';

@@ -30,7 +30,7 @@ vi.mock('@/core/store/useUsersStore', () => ({
   ),
 }));
 
-vi.mock('@/ui/GlobalAlertProvider', () => ({
+vi.mock('@/ui/useAlert', () => ({
   useAlert: () => ({
     showSuccess: mockShowSuccess,
     showError: mockShowError,
