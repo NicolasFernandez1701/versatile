@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useAsyncResource } from './useAsyncResource';
+import { useAsyncResource, keysEqual } from './useAsyncResource';
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -421,5 +421,58 @@ describe('useAsyncResource', () => {
       unmount();
     });
     await refetchPromise;
+  });
+
+  it('does not refetch when the keys array is recreated with equal values', async () => {
+    let calls = 0;
+    const { result, rerender } = renderHook(
+      ({ stamp }: { stamp: number }) =>
+        useAsyncResource(
+          () => {
+            calls += 1;
+            return Promise.resolve(`V${stamp}`);
+          },
+          // Fresh array identity on every render, same element values.
+          ['k1', stamp > 0 ? 'same' : 'same'],
+        ),
+      { initialProps: { stamp: 0 } },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(calls).toBe(1);
+
+    // Unrelated prop change recreates the keys array with identical values.
+    rerender({ stamp: 1 });
+    rerender({ stamp: 2 });
+
+    await act(async () => {});
+    expect(calls).toBe(1);
+    expect(result.current.data).toBe('V0');
+  });
+});
+
+describe('keysEqual', () => {
+  it('reports equal arrays with identical elements', () => {
+    expect(keysEqual(['a', 1, true], ['a', 1, true])).toBe(true);
+  });
+
+  it('reports empty arrays as equal', () => {
+    expect(keysEqual([], [])).toBe(true);
+  });
+
+  it('reports changed elements as different', () => {
+    expect(keysEqual(['a'], ['b'])).toBe(false);
+  });
+
+  it('reports different lengths as different', () => {
+    expect(keysEqual(['a'], ['a', 'b'])).toBe(false);
+    expect(keysEqual(['a', 'b'], ['a'])).toBe(false);
+  });
+
+  it('compares by identity, so NaN equals NaN and objects compare by reference', () => {
+    expect(keysEqual([Number.NaN], [Number.NaN])).toBe(true);
+    const shared = { id: 1 };
+    expect(keysEqual([shared], [shared])).toBe(true);
+    expect(keysEqual([{ id: 1 }], [{ id: 1 }])).toBe(false);
   });
 });

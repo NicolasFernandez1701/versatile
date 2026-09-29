@@ -26,6 +26,20 @@ function toError(reason: unknown): Error {
 }
 
 /**
+ * Element-wise key identity: same length and every element `Object.is`-equal.
+ * Pure — the fetch effect relies on it instead of a spread dependency array,
+ * which exhaustive-deps cannot statically verify.
+ */
+export function keysEqual(
+  previous: ReadonlyArray<unknown>,
+  next: ReadonlyArray<unknown>,
+): boolean {
+  return (
+    previous.length === next.length && previous.every((value, index) => Object.is(value, next[index]))
+  );
+}
+
+/**
  * Shared async-resource state machine. Carries no
  * `react-hooks/set-state-in-effect` suppression: the installed plugin does
  * not trace the functional-updater setState form used here, so the rule
@@ -57,6 +71,20 @@ export function useAsyncResource<T>(
   const requestIdRef = useRef(0);
   const silentRef = useRef(false);
   const pendingRef = useRef<PendingRefetch[]>([]);
+
+  // Render-phase key comparison (guarded: it fires only while the keys
+  // differ, so it cannot loop). A key change bumps `trigger`, which the fetch
+  // effect below observes. The effect deps stay statically verifiable this
+  // way — a spread element (`...keys`) cannot be checked by exhaustive-deps —
+  // while key-driven refetch keeps per-element identity semantics and the
+  // keys array itself may be recreated every render. (Changed 2026-09-29:
+  // observable contract identical — newest-wins, keep-previous-data,
+  // fetcher-identity stability — only the trigger mechanism changed.)
+  const [prevKeys, setPrevKeys] = useState(keys);
+  if (!keysEqual(prevKeys, keys)) {
+    setPrevKeys(keys);
+    setTrigger((value) => value + 1);
+  }
 
   // Effect-updated refs: render-time ref writes are forbidden by
   // `react-hooks/refs`, so freshness lives here. Declared BEFORE the fetch
@@ -171,7 +199,7 @@ export function useAsyncResource<T>(
         });
       });
     };
-  }, [...keys, trigger, enabled]);
+  }, [trigger, enabled]);
 
   return { data, loading, error, refetch };
 }
