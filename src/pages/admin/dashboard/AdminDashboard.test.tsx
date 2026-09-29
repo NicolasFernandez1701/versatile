@@ -10,6 +10,7 @@ const mockNavigate = vi.hoisted(() => vi.fn());
 const mockGetDashboardStats = vi.hoisted(() => vi.fn());
 const mockGetFinancialBalance = vi.hoisted(() => vi.fn());
 const mockGetTodayClasses = vi.hoisted(() => vi.fn());
+const studioHolder = vi.hoisted(() => ({ id: 'studio-123' }));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -29,11 +30,31 @@ vi.mock('@/core/services', () => ({
 
 vi.mock('@/core/store/useAuthStore', () => ({
   useAuthStore: () => ({
-    current_studio_id: 'studio-123',
+    current_studio_id: studioHolder.id,
   }),
 }));
 
 // --- Test utilities ---
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
+function flushSettles(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 50);
+  });
+}
+
+function actWarnings(consoleSpy: { mock: { calls: Array<Array<unknown>> } }): string[] {
+  return consoleSpy.mock.calls
+    .map((call) => String(call[0]))
+    .filter((message) => message.includes('not wrapped in act'));
+}
 
 function renderDashboard() {
   return render(
@@ -54,6 +75,7 @@ const defaultBalance = {
 describe('AdminDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    studioHolder.id = 'studio-123';
     mockGetDashboardStats.mockResolvedValue(defaultStats);
     mockGetFinancialBalance.mockResolvedValue(defaultBalance);
     mockGetTodayClasses.mockResolvedValue([]);
@@ -210,5 +232,72 @@ describe('AdminDashboard', () => {
 
     fireEvent.click(screen.getByText('Profesores'));
     expect(mockNavigate).toHaveBeenCalledWith('/admin/teachers');
+  });
+
+  // ── test 9: newest-wins on studio switch with out-of-order responses ──
+
+  it('muestra los datos del estudio actual cuando una respuesta anterior llega tarde', async () => {
+    const statsGateA = deferred<typeof defaultStats>();
+    const balanceGateA = deferred<typeof defaultBalance>();
+    const classesGateA = deferred<never[]>();
+    const statsGateB = deferred<typeof defaultStats>();
+    const balanceGateB = deferred<typeof defaultBalance>();
+    const classesGateB = deferred<never[]>();
+    mockGetDashboardStats
+      .mockImplementationOnce(() => statsGateA.promise)
+      .mockImplementationOnce(() => statsGateB.promise);
+    mockGetFinancialBalance
+      .mockImplementationOnce(() => balanceGateA.promise)
+      .mockImplementationOnce(() => balanceGateB.promise);
+    mockGetTodayClasses
+      .mockImplementationOnce(() => classesGateA.promise)
+      .mockImplementationOnce(() => classesGateB.promise);
+
+    const { rerender } = renderDashboard();
+
+    studioHolder.id = 'studio-B';
+    rerender(
+      <BrowserRouter>
+        <AdminDashboard />
+      </BrowserRouter>,
+    );
+
+    statsGateB.resolve({ totalStudents: 88, activeClasses: 15 });
+    balanceGateB.resolve({ ...defaultBalance, monthlyTotal: 25000, annualTotal: 300000 });
+    classesGateB.resolve([]);
+    expect(await screen.findByText('88')).toBeInTheDocument();
+
+    statsGateA.resolve(defaultStats);
+    balanceGateA.resolve(defaultBalance);
+    classesGateA.resolve([]);
+    await flushSettles();
+
+    expect(screen.getByText('88')).toBeInTheDocument();
+    expect(screen.queryByText('150')).not.toBeInTheDocument();
+  });
+
+  // ── test 10: no state updates after unmount ──
+
+  it('no actualiza el estado tras desmontar (sin warnings de act)', async () => {
+    const statsGate = deferred<typeof defaultStats>();
+    const balanceGate = deferred<typeof defaultBalance>();
+    const classesGate = deferred<never[]>();
+    mockGetDashboardStats.mockImplementationOnce(() => statsGate.promise);
+    mockGetFinancialBalance.mockImplementationOnce(() => balanceGate.promise);
+    mockGetTodayClasses.mockImplementationOnce(() => classesGate.promise);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { unmount } = renderDashboard();
+    expect(screen.getByText('Cargando métricas...')).toBeInTheDocument();
+    unmount();
+
+    statsGate.resolve(defaultStats);
+    balanceGate.resolve(defaultBalance);
+    classesGate.resolve([]);
+    await flushSettles();
+
+    expect(actWarnings(consoleSpy)).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });

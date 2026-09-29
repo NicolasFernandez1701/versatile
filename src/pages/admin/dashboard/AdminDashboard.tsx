@@ -1,48 +1,53 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, TrendingUp, DollarSign, ClipboardList, BookOpen, Tag } from 'lucide-react';
 import { SummaryCard } from './components/SummaryCard';
 import { formatCurrency } from '@/core/utils/formatCurrency';
 import { dashboardService } from '@/core/services';
+import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import type { DashboardStats, FinancialBalance } from '@/core/types/dashboard.types';
 import type { ClassEntity } from '@/core/types/classes.types';
 import { Loader } from '@/ui';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import './dashboard.css';
 
+interface AdminDashboardResource {
+  stats: DashboardStats;
+  balance: FinancialBalance;
+  todayClasses: ClassEntity[];
+}
+
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { current_studio_id } = useAuthStore();
 
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [balance, setBalance] = useState<FinancialBalance | null>(null);
-  const [todayClasses, setTodayClasses] = useState<ClassEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (current_studio_id) {
-      loadDashboardData();
-    }
-  }, [current_studio_id]);
-
-  const loadDashboardData = async () => {
-    if (!current_studio_id) return;
-    try {
-      setLoading(true);
+  // Single keyed resource (newest-wins + unmount safety via the shared
+  // primitive). This also resolves the react-hooks/immutability error: there
+  // is no loader function for the effect to capture before declaration.
+  const resource = useAsyncResource<AdminDashboardResource>(
+    async () => {
+      if (!current_studio_id) {
+        throw new Error('AdminDashboard requires a studio');
+      }
       const [s, b, c] = await Promise.all([
         dashboardService.getDashboardStats(current_studio_id),
         dashboardService.getFinancialBalance(current_studio_id),
-        dashboardService.getTodayClasses()
+        dashboardService.getTodayClasses(),
       ]);
-      setStats(s);
-      setBalance(b);
-      setTodayClasses(c);
-    } catch (error) {
-      console.error('Error cargando el dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return { stats: s, balance: b, todayClasses: c };
+    },
+    [current_studio_id],
+    {
+      enabled: !!current_studio_id,
+      onError: (error) => {
+        console.error('Error cargando el dashboard:', error);
+      },
+    },
+  );
+
+  const stats = resource.data?.stats ?? null;
+  const balance = resource.data?.balance ?? null;
+  const todayClasses = resource.data?.todayClasses ?? [];
+  const loading = resource.loading;
 
   if (loading || !stats || !balance) {
     return (
