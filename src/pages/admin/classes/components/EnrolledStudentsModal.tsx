@@ -1,18 +1,8 @@
 import { X, User, Mail, Phone, Trash2 } from 'lucide-react';
-import type { EnrollmentEntity } from '@/core/types/classes.types';
 import { Loader, ConfirmModal } from '@/ui';
-import { classesService } from '@/core/services';
-import { useAlert } from '@/ui/useAlert';
-import { useState } from 'react';
-
-interface Props {
-  title: string;
-  isOpen: boolean;
-  onClose: () => void;
-  students: EnrollmentEntity[];
-  isLoading: boolean;
-  onStudentRemoved?: () => void;
-}
+import { useEnrolledStudentsRemoval } from '@/core/hooks/admin/useEnrolledStudentsRemoval';
+import type { EnrolledStudentsModalProps } from './EnrolledStudentsModal.types';
+import './EnrolledStudentsModal.css';
 
 export function EnrolledStudentsModal({
   title,
@@ -21,27 +11,14 @@ export function EnrolledStudentsModal({
   students,
   isLoading,
   onStudentRemoved
-}: Props) {
-  const { showSuccess, showError } = useAlert();
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [studentToCancel, setStudentToCancel] = useState<string | null>(null);
-
-  const handleConfirmRemove = async () => {
-    if (!studentToCancel) return;
-
-    setRemovingId(studentToCancel);
-    try {
-      await classesService.cancelEnrollment(studentToCancel);
-      showSuccess('Alumno dado de baja correctamente.');
-      if (onStudentRemoved) onStudentRemoved();
-    } catch (error) {
-      console.error(error);
-      showError('No se pudo dar de baja al alumno.');
-    } finally {
-      setRemovingId(null);
-      setStudentToCancel(null);
-    }
-  };
+}: EnrolledStudentsModalProps) {
+  const {
+    removingId,
+    studentToCancel,
+    requestRemove,
+    cancelRemove,
+    confirmRemove,
+  } = useEnrolledStudentsRemoval(onStudentRemoved);
 
   if (!isOpen) return null;
 
@@ -59,7 +36,7 @@ export function EnrolledStudentsModal({
           {isLoading ? (
             <Loader text="Cargando alumnos..." size="medium" />
           ) : students.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <p className="enrolled-empty">
               No hay alumnos inscriptos.
             </p>
           ) : (
@@ -70,50 +47,46 @@ export function EnrolledStudentsModal({
               return (
                 <div
                   key={enroll.id}
-                  className="student-row"
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  className="student-row enrolled-student-row"
                 >
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <div className="enrolled-student-main">
                     <div className="student-avatar">
                       <User size={20} />
                     </div>
                     <div className="student-info">
                       <h4
-                        style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        className="enrolled-student-name"
                       >
                         {profile.full_name}
                         {enroll.attendance_status === 'attended' && (
                           <span
-                            className="badge badge-active"
-                            style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}
+                            className="badge badge-active enrolled-badge"
                           >
                             Presente
                           </span>
                         )}
                         {enroll.attendance_status === 'absent' && (
                           <span
-                            className="badge badge-inactive"
-                            style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}
+                            className="badge badge-inactive enrolled-badge"
                           >
                             Ausente
                           </span>
                         )}
                         {enroll.attendance_status === 'pending' && (
                           <span
-                            className="badge badge-pending"
-                            style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}
+                            className="badge badge-pending enrolled-badge"
                           >
                             Pendiente
                           </span>
                         )}
                       </h4>
                       {profile.email && (
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                        <p className="enrolled-contact">
                           <Mail size={12} /> {profile.email}
                         </p>
                       )}
                       {profile.phone && (
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                        <p className="enrolled-contact">
                           <Phone size={12} /> {profile.phone}
                         </p>
                       )}
@@ -122,7 +95,7 @@ export function EnrolledStudentsModal({
 
                   <button
                     className="icon-btn text-danger"
-                    onClick={() => setStudentToCancel(enroll.id)}
+                    onClick={() => requestRemove(enroll.id)}
                     disabled={removingId === enroll.id}
                     title="Dar de baja de esta clase"
                   >
@@ -142,8 +115,8 @@ export function EnrolledStudentsModal({
         confirmText="Dar de baja"
         cancelText="Volver"
         isDestructive={true}
-        onConfirm={handleConfirmRemove}
-        onCancel={() => setStudentToCancel(null)}
+        onConfirm={confirmRemove}
+        onCancel={cancelRemove}
       />
     </div>
   );
