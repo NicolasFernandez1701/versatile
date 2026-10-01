@@ -104,6 +104,9 @@
   bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
+  /* Holiday dot inside a react-calendar tile (was inline on the tile dot). */
+  display: block;
+  z-index: 100;
 }
 
 /* Legend */
@@ -118,6 +121,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* The calendar legend renders its single item centered. */
+  justify-content: center;
 }
 
 .legend-dot {
@@ -241,4 +246,85 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 600;
+}
+
+/* =========================================
+   CALENDAR LAYOUT CLASSES (inline styles moved to CSS)
+   ========================================= */
+
+.calendar-holidays-loader {
+  height: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-legend--compact {
+  margin-top: 1rem;
+  padding: 0;
+  box-shadow: none;
+}
+
+.calendar-schedule-loader {
+  padding: 2rem;
+}
+
+.schedule-toggle-arrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  transform: none;
+  transition: transform 0.2s;
+}
+
+.schedule-toggle-arrow--expanded {
+  transform: rotate(90deg);
+}
+
+.schedule-card-body--stacked {
+  flex-direction: column;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.schedule-class-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  cursor: pointer;
+}
+
+.schedule-class-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.schedule-class-name {
+  color: var(--primary-color);
+}
+
+.schedule-class-teacher {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.schedule-class-times {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: right;
+}
+
+.schedule-class-time {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.schedule-class-capacity {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }

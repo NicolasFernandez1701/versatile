@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import { classesService } from '@/core/services';
-import type { ClassEntity, EnrollmentEntity } from '@/core/types/classes.types';
 import { useHolidays, getHolidayForDate } from '@/core/hooks/shared/useHolidays';
+import { useAdminCalendarData } from '@/core/hooks/admin/useAdminCalendarData';
 import { EnrolledStudentsModal } from '@/pages/admin/classes/components/EnrolledStudentsModal';
 import { User } from 'lucide-react';
 import './calendar.css';
@@ -12,53 +11,34 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
+// The page owns the selected day, so it formats the reservation date the
+// enrolled-students query expects (local day as YYYY-MM-DD).
+function toReservationDate(day: Date): string {
+  const localDate = new Date(day.getTime() - day.getTimezoneOffset() * 60000);
+  return localDate.toISOString().split('T')[0];
+}
+
 export function AdminCalendarPage() {
   const { current_studio_id } = useAuthStore();
-  const [classes, setClasses] = useState<ClassEntity[]>([]);
+
+  // All data access lives in the hook; the page keeps UI state only.
+  const {
+    classes,
+    loading,
+    refetch,
+    viewingStudentsClass,
+    students,
+    loadingStudents,
+    openStudentsModal,
+    closeStudentsModal
+  } = useAdminCalendarData(current_studio_id ?? undefined);
+
   const [date, setDate] = useState<Date>(new Date());
   const [activeStartDate, setActiveStartDate] = useState<Date>(new Date());
-  const [loading, setLoading] = useState(true);
   const [isDayExpanded, setIsDayExpanded] = useState(false);
-
-  // Modal State for viewing students
-  const [viewingStudentsClass, setViewingStudentsClass] = useState<ClassEntity | null>(null);
-  const [students, setStudents] = useState<EnrollmentEntity[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const { loadingHolidays, markedDates } = useHolidays(activeStartDate.getFullYear());
 
-  const fetchClasses = async () => {
-    if (!current_studio_id) return;
-    try {
-      const data = await classesService.getClasses(current_studio_id);
-      setClasses(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClasses();
-  }, [current_studio_id]);
-
-  const openStudentsModal = async (cls: ClassEntity) => {
-    setViewingStudentsClass(cls);
-    setLoadingStudents(true);
-    try {
-      // Formatear la fecha a YYYY-MM-DD para consultar la base de datos
-      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-      const reservationDate = localDate.toISOString().split('T')[0];
-
-      const data = await classesService.getEnrolledStudents(cls.id, reservationDate);
-      setStudents(data);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    } finally {
-      setLoadingStudents(false);
-    }
-  };
   const tileClassName = ({ date, view }: { date: Date; view: string }) => {
     if (view === 'month') {
       if (getHolidayForDate(date, markedDates)) {
@@ -72,13 +52,7 @@ export function AdminCalendarPage() {
     if (view === 'month') {
       const holiday = getHolidayForDate(date, markedDates);
       if (holiday) {
-        return (
-          <div
-            className="holiday-dot"
-            style={{ display: 'block', backgroundColor: 'var(--error-color)', zIndex: 100 }}
-            title={holiday.motivo}
-          ></div>
-        );
+        return <div className="holiday-dot" title={holiday.motivo}></div>;
       }
     }
     return null;
@@ -153,14 +127,7 @@ export function AdminCalendarPage() {
         </div>
 
         {loadingHolidays ? (
-          <div
-            style={{
-              height: '350px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
+          <div className="calendar-holidays-loader">
             <Loader text="Cargando fechas..." size="small" />
           </div>
         ) : (
@@ -179,11 +146,8 @@ export function AdminCalendarPage() {
             className="custom-calendar"
           />
         )}
-        <div
-          className="calendar-legend"
-          style={{ marginTop: '1rem', padding: 0, boxShadow: 'none' }}
-        >
-          <div className="legend-item" style={{ justifyContent: 'center' }}>
+        <div className="calendar-legend calendar-legend--compact">
+          <div className="legend-item">
             <div className="legend-dot dot-holiday"></div>
             <span className="legend-text">Feriado Nacional</span>
           </div>
@@ -202,7 +166,7 @@ export function AdminCalendarPage() {
         )}
 
         {loading ? (
-          <div style={{ padding: '2rem' }}>
+          <div className="calendar-schedule-loader">
             <Loader text="Cargando agenda..." size="medium" />
           </div>
         ) : dayClasses.length === 0 ? (
@@ -218,12 +182,11 @@ export function AdminCalendarPage() {
               >
                 <h3 className="schedule-activity">
                   <span
-                    style={{
-                      transform: isDayExpanded ? 'rotate(90deg)' : 'none',
-                      transition: 'transform 0.2s',
-                      display: 'inline-block',
-                      fontSize: '0.8rem'
-                    }}
+                    className={
+                      isDayExpanded
+                        ? 'schedule-toggle-arrow schedule-toggle-arrow--expanded'
+                        : 'schedule-toggle-arrow'
+                    }
                   >
                     ▶
                   </span>
@@ -235,48 +198,24 @@ export function AdminCalendarPage() {
               </div>
 
               {isDayExpanded && (
-                <div
-                  className="schedule-card-body"
-                  style={{ flexDirection: 'column', gap: '1rem', alignItems: 'stretch' }}
-                >
+                <div className="schedule-card-body schedule-card-body--stacked">
                   {dayClasses.map((c) => (
                     <div
                       key={c.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid var(--border-color)',
-                        paddingBottom: '0.5rem',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => openStudentsModal(c)}
+                      className="schedule-class-row"
+                      onClick={() => openStudentsModal(c, toReservationDate(date))}
                     >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <strong style={{ color: 'var(--primary-color)' }}>{c.activity_name}</strong>
-                        <div
-                          style={{
-                            fontSize: '0.85rem',
-                            color: 'var(--text-secondary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem'
-                          }}
-                        >
+                      <div className="schedule-class-info">
+                        <strong className="schedule-class-name">{c.activity_name}</strong>
+                        <div className="schedule-class-teacher">
                           <User size={12} /> Prof: {c.profiles?.full_name || 'Sin Asignar'}
                         </div>
                       </div>
-                      <div
-                        style={{
-                          textAlign: 'right',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.25rem'
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <div className="schedule-class-times">
+                        <div className="schedule-class-time">
                           {c.start_time.substring(0, 5)} - {c.end_time.substring(0, 5)} hs
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <div className="schedule-class-capacity">
                           Anotados: {c.enrollments?.[0]?.count || 0} / {c.capacity}
                         </div>
                       </div>
@@ -292,13 +231,15 @@ export function AdminCalendarPage() {
       <EnrolledStudentsModal
         title={viewingStudentsClass?.activity_name || 'Clase'}
         isOpen={!!viewingStudentsClass}
-        onClose={() => setViewingStudentsClass(null)}
+        onClose={closeStudentsModal}
         students={students}
         isLoading={loadingStudents}
         onStudentRemoved={() => {
           if (viewingStudentsClass) {
-            openStudentsModal(viewingStudentsClass);
-            fetchClasses();
+            openStudentsModal(viewingStudentsClass, toReservationDate(date));
+            // Silent, as the previous local fetch was: removing a student must
+            // not flash the agenda loader.
+            refetch({ silent: true });
           }
         }}
       />
