@@ -140,6 +140,35 @@ describe('useAdminCalendarData', () => {
     expect(result.current.classes).toEqual([mockClass]);
   });
 
+  it('silent refetch re-invokes the service without flashing the loader', async () => {
+    const { result } = renderHook(() => useAdminCalendarData(STUDIO_ID));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockGetClasses).toHaveBeenCalledTimes(1);
+
+    const gate = deferred<ClassEntity[]>();
+    mockGetClasses.mockReturnValueOnce(gate.promise);
+
+    let refetchPromise!: Promise<void>;
+    act(() => {
+      refetchPromise = result.current.refetch({ silent: true });
+    });
+
+    expect(mockGetClasses).toHaveBeenCalledTimes(2);
+    // Parity with the page's previous local fetch: refreshing must not flash
+    // the agenda loader.
+    expect(result.current.loading).toBe(false);
+
+    await act(async () => {
+      gate.resolve([mockClass]);
+      await gate.promise;
+    });
+    await refetchPromise;
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.classes).toEqual([mockClass]);
+  });
+
   it('openStudentsModal exposes the class immediately, toggles loadingStudents and stores the enrollments', async () => {
     const gate = deferred<EnrollmentEntity[]>();
     mockGetEnrolledStudents.mockReturnValueOnce(gate.promise);

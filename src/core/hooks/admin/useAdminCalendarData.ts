@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import { classesService } from '@/core/services';
-import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
+import { useAsyncResource, type RefetchOptions } from '@/core/hooks/shared/useAsyncResource';
 import type { ClassEntity, EnrollmentEntity } from '@/core/types/classes.types';
 
 export interface UseAdminCalendarDataResult {
   classes: ClassEntity[];
   loading: boolean;
-  refetch: () => Promise<void>;
+  refetch: (options?: RefetchOptions) => Promise<void>;
   viewingStudentsClass: ClassEntity | null;
   students: EnrollmentEntity[];
   loadingStudents: boolean;
