@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { useEffect } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { usePaymentHistory } from './usePaymentHistory';
 import type { PaymentEntity } from '@/core/types/finances.types';
@@ -71,6 +72,29 @@ const payments: PaymentEntity[] = [
     payment_method: 'transferencia',
   }),
 ];
+
+type CommittedFrame = {
+  searchTerm: string;
+  methodFilter: string;
+  currentPage: number;
+};
+
+// Records the hook's committed values on every commit. A reset performed by a
+// post-render effect produces an intermediate frame where the new filter is
+// already applied while currentPage is still the previous page.
+function usePaymentHistoryFrames(onCommit: (frame: CommittedFrame) => void) {
+  const history = usePaymentHistory(payments);
+
+  useEffect(() => {
+    onCommit({
+      searchTerm: history.searchTerm,
+      methodFilter: history.methodFilter,
+      currentPage: history.currentPage,
+    });
+  });
+
+  return history;
+}
 
 describe('usePaymentHistory', () => {
   it('filters by search term matching name', () => {
@@ -177,6 +201,42 @@ describe('usePaymentHistory', () => {
     });
 
     expect(result.current.currentPage).toBe(1);
+  });
+
+  it('resets the page in the same render pass as the filter change', () => {
+    const frames: CommittedFrame[] = [];
+    const { result } = renderHook(() => usePaymentHistoryFrames((frame) => frames.push(frame)));
+
+    act(() => {
+      result.current.setCurrentPage(2);
+    });
+    expect(result.current.currentPage).toBe(2);
+
+    frames.length = 0;
+    act(() => {
+      result.current.setSearchTerm('Plan');
+    });
+
+    const staleSearchFrames = frames.filter(
+      (frame) => frame.searchTerm === 'Plan' && frame.currentPage !== 1
+    );
+    expect(result.current.currentPage).toBe(1);
+    expect(staleSearchFrames).toEqual([]);
+
+    act(() => {
+      result.current.setCurrentPage(2);
+    });
+
+    frames.length = 0;
+    act(() => {
+      result.current.setMethodFilter('transferencia');
+    });
+
+    const staleMethodFrames = frames.filter(
+      (frame) => frame.methodFilter === 'transferencia' && frame.currentPage !== 1
+    );
+    expect(result.current.currentPage).toBe(1);
+    expect(staleMethodFrames).toEqual([]);
   });
 
   it('handles empty payments array', () => {

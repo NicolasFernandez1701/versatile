@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { PaymentEntity } from '@/core/types/finances.types';
 
 export function usePaymentHistory(payments: PaymentEntity[]) {
@@ -7,10 +7,15 @@ export function usePaymentHistory(payments: PaymentEntity[]) {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 7;
 
-  // Reset page when filters change
-  useEffect(() => {
+  // Reset the page in the SAME render pass as a filter change. A post-render
+  // effect commits one frame where the new filter is already applied while
+  // currentPage still points at the previous page (React "storing information
+  // from previous renders").
+  const [previousFilters, setPreviousFilters] = useState({ searchTerm, methodFilter });
+  if (previousFilters.searchTerm !== searchTerm || previousFilters.methodFilter !== methodFilter) {
+    setPreviousFilters({ searchTerm, methodFilter });
     setCurrentPage(1);
-  }, [searchTerm, methodFilter]);
+  }
 
   const filteredPayments = useMemo(() => {
     const normalize = (str: string) =>
