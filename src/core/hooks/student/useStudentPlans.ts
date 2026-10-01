@@ -1,6 +1,7 @@
 import { plansService, dashboardService } from '@/core/services';
 import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
 import type { PlanEntity } from '@/core/types/plans.types';
+import type { StudentDashboardData } from '@/core/types/dashboard.types';
 
 export interface UseStudentPlansResult {
   plans: PlanEntity[];
@@ -8,22 +9,16 @@ export interface UseStudentPlansResult {
   loading: boolean;
 }
 
-interface StudentPlansResource {
-  plans: PlanEntity[];
-  activePlanId: string | null;
-}
-
+/**
+ * Composes two single-resource instances (AD-3) instead of one combined
+ * fetcher: a transient dashboard failure no longer takes the already-fetched
+ * plans down with it. Both instances keep the `[userId]` key, so a `userId`
+ * change still refetches plans and dashboard exactly as before, and the
+ * combined `loading` is their OR.
+ */
 export function useStudentPlans(userId: string | undefined): UseStudentPlansResult {
-  const resource = useAsyncResource<StudentPlansResource>(
-    async () => {
-      const plansData = await plansService.getActivePlans();
-      let activePlanId: string | null = null;
-      if (userId) {
-        const dashboardData = await dashboardService.getStudentDashboardData(userId);
-        activePlanId = dashboardData.activePlan?.plan_id ?? null;
-      }
-      return { plans: plansData, activePlanId };
-    },
+  const plansResource = useAsyncResource<PlanEntity[]>(
+    async () => plansService.getActivePlans(),
     [userId],
     {
       onError: (error) => {
@@ -32,9 +27,25 @@ export function useStudentPlans(userId: string | undefined): UseStudentPlansResu
     },
   );
 
+  const dashboardResource = useAsyncResource<StudentDashboardData>(
+    async () => {
+      if (!userId) {
+        throw new Error('useStudentPlans requires a user id');
+      }
+      return dashboardService.getStudentDashboardData(userId);
+    },
+    [userId],
+    {
+      enabled: !!userId,
+      onError: (error) => {
+        console.error('Error fetching student plans:', error);
+      },
+    },
+  );
+
   return {
-    plans: resource.data?.plans ?? [],
-    activePlanId: resource.data?.activePlanId ?? null,
-    loading: resource.loading,
+    plans: plansResource.data ?? [],
+    activePlanId: dashboardResource.data?.activePlan?.plan_id ?? null,
+    loading: plansResource.loading || dashboardResource.loading,
   };
 }

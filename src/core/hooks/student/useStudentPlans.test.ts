@@ -131,6 +131,22 @@ describe('useStudentPlans', () => {
     expect(result.current.plans).toEqual([]);
   });
 
+  it('keeps the fetched plans when the dashboard request fails', async () => {
+    mockGetStudentDashboardData.mockRejectedValueOnce(new Error('Dashboard unavailable'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useStudentPlans('student-001'));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.plans).toEqual(mockPlans);
+    expect(result.current.activePlanId).toBeNull();
+    expect(mockGetStudentDashboardData).toHaveBeenCalledWith('student-001');
+    expect(consoleSpy).toHaveBeenCalledWith('Error fetching student plans:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+  });
+
   it('newest-wins: a stale userId dashboard response settling late never clobbers newer activePlanId', async () => {
     const dashboardGates: Array<{ userId: string; gate: ReturnType<typeof deferred<StudentDashboardData>> }> = [];
     mockGetStudentDashboardData.mockImplementation((userId: string) => {
@@ -165,6 +181,24 @@ describe('useStudentPlans', () => {
 
     expect(result.current.activePlanId).toBe('plan-002');
     expect(result.current.plans).toEqual(mockPlans);
+  });
+
+  it('refetches both plans and dashboard when userId changes', async () => {
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId: string | undefined }) => useStudentPlans(userId),
+      { initialProps: { userId: 'student-A' as string | undefined } },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockGetActivePlans).toHaveBeenCalledTimes(1);
+    expect(mockGetStudentDashboardData).toHaveBeenCalledTimes(1);
+
+    rerender({ userId: 'student-B' });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(mockGetActivePlans).toHaveBeenCalledTimes(2);
+    expect(mockGetStudentDashboardData).toHaveBeenCalledTimes(2);
+    expect(mockGetStudentDashboardData).toHaveBeenLastCalledWith('student-B');
   });
 
   it('commits no state after unmount (no act warnings)', async () => {
