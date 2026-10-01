@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { financesService, plansService } from '@/core/services';
 import { usePaymentCalculation } from '../shared/usePaymentCalculation';
+import { useAsyncResource } from '../shared/useAsyncResource';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { useAlert } from '@/ui/useAlert';
 import { formatCurrency } from '@/core/utils/formatCurrency';
@@ -54,37 +55,35 @@ export function useRecordPayment({
   const { showError, showSuccess } = useAlert();
   const { current_studio_id } = useAuthStore();
 
-  const [students, setStudents] = useState<StudentWithPlan[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [studentSearchText, setStudentSearchText] = useState('');
-  const [availablePlans, setAvailablePlans] = useState<PlanEntity[]>([]);
-
-  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('transferencia');
-  const [applyLateFee, setApplyLateFee] = useState(false);
-  const [amountOverride, setAmountOverride] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [isPlanChange, setIsPlanChange] = useState(false);
-  const [newPlanId, setNewPlanId] = useState('');
-
   // Frozen at mount: a per-render `new Date()` would change identity every
   // render and defeat the `promoDiscountPct` useMemo below (exhaustive-deps).
   // Day-boundary rollover mid-session is out of scope for this modal.
   const today = useMemo(() => new Date(), []);
   const isAfter10th = today.getDate() > 10;
 
-  useEffect(() => {
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [studentSearchText, setStudentSearchText] = useState('');
+  // Seeded to its reset value: mounting while already open fires no
+  // closed->open transition, so this is the only field whose reset would
+  // otherwise be skipped on the mount-open path (every other initial value
+  // already equals its reset value).
+  const [applyLateFee, setApplyLateFee] = useState(isAfter10th);
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia'>('transferencia');
+  const [amountOverride, setAmountOverride] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPlanChange, setIsPlanChange] = useState(false);
+  const [newPlanId, setNewPlanId] = useState('');
+
+  // Field resets belong to the closed->open transition and commit in the SAME
+  // render pass as the prop change (React "storing information from previous
+  // renders"), so an open render never paints stale values. The guard updates
+  // `previousOpen` in both directions so the next transition is still seen.
+  // Declared delta: resets no longer re-run when `isAfter10th` or
+  // `current_studio_id` changes while the modal stays open.
+  const [previousOpen, setPreviousOpen] = useState(isOpen);
+  if (previousOpen !== isOpen) {
+    setPreviousOpen(isOpen);
     if (isOpen) {
-      financesService
-        .getStudentsWithPlans(current_studio_id || '')
-        .then((data) => setStudents(data))
-        .catch(console.error);
-
-      plansService
-        .getActivePlans()
-        .then((data) => setAvailablePlans(data))
-        .catch(console.error);
-
       setApplyLateFee(isAfter10th);
       setSelectedStudentId('');
       setStudentSearchText('');
@@ -93,7 +92,41 @@ export function useRecordPayment({
       setIsPlanChange(false);
       setNewPlanId('');
     }
-  }, [isOpen, isAfter10th, current_studio_id]);
+  }
+
+  // Keep-previous-data: the primitive holds the last settled list, so closing
+  // and reopening keeps it rendered until the fresh fetch lands. There is no
+  // loading flag on this hook's public surface to blank the modal with.
+  // `enabled: isOpen` fires one fresh fetch per open; the students resource
+  // additionally keys on the studio id, so a studio change while open refetches.
+  const studentsResource = useAsyncResource<StudentWithPlan[]>(
+    async () => financesService.getStudentsWithPlans(current_studio_id || ''),
+    [current_studio_id],
+    {
+      enabled: isOpen,
+      // Parity with the previous inline fetch: log the raw error, no toast.
+      onError: (error) => {
+        console.error(error);
+      },
+    },
+  );
+
+  const plansResource = useAsyncResource<PlanEntity[]>(
+    async () => plansService.getActivePlans(),
+    [],
+    {
+      enabled: isOpen,
+      onError: (error) => {
+        console.error(error);
+      },
+    },
+  );
+
+  // Memoized so the `?? []` fallback keeps one identity while the resource is
+  // empty; the raw logical expression would re-create the array every render
+  // and invalidate the memos/callbacks that depend on these lists.
+  const students = useMemo(() => studentsResource.data ?? [], [studentsResource.data]);
+  const availablePlans = useMemo(() => plansResource.data ?? [], [plansResource.data]);
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
   const currentPlan = selectedStudent?.plans;

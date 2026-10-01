@@ -81,6 +81,14 @@ const baseCalculation = {
   daysRemaining: 30,
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
 describe('useRecordPayment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -104,13 +112,26 @@ describe('useRecordPayment', () => {
     );
   }
 
-  it('loads students and plans when modal opens', async () => {
-    renderWithOpen();
+  it('fetches students and plans when the modal transitions from closed to open', async () => {
+    const { result, rerender } = renderHook(
+      ({ isOpen }: { isOpen: boolean }) =>
+        useRecordPayment({ isOpen, onClose: mockOnClose, onSuccess: mockOnSuccess }),
+      { initialProps: { isOpen: false } },
+    );
+
+    // The `enabled: isOpen` gate stays shut while closed: no fetch, empty list.
+    expect(result.current.students).toEqual([]);
+    expect(mockGetStudentsWithPlans).not.toHaveBeenCalled();
+    expect(mockGetActivePlans).not.toHaveBeenCalled();
+
+    rerender({ isOpen: true });
 
     await waitFor(() => {
       expect(mockGetStudentsWithPlans).toHaveBeenCalledWith('studio-001');
     });
-    expect(mockGetActivePlans).toHaveBeenCalled();
+    expect(mockGetActivePlans).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+    expect(result.current.availablePlans).toEqual(mockPlans);
   });
 
   it('selects student from search text and clears amount override', async () => {
@@ -317,5 +338,107 @@ describe('useRecordPayment', () => {
     rerender({ isOpen: true });
 
     expect(result.current.isAfter10th).toBe(result.current.today.getDate() > 10);
+  });
+
+  it('resets the payment fields on the closed->open transition', async () => {
+    const { result, rerender } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-001');
+      result.current.setStudentSearchText('María García (Plan Mensual)');
+      result.current.setPaymentMethod('efectivo');
+      result.current.setApplyLateFee(!result.current.isAfter10th);
+      result.current.setAmountOverride('12000');
+      result.current.setIsPlanChange(true);
+      result.current.setNewPlanId('plan-002');
+    });
+
+    // The fields really carried non-default values before the reopen.
+    expect(result.current.selectedStudentId).toBe('stu-001');
+    expect(result.current.studentSearchText).toBe('María García (Plan Mensual)');
+    expect(result.current.paymentMethod).toBe('efectivo');
+    expect(result.current.amountOverride).toBe('12000');
+    expect(result.current.isPlanChange).toBe(true);
+    expect(result.current.newPlanId).toBe('plan-002');
+
+    rerender({ isOpen: false });
+    await act(async () => {
+      rerender({ isOpen: true });
+    });
+
+    expect(result.current.selectedStudentId).toBe('');
+    expect(result.current.studentSearchText).toBe('');
+    expect(result.current.paymentMethod).toBe('transferencia');
+    expect(result.current.applyLateFee).toBe(result.current.isAfter10th);
+    expect(result.current.amountOverride).toBe('');
+    expect(result.current.isPlanChange).toBe(false);
+    expect(result.current.newPlanId).toBe('');
+  });
+
+  it('keeps the previously loaded students visible while the reopen fetch is in flight', async () => {
+    const { result, rerender } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+    expect(mockGetStudentsWithPlans).toHaveBeenCalledTimes(1);
+
+    rerender({ isOpen: false });
+    expect(result.current.students).toEqual(mockStudents);
+
+    const gate = deferred<StudentWithPlan[]>();
+    mockGetStudentsWithPlans.mockReturnValueOnce(gate.promise);
+
+    rerender({ isOpen: true });
+
+    await waitFor(() => expect(mockGetStudentsWithPlans).toHaveBeenCalledTimes(2));
+    // Keep-previous-data: the list is never emptied while the fresh fetch runs.
+    expect(result.current.students).toEqual(mockStudents);
+
+    await act(async () => {
+      gate.resolve(mockStudents);
+      await gate.promise;
+    });
+
+    expect(result.current.students).toEqual(mockStudents);
+  });
+
+  it('refetches the students on a studio change while open without resetting the form', async () => {
+    const { result, rerender } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+    expect(mockGetStudentsWithPlans).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-001');
+      result.current.setPaymentMethod('efectivo');
+      result.current.setAmountOverride('12000');
+    });
+
+    mockUseAuthStore.mockReturnValue({ current_studio_id: 'studio-002' });
+    rerender({ isOpen: true });
+
+    // Declared delta: the studio key change refetches behind the enabled gate...
+    await waitFor(() => expect(mockGetStudentsWithPlans).toHaveBeenCalledWith('studio-002'));
+    // ...but the removed effect no longer resets the form while the modal stays open.
+    expect(result.current.paymentMethod).toBe('efectivo');
+    expect(result.current.amountOverride).toBe('12000');
+    expect(result.current.selectedStudentId).toBe('stu-001');
+  });
+
+  it('logs the fetch failure with console.error and shows no toast', async () => {
+    const error = new Error('Network error');
+    mockGetStudentsWithPlans.mockRejectedValueOnce(error);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.availablePlans).toEqual(mockPlans));
+    await waitFor(() => expect(consoleSpy).toHaveBeenCalledWith(error));
+
+    expect(consoleSpy.mock.calls).toEqual([[error]]);
+    expect(mockShowError).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
   });
 });
