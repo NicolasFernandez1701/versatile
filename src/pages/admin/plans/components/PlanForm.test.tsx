@@ -118,6 +118,89 @@ describe('PlanForm', () => {
     expect(screen.getByDisplayValue('Funcional')).toBeInTheDocument();
   });
 
+  it('remount con nueva key: el primer frame muestra los valores de la nueva entidad', () => {
+    const planB: PlanEntity = {
+      id: 'plan-2',
+      name: 'Plan Básico',
+      price: 15000,
+      classes_per_week: 2,
+      is_active: false,
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+      plan_activities: [
+        {
+          id: 'pa-3',
+          plan_id: 'plan-2',
+          activity_name: 'Pilates',
+          classes_per_week: 2,
+          created_at: '2024-01-01',
+        },
+      ],
+    };
+
+    const { rerender } = render(
+      <PlanForm
+        key="plan-a"
+        availableClasses={mockClasses}
+        initialData={mockInitialData}
+        onSuccess={mockOnSuccess}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(screen.getByPlaceholderText('Ej: Intermedio A')).toHaveValue('Plan Premium');
+
+    rerender(
+      <PlanForm
+        key="plan-b"
+        availableClasses={mockClasses}
+        initialData={planB}
+        onSuccess={mockOnSuccess}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    // First frame after the key remount: the new entity's values, no previous entity values.
+    const nameInput = screen.getByPlaceholderText('Ej: Intermedio A');
+    expect(nameInput).toHaveValue('Plan Básico');
+    expect(nameInput).not.toHaveValue('Plan Premium');
+    expect(screen.getByPlaceholderText('Valor final del plan')).toHaveValue('15000');
+    expect(screen.getByDisplayValue('Pilates')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Yoga')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Funcional')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Plan Activo')).not.toBeChecked();
+  });
+
+  it('remount sin initialData: un plan nuevo muestra los valores por defecto', () => {
+    const { rerender } = render(
+      <PlanForm
+        key="edit"
+        availableClasses={mockClasses}
+        initialData={mockInitialData}
+        onSuccess={mockOnSuccess}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(screen.getByPlaceholderText('Ej: Intermedio A')).toHaveValue('Plan Premium');
+
+    rerender(
+      <PlanForm
+        key="new"
+        availableClasses={mockClasses}
+        onSuccess={mockOnSuccess}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    // A brand-new plan must open with the defaults, not the previous plan's values.
+    expect(screen.getByPlaceholderText('Ej: Intermedio A')).toHaveValue('');
+    expect(screen.getByPlaceholderText('Valor final del plan')).toHaveValue('');
+    expect(screen.getByLabelText('Plan Activo')).toBeChecked();
+    expect(screen.queryByText('clases/sem')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Yoga')).not.toBeInTheDocument();
+  });
+
   it('Agregar actividad: botón "Agregar Actividad" añade una fila', () => {
     renderForm();
 

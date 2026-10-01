@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { plansService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
 import type { PlanEntity } from '@/core/types/plans.types';
@@ -48,26 +48,6 @@ export function usePlanForm({ initialData, onSuccess }: UsePlanFormOptions = {})
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const reset = useCallback(() => {
-    setName(initialData?.name || '');
-    setPrice(initialData ? String(initialData.price) : '');
-    setClassesPerWeek(initialData?.classes_per_week || 0);
-    setIsActive(initialData?.is_active ?? true);
-    setActivities(
-      initialData?.plan_activities
-        ? initialData.plan_activities.map((a) => ({
-            activity_name: a.activity_name,
-            classes_per_week: a.classes_per_week,
-          }))
-        : [],
-    );
-    setError('');
-  }, [initialData]);
-
-  useEffect(() => {
-    reset();
-  }, [initialData, reset]);
 
   const setField = useCallback((field: string, value: string | number | boolean) => {
     switch (field) {

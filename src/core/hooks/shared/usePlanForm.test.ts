@@ -64,6 +64,26 @@ describe('usePlanForm', () => {
     expect(result.current.activities[0].activity_name).toBe('Yoga');
   });
 
+  it('keeps mounted state when initialData changes (no live reset)', () => {
+    const { result, rerender } = renderHook(
+      ({ initialData }: { initialData: PlanEntity | null }) =>
+        usePlanForm({ initialData }),
+      { initialProps: { initialData: basePlan } },
+    );
+
+    act(() => {
+      result.current.setField('name', 'Plan Editado');
+    });
+    expect(result.current.name).toBe('Plan Editado');
+
+    const otherPlan: PlanEntity = { ...basePlan, id: 'plan-002', name: 'Plan Nuevo' };
+    rerender({ initialData: otherPlan });
+
+    // The parent passing a new initialData object must not wipe the user's edit.
+    expect(result.current.name).toBe('Plan Editado');
+    expect(result.current.price).toBe('25000');
+  });
+
   it('updates scalar fields via setField', () => {
     const { result } = renderHook(() => usePlanForm());
 
