@@ -70,6 +70,54 @@ describe('useStudentForm', () => {
     expect(result.current.promoExpirationDate).toBe('2026-12-31');
   });
 
+  it('keeps mounted state when initialData changes (no live reset)', () => {
+    const { result, rerender } = renderHook(
+      ({ initialData }: { initialData: UserProfile | null }) =>
+        useStudentForm({ initialData }),
+      { initialProps: { initialData: baseStudent } },
+    );
+
+    act(() => {
+      result.current.setField('fullName', 'María Editada');
+    });
+    expect(result.current.fullName).toBe('María Editada');
+
+    const otherStudent: UserProfile = {
+      ...baseStudent,
+      id: 'stu-002',
+      full_name: 'Otra Alumna',
+      email: 'otra@test.com',
+    };
+    rerender({ initialData: otherStudent });
+
+    // The parent passing a new initialData object must not wipe the user's edit.
+    expect(result.current.fullName).toBe('María Editada');
+    expect(result.current.email).toBe('maria@test.com');
+  });
+
+  it('reset() applies the latest initialData after it changes', () => {
+    const { result, rerender } = renderHook(
+      ({ initialData }: { initialData: UserProfile | null }) =>
+        useStudentForm({ initialData }),
+      { initialProps: { initialData: baseStudent } },
+    );
+
+    const otherStudent: UserProfile = {
+      ...baseStudent,
+      id: 'stu-002',
+      full_name: 'Otra Alumna',
+      email: 'otra@test.com',
+    };
+    rerender({ initialData: otherStudent });
+
+    act(() => {
+      result.current.reset();
+    });
+
+    expect(result.current.fullName).toBe('Otra Alumna');
+    expect(result.current.email).toBe('otra@test.com');
+  });
+
   it('updates fields via setField', () => {
     const { result } = renderHook(() => useStudentForm());
 
