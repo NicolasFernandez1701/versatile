@@ -66,11 +66,43 @@
   min-height: 300px;
 }
 
+.reports-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
 .report-table-wrapper {
   background: var(--surface-color);
   border-radius: var(--border-radius-md);
   border: 1px solid var(--border-color);
   overflow: hidden;
+}
+
+/* Table cell alignment modifiers (scoped to the report tables) */
+.report-table-wrapper th.reports-cell--center,
+.report-table-wrapper td.reports-cell--center {
+  text-align: center;
+}
+
+.report-table-wrapper th.reports-cell--right,
+.report-table-wrapper td.reports-cell--right {
+  text-align: right;
+}
+
+.report-table-wrapper td.reports-cell--bold {
+  text-align: right;
+  font-weight: 600;
+}
+
+.report-table-wrapper td.reports-cell--amount {
+  text-align: right;
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.report-table-wrapper th.reports-column--bar {
+  width: 200px;
 }
 
 /* Revenue Chart */
@@ -91,6 +123,7 @@
   flex: 1;
   background: linear-gradient(to top, var(--primary-color), #8854d0);
   border-radius: 4px 4px 0 0;
+  height: var(--mini-bar-height, auto);
   min-height: 2px;
   transition: height 0.3s ease;
 }
@@ -125,6 +158,7 @@
 
 .horizontal-bar__fill {
   height: 100%;
+  width: var(--horizontal-bar-width, 100%);
   background: linear-gradient(to right, var(--primary-color), #8854d0);
   border-radius: 4px;
   transition: width 0.3s ease;
