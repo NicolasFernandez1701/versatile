@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { usersService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
 import { useAuthStore } from '@/core/store/useAuthStore';
@@ -27,9 +27,9 @@ export function useTeacherForm({
   const { current_studio_id } = useAuthStore();
   const { showError, showSuccess } = useAlert();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [fullName, setFullName] = useState(initialData?.full_name || '');
+  const [email, setEmail] = useState(initialData?.email || '');
+  const [phone, setPhone] = useState(initialData?.phone || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -45,10 +45,6 @@ export function useTeacherForm({
     }
     setError('');
   }, [initialData]);
-
-  useEffect(() => {
-    reset();
-  }, [initialData, reset]);
 
   const setField = useCallback((field: string, value: string | number) => {
     const stringValue = String(value);

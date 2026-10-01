@@ -67,6 +67,56 @@ describe('useTeacherForm', () => {
     expect(result.current.phone).toBe('555-1234');
   });
 
+  it('keeps mounted state when initialData changes (no live reset)', () => {
+    const { result, rerender } = renderHook(
+      ({ initialData }: { initialData: UserProfile | null }) =>
+        useTeacherForm({ initialData }),
+      { initialProps: { initialData: baseTeacher } },
+    );
+
+    act(() => {
+      result.current.setField('fullName', 'Ana Editada');
+    });
+    expect(result.current.fullName).toBe('Ana Editada');
+
+    const otherTeacher: UserProfile = {
+      ...baseTeacher,
+      id: 'tea-002',
+      full_name: 'Otra Profe',
+      email: 'otra@test.com',
+      phone: '555-0000',
+    };
+    rerender({ initialData: otherTeacher });
+
+    // The parent passing a new initialData object must not wipe the user's edit.
+    expect(result.current.fullName).toBe('Ana Editada');
+    expect(result.current.email).toBe('ana@test.com');
+  });
+
+  it('reset() applies the latest initialData after it changes', () => {
+    const { result, rerender } = renderHook(
+      ({ initialData }: { initialData: UserProfile | null }) =>
+        useTeacherForm({ initialData }),
+      { initialProps: { initialData: baseTeacher } },
+    );
+
+    const otherTeacher: UserProfile = {
+      ...baseTeacher,
+      id: 'tea-002',
+      full_name: 'Otra Profe',
+      email: 'otra@test.com',
+      phone: '555-0000',
+    };
+    rerender({ initialData: otherTeacher });
+
+    act(() => {
+      result.current.reset();
+    });
+
+    expect(result.current.fullName).toBe('Otra Profe');
+    expect(result.current.email).toBe('otra@test.com');
+  });
+
   it('updates fields via setField', () => {
     const { result } = renderHook(() => useTeacherForm());
 
