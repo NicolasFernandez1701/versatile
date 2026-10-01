@@ -269,6 +269,106 @@ describe('ClassForm', () => {
     expect(screen.getByDisplayValue('40')).toBeInTheDocument();
   });
 
+  it('remount con nueva key: el primer frame muestra los valores de la nueva entidad', async () => {
+    const entityA: Partial<ClassEntity> = {
+      id: 'cls-a',
+      activity_name: 'Yoga',
+      teacher_id: 't1',
+      day_of_week: 1,
+      start_time: '09:00',
+      end_time: '10:00',
+      capacity: 20,
+      base_price: 6000,
+      teacher_commission_pct: 40,
+    };
+    const entityB: Partial<ClassEntity> = {
+      id: 'cls-b',
+      activity_name: 'Pilates',
+      teacher_id: 't2',
+      day_of_week: 5,
+      start_time: '11:00',
+      end_time: '12:00',
+      capacity: 12,
+      base_price: 7000,
+      teacher_commission_pct: 30,
+    };
+
+    const { rerender } = render(
+      <ClassForm
+        key="entity-a"
+        teachers={mockTeachers}
+        initialData={entityA}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    expect(screen.getByPlaceholderText('Ej: Funcional, Yoga')).toHaveValue('Yoga');
+
+    rerender(
+      <ClassForm
+        key="entity-b"
+        teachers={mockTeachers}
+        initialData={entityB}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    // First frame after the key remount: the new entity's values, no previous entity values.
+    const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
+    expect(activityInput).toHaveValue('Pilates');
+    expect(activityInput).not.toHaveValue('Yoga');
+    expect(screen.getByDisplayValue('11:00')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('12:00')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('12')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('09:00')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Viernes' })).toHaveClass('day-pill--selected');
+    expect(screen.getByRole('button', { name: 'Lunes' })).not.toHaveClass('day-pill--selected');
+
+    await waitFor(() => expect(mockGetSpecialties).toHaveBeenCalled());
+  });
+
+  it('remount sin initialData: una entidad nueva muestra los valores por defecto', async () => {
+    const entityA: Partial<ClassEntity> = {
+      id: 'cls-a',
+      activity_name: 'Yoga',
+      teacher_id: 't1',
+      day_of_week: 1,
+      start_time: '09:00',
+      end_time: '10:00',
+      capacity: 20,
+      base_price: 6000,
+      teacher_commission_pct: 40,
+    };
+
+    const { rerender } = render(
+      <ClassForm
+        key="edit"
+        teachers={mockTeachers}
+        initialData={entityA}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    expect(screen.getByPlaceholderText('Ej: Funcional, Yoga')).toHaveValue('Yoga');
+
+    rerender(
+      <ClassForm key="new" teachers={mockTeachers} onSuccess={mockOnSuccess} />
+    );
+
+    // A brand-new entity must open with the defaults, not the previous entity's values.
+    const activityInput = screen.getByPlaceholderText('Ej: Funcional, Yoga');
+    expect(activityInput).toHaveValue('');
+    expect(activityInput).not.toHaveValue('Yoga');
+    expect(screen.getByDisplayValue('18:00')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('19:00')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('15')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('5000')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('50')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lunes' })).not.toHaveClass('day-pill--selected');
+
+    await waitFor(() => expect(mockGetSpecialties).toHaveBeenCalled());
+  });
+
   it('Teachers se renderizan en el select', async () => {
     mockGetSpecialties.mockResolvedValueOnce([]);
     renderForm();

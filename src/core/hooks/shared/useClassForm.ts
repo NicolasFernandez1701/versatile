@@ -57,10 +57,6 @@ export function useClassForm({ initialData, onSuccess }: UseClassFormOptions = {
   }, [initialData]);
 
   useEffect(() => {
-    reset();
-  }, [initialData, reset]);
-
-  useEffect(() => {
     let mounted = true;
     usersService
       .getSpecialties()

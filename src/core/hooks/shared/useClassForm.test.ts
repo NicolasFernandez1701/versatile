@@ -123,6 +123,33 @@ describe('useClassForm', () => {
     await waitFor(() => expect(result.current.specialties).toEqual(mockSpecialties));
   });
 
+  it('keeps mounted state when initialData changes (no live reset)', async () => {
+    const { result, rerender } = renderHook(
+      ({ initialData }: { initialData: Partial<ClassEntity> }) =>
+        useClassForm({ initialData }),
+      { initialProps: { initialData: baseClass } },
+    );
+
+    act(() => {
+      result.current.setField('activityName', 'Clase Editada');
+    });
+    expect(result.current.activityName).toBe('Clase Editada');
+
+    const otherClass: Partial<ClassEntity> = {
+      ...baseClass,
+      id: 'cls-002',
+      activity_name: 'Pilates',
+      teacher_id: 'tea-002',
+    };
+    rerender({ initialData: otherClass });
+
+    // The parent passing a new initialData object must not wipe the user's edit.
+    expect(result.current.activityName).toBe('Clase Editada');
+    expect(result.current.teacher).toBe('tea-001');
+
+    await waitFor(() => expect(result.current.specialties).toEqual(mockSpecialties));
+  });
+
   it('loads specialties on mount', async () => {
     const { result } = renderHook(() => useClassForm());
 
