@@ -113,6 +113,7 @@ export function ClassesPage() {
         title={editingClass ? 'Editar Clase' : 'Nueva Clase'}
       >
         <ClassForm
+          key={editingClass?.id ?? 'new'}
           teachers={teachers}
           onSuccess={handleSaveSuccess}
           initialData={editingClass || undefined}

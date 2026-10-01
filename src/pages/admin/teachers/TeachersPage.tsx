@@ -95,6 +95,7 @@ export function TeachersPage() {
       />
 
       <TeacherFormModal
+        key={editingTeacher?.id ?? 'new'}
         isOpen={isModalOpen}
         initialData={editingTeacher}
         onClose={() => {

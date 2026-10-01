@@ -99,8 +99,12 @@ export function StudentsPage() {
       </div>
 
       <StudentFormModal
+        key={editingStudentId ?? 'new'}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingStudentId(null);
+        }}
         studentId={editingStudentId}
         onSuccess={() => {
           setIsModalOpen(false);

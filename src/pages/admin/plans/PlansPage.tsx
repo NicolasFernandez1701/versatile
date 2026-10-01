@@ -142,6 +142,7 @@ export function PlansPage() {
         title={selectedPlan ? 'Editar Plan' : 'Crear Nuevo Plan'}
       >
         <PlanForm
+          key={selectedPlan?.id ?? 'new'}
           initialData={selectedPlan}
           availableClasses={availableClasses}
           onSuccess={handleSaveSuccess}
