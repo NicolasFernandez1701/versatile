@@ -5,7 +5,7 @@ import { useUsersStore } from '@/core/store/useUsersStore';
 import { useStudentStatus } from '@/core/hooks/admin/useStudentStatus';
 import { StudentCard } from './components/StudentCard';
 import { StudentFormModal } from './components/StudentFormModal';
-import './students.css'; // Will create this
+import './students.css';
 import { Loader } from '@/ui';
 
 export function StudentsPage() {
@@ -28,18 +28,12 @@ export function StudentsPage() {
 
   return (
     <div
-      className="students-page"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: 'calc(100vh - 4rem)',
-        overflow: 'hidden'
-      }}
+      className="students-page admin-page-shell"
     >
       <div className="page-header">
         <div>
           <h1>Alumnos</h1>
-          <p className="text-secondary" style={{ marginTop: '0.25rem', fontSize: '0.9rem' }}>
+          <p className="text-secondary students-header-subtitle">
             Control de planes y pagos
           </p>
         </div>
@@ -58,18 +52,10 @@ export function StudentsPage() {
 
       <div className="student-actions-row">
         <button
-          className="btn-secondary"
+          className="btn-secondary student-enroll-button"
           onClick={() => navigate('/admin/enrollments')} // Map to EnrollStudent
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            fontSize: '0.85rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
         >
-          <Bookmark size={18} className="text-primary" style={{ marginRight: '0.5rem' }} />
+          <Bookmark size={18} className="text-primary student-enroll-icon" />
           Inscribir Alumno a Clase
         </button>
       </div>
@@ -85,9 +71,9 @@ export function StudentsPage() {
         />
       </div>
 
-      <div className="student-list-container" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="student-list-container">
         {loading ? (
-          <div style={{ padding: '2rem' }}>
+          <div className="students-loader-wrapper">
             <Loader text="Cargando alumnos..." size="medium" />
           </div>
         ) : filteredStudents.length === 0 ? (

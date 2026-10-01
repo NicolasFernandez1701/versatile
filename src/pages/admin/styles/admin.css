@@ -350,3 +350,13 @@
   background: var(--border-color);
   margin: 0 auto;
 }
+
+/* =========================================
+   SHARED PAGE SHELL (Classes, Students)
+   ========================================= */
+.admin-page-shell {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 4rem);
+  overflow: hidden;
+}

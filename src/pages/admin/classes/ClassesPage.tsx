@@ -59,14 +59,7 @@ export function ClassesPage() {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: 'calc(100vh - 4rem)',
-        overflow: 'hidden'
-      }}
-    >
+    <div className="admin-page-shell">
       <div className="page-header">
         <div>
           <h1>Clases</h1>
@@ -79,14 +72,14 @@ export function ClassesPage() {
       </div>
 
       {loading ? (
-        <div style={{ padding: '2rem' }}>
+        <div className="classes-loader-wrapper">
           <Loader text="Cargando clases..." size="medium" />
         </div>
       ) : classes.length === 0 ? (
         <p>No hay clases creadas aún.</p>
       ) : (
-        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '2rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="classes-list-container">
+          <div className="classes-list-column">
             {classes.map((cls) => (
               <ClassCard
                 key={cls.id}

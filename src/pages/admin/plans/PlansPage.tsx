@@ -6,6 +6,7 @@ import { formatCurrency } from '@/core/utils/formatCurrency';
 import type { PlanEntity } from '@/core/types/plans.types';
 import { PlanForm } from '@/pages/admin/plans/components/PlanForm';
 import { Modal, ConfirmModal, DataTable, type Column, Button } from '@/ui';
+import './plans.css';
 
 export function PlansPage() {
   const {
@@ -85,9 +86,8 @@ export function PlansPage() {
       header: 'Estado',
       render: (plan) => (
         <span
-          className={`status-badge ${plan.is_active ? 'active' : 'inactive'}`}
+          className={`status-badge plans-status-toggle ${plan.is_active ? 'active' : 'inactive'}`}
           onClick={() => toggleStatus(plan.id, plan.is_active)}
-          style={{ cursor: 'pointer' }}
         >
           {plan.is_active ? 'Activo' : 'Inactivo'}
         </span>

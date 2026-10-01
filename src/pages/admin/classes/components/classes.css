@@ -258,3 +258,20 @@
   opacity: 0.9;
   color: #ffffff;
 }
+
+/* --- Page Layout --- */
+.classes-loader-wrapper {
+  padding: 2rem;
+}
+
+.classes-list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 2rem;
+}
+
+.classes-list-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

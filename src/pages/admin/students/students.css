@@ -38,7 +38,31 @@
 }
 
 .student-list-container {
+  flex: 1;
+  overflow-y: auto;
   padding-bottom: 2rem;
+}
+
+.students-header-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.student-enroll-button {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-enroll-icon {
+  margin-right: 0.5rem;
+}
+
+.students-loader-wrapper {
+  padding: 2rem;
 }
 
 /* Badge styles for status */
