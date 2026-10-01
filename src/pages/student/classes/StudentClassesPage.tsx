@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import { Loader, Button } from '@/ui';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
@@ -19,9 +19,10 @@ const DAYS_MAP: Record<number, string> = {
 export function StudentClassesPage() {
   const { user } = useAuthStore();
 
-  const [weekDates, setWeekDates] = useState<Record<number, Date>>({});
-
-  useEffect(() => {
+  // Computed once on mount. The stable identity keeps the content-derived fetch
+  // key stable across re-renders, and the dates are available on the first
+  // render instead of one commit later.
+  const [weekDates] = useState<Record<number, Date>>(() => {
     const curr = new Date();
     const first = curr.getDate() - curr.getDay() + 1;
     const dates: Record<number, Date> = {};
@@ -32,8 +33,8 @@ export function StudentClassesPage() {
       dates[dayOfWeek] = d;
     }
 
-    setWeekDates(dates);
-  }, []);
+    return dates;
+  });
 
   const { loading, classesList, reservations, planLimits, loadData } = useStudentClassesData(weekDates);
   const { enroll } = useEnrollClass({ studentId: user?.id, refresh: loadData });
