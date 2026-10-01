@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useTeacherClasses } from './useTeacherClasses';
 import type { ClassEntity } from '@/core/types/classes.types';
@@ -38,15 +38,30 @@ function makeClass(id: string, dayOfWeek: number): ClassEntity {
   };
 }
 
+// Clock frozen on purpose: the auto-select test derives its "today" fixture from
+// `new Date().getDay()`, so with the real clock the test silently depends on the day the
+// suite runs on. Freezing it makes "today" deterministic instead of a weekday lottery.
+// Wednesday is chosen so it never collides with the weekday fixtures used below
+// (Mon=1, Fri=5, Thu=4); the previous `cls-tue` (Tue=2) fixture made the test fail on
+// real Tuesdays by shadowing `cls-today` as the first `day_of_week` match.
+const FROZEN_TODAY = new Date(2026, 9, 7, 12, 0, 0); // Wed 2026-10-07, local noon
+
 describe('useTeacherClasses', () => {
   beforeEach(() => {
+    // Only Date is faked; setTimeout stays real, so `waitFor` keeps working.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(FROZEN_TODAY);
     vi.clearAllMocks();
     mockUseAuthStore.mockReturnValue({ user: { id: 'teacher-001' } });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('auto-selects the class matching today', async () => {
     const today = new Date().getDay();
-    const classes = [makeClass('cls-tue', 2), makeClass('cls-today', today), makeClass('cls-fri', 5)];
+    const classes = [makeClass('cls-thu', 4), makeClass('cls-today', today), makeClass('cls-fri', 5)];
     mockGetClassesByTeacher.mockResolvedValue(classes);
 
     const { result } = renderHook(() => useTeacherClasses());
