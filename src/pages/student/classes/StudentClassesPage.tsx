@@ -23,14 +23,18 @@ export function StudentClassesPage() {
   // key stable across re-renders, and the dates are available on the first
   // render instead of one commit later.
   const [weekDates] = useState<Record<number, Date>>(() => {
-    const curr = new Date();
-    const first = curr.getDate() - curr.getDay() + 1;
+    const today = new Date();
+    // The day arithmetic runs against a fixed Monday anchor: setDate() mutates
+    // its receiver, so chaining it across iterations drifts into earlier months
+    // whenever the current week starts in the previous one.
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - today.getDay() + 1);
     const dates: Record<number, Date> = {};
 
     for (let i = 0; i < 7; i++) {
-      const d = new Date(curr.setDate(first + i));
-      const dayOfWeek = d.getDay();
-      dates[dayOfWeek] = d;
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      dates[d.getDay()] = d;
     }
 
     return dates;
