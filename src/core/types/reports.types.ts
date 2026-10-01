@@ -1,3 +1,11 @@
+export type ReportTab =
+  | 'attendance-student'
+  | 'attendance-class'
+  | 'revenue'
+  | 'popular'
+  | 'commissions'
+  | 'retention';
+
 export interface AttendanceByStudent {
   student_id: string;
   full_name: string;
