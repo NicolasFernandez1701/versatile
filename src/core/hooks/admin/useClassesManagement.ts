@@ -53,10 +53,12 @@ export function useClassesManagement(): UseClassesManagementResult {
 
   const fetchClasses = resource.refetch;
 
-  // Optimistic status overrides: toggleStatus applies instantly and keeps the
-  // value until the next server refresh replaces the whole list (mirroring the
-  // previous local-state behavior, where any refetch wiped the optimistic
-  // value). A failed toggle drops its override, revealing the server value.
+  // Optimistic status overrides: toggleStatus applies instantly and keeps its
+  // value. The override map is cleared right AFTER a refetch lands in the three
+  // mutation paths below (create/update/delete), so the refresh reveals the
+  // server value without flickering; a failed toggle drops only its own key.
+  // Known gap: an external `fetchClasses()` call does not clear the map, so in
+  // that case an override survives the refresh until the next mutation settles.
   const [statusOverrides, setStatusOverrides] = useState<Record<string, boolean>>({});
 
   const classes = (resource.data?.classes ?? []).map((cls) => {
