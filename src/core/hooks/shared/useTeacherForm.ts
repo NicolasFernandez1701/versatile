@@ -73,6 +73,9 @@ export function useTeacherForm({
     setLoading(true);
     try {
       if (!initialData) {
+        // Same intentional shared default as the student form: the app forces
+        // a password change on first login, and the residual window until then
+        // is accepted debt (see useStudentForm for the full rationale).
         await usersService.createUser({
           email,
           full_name: fullName,

@@ -82,6 +82,12 @@ export function useStudentForm({
     setLoading(true);
     try {
       if (!initialData) {
+        // Intentional product decision (accepted debt): admin-created accounts
+        // start with this shared default, and the app forces a password change
+        // on first login (ProtectedRoute gates on has_completed_onboarding ->
+        // /onboarding, whose password step says the initial password must be
+        // changed). Residual window until that first login is accepted; the
+        // recommended follow-up is a per-account random password shown once.
         await usersService.createUser({
           email,
           full_name: fullName,
