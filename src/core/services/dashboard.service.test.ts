@@ -7,6 +7,19 @@ import { dashboardService } from './dashboard.service';
 
 const STUDIO_ID = 'studio-001';
 
+// `getStudentDashboardData` compares `plan_expiration_date` against the current UTC day,
+// so hardcoded calendar literals make this suite expire on its own. Derive the fixture
+// dates from the run date instead, relative to the same UTC day the service uses.
+function isoDateOffsetFromToday(days: number): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days))
+    .toISOString()
+    .split('T')[0];
+}
+
+const FUTURE_PLAN_EXPIRATION = isoDateOffsetFromToday(30);
+const EXPIRED_PLAN_EXPIRATION = isoDateOffsetFromToday(-30);
+
 const mockFinancialData = {
   monthlyTotal: '250000',
   annualTotal: '3000000',
@@ -50,7 +63,13 @@ const mockNextClass = {
 
 const mockProfileWithPlan = {
   plan_id: 'plan-001',
-  plan_expiration_date: '2026-07-31',
+  plan_expiration_date: FUTURE_PLAN_EXPIRATION,
+  plans: { name: 'Plan Mensual' },
+};
+
+const mockProfileWithExpiredPlan = {
+  plan_id: 'plan-001',
+  plan_expiration_date: EXPIRED_PLAN_EXPIRATION,
   plans: { name: 'Plan Mensual' },
 };
 
@@ -481,8 +500,56 @@ describe('dashboardService', () => {
         activePlan: {
           plan_id: 'plan-001',
           plan_details: 'Plan Mensual',
-          expiration_date: '2026-07-31',
+          expiration_date: FUTURE_PLAN_EXPIRATION,
         },
+        nextClass: null,
+      });
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'enrollments');
+      expect(mockFrom).toHaveBeenNthCalledWith(3, 'profiles');
+    });
+
+    it('no debería usar el plan del perfil como activo si ya expiró', async () => {
+      const mockPaymentsOrder = vi.fn(() => ({
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }));
+
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              order: mockPaymentsOrder,
+            })),
+          })),
+        })),
+      });
+
+      const mockEnrollmentsOrder = vi.fn(() => ({
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }));
+
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              order: mockEnrollmentsOrder,
+            })),
+          })),
+        })),
+      });
+
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: mockProfileWithExpiredPlan, error: null }),
+          })),
+        })),
+      });
+
+      const result = await dashboardService.getStudentDashboardData(studentId);
+
+      expect(result).toEqual({
+        activePlan: null,
         nextClass: null,
       });
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
