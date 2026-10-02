@@ -5,18 +5,27 @@ import { SummaryCard } from '@/pages/admin/dashboard/components/SummaryCard';
 import { useStudentDashboard } from '@/core/hooks/student/useStudentDashboard';
 import { Loader } from '@/ui';
 import '@/pages/admin/dashboard/dashboard.css';
+import './StudentDashboard.css';
+
+// Inline `style` is needed for values computed at runtime (quota fill width/color).
+// This type keeps those CSS custom properties cast-free.
+type CSSVars = React.CSSProperties & Record<`--${string}`, string>;
 
 function QuotaRow({ name, consumed, total, remaining }: { name: string; consumed: number; total: number; remaining: number }) {
   const pct = total > 0 ? (consumed / total) * 100 : 0;
   const color = remaining > 0 ? 'var(--primary-color)' : 'var(--error-color)';
+  const quotaStyle: CSSVars = {
+    '--quota-fill-width': `${pct}%`,
+    '--quota-color': color,
+  };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
-      <span style={{ fontWeight: 600, fontSize: '0.9rem', minWidth: '70px', color: 'var(--text-primary)' }}>{name}</span>
-      <div style={{ flex: 1, height: '6px', background: 'var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '3px', transition: 'width 0.3s' }} />
+    <div className="quota-row" style={quotaStyle}>
+      <span className="quota-row__name">{name}</span>
+      <div className="quota-row__track">
+        <div className="quota-row__fill" />
       </div>
-      <span style={{ fontWeight: 700, fontSize: '0.85rem', color, minWidth: '36px', textAlign: 'right' }}>{consumed}/{total}</span>
+      <span className="quota-row__value">{consumed}/{total}</span>
     </div>
   );
 }
@@ -25,13 +34,6 @@ export function StudentDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { data, classLimit, loading } = useStudentDashboard(user?.id);
-
-  const cardStyle = {
-    background: 'var(--surface-color)',
-    borderRadius: '16px',
-    border: '1px solid var(--border-color)',
-    overflow: 'hidden'
-  };
 
   const firstName =
     user?.profile?.full_name?.split(' ')[0] ||
@@ -83,15 +85,11 @@ export function StudentDashboard() {
         />
       </div>
 
-      <div style={{ marginTop: '2rem' }}>
+      <div className="student-dashboard__content">
         {classLimit && Object.keys(classLimit.perActivity).length > 0 && (
           <>
-            <h2 style={{ marginBottom: '0.75rem', color: 'var(--text-color)' }}>Mis Cupos del Mes</h2>
-            <div style={{
-              ...cardStyle,
-              padding: '0.75rem 1rem',
-              marginBottom: '1.5rem'
-            }}>
+            <h2 className="student-dashboard__section-title">Mis Cupos del Mes</h2>
+            <div className="student-dashboard__card student-dashboard__quotas">
               {Object.values(classLimit.perActivity).map((quota) => (
                 <QuotaRow
                   key={quota.activity_name}
@@ -105,14 +103,12 @@ export function StudentDashboard() {
           </>
         )}
 
-        <div style={cardStyle}>
-          <div
-            style={{ padding: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}
-          >
-            <AlertTriangle color="var(--warning-color)" size={24} style={{ flexShrink: 0 }} />
+        <div className="student-dashboard__card">
+          <div className="student-dashboard__reminder">
+            <AlertTriangle color="var(--warning-color)" size={24} className="student-dashboard__reminder-icon" />
             <div>
-              <h3 style={{ marginBottom: '0.5rem' }}>Recordatorio de Reservas</h3>
-              <p className="text-secondary" style={{ lineHeight: 1.5 }}>
+              <h3 className="student-dashboard__reminder-title">Recordatorio de Reservas</h3>
+              <p className="text-secondary student-dashboard__reminder-text">
                 Podés anotarte a las clases hasta <strong>1.30 hs antes</strong> de que comiencen.
                 Si necesitás cancelar, tenés tiempo hasta <strong>1 hora antes</strong>. Evitá
                 penalizaciones gestionando tus asistencias con tiempo.

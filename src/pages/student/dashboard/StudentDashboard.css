@@ -1,0 +1,79 @@
+/* Student Dashboard */
+
+.student-dashboard__content {
+  margin-top: 2rem;
+}
+
+.student-dashboard__section-title {
+  margin-bottom: 0.75rem;
+  color: var(--text-color);
+}
+
+.student-dashboard__card {
+  background: var(--surface-color);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.student-dashboard__quotas {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.student-dashboard__reminder {
+  padding: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.student-dashboard__reminder-icon {
+  flex-shrink: 0;
+}
+
+.student-dashboard__reminder-title {
+  margin-bottom: 0.5rem;
+}
+
+.student-dashboard__reminder-text {
+  line-height: 1.5;
+}
+
+.quota-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.quota-row__name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 70px;
+  color: var(--text-primary);
+}
+
+.quota-row__track {
+  flex: 1;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quota-row__fill {
+  width: var(--quota-fill-width);
+  height: 100%;
+  background: var(--quota-color);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.quota-row__value {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--quota-color);
+  min-width: 36px;
+  text-align: right;
+}
