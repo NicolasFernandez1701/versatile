@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
-import { usersService } from '@/core/services';
+import { useState, useCallback, useMemo } from 'react';
+import { usersService, plansService } from '@/core/services';
+import { useAsyncResource } from './useAsyncResource';
 import { useAlert } from '@/ui/useAlert';
 import { useAuthStore } from '@/core/store/useAuthStore';
 import type { UserProfile } from '@/core/types/users.types';
+import type { PlanEntity } from '@/core/types/plans.types';
 
 export interface UseStudentFormOptions {
   initialData?: UserProfile | null;
@@ -14,6 +16,10 @@ export interface UseStudentFormResult {
   email: string;
   promoDiscountPct: number;
   promoExpirationDate: string;
+  availablePlans: PlanEntity[];
+  plansLoading: boolean;
+  planId: string;
+  setPlanId: (id: string) => void;
   loading: boolean;
   error: string;
   setField: (field: string, value: string | number) => void;
@@ -26,7 +32,7 @@ export function useStudentForm({
   onSuccess,
 }: UseStudentFormOptions = {}): UseStudentFormResult {
   const { current_studio_id } = useAuthStore();
-  const { showError, showSuccess } = useAlert();
+  const { showAlert, showError, showSuccess } = useAlert();
 
   const [fullName, setFullName] = useState(initialData?.full_name || '');
   const [email, setEmail] = useState(initialData?.email || '');
@@ -34,8 +40,24 @@ export function useStudentForm({
   const [promoExpirationDate, setPromoExpirationDate] = useState(
     initialData?.promotion_expiration_date || '',
   );
+  const [planId, setPlanId] = useState(initialData?.plan_id ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Only an existing student can change plans from this form; a brand-new
+  // student has no plan to pick here, so the fetch stays disabled on create.
+  const plansResource = useAsyncResource<PlanEntity[]>(
+    async () => plansService.getActivePlans(),
+    [],
+    {
+      enabled: !!initialData,
+      onError: (error) => {
+        console.error(error);
+      },
+    },
+  );
+
+  const availablePlans = useMemo(() => plansResource.data ?? [], [plansResource.data]);
 
   const reset = useCallback(() => {
     if (initialData) {
@@ -43,11 +65,13 @@ export function useStudentForm({
       setEmail(initialData.email || '');
       setPromoDiscountPct(initialData.promotion_discount_pct || 0);
       setPromoExpirationDate(initialData.promotion_expiration_date || '');
+      setPlanId(initialData.plan_id ?? '');
     } else {
       setFullName('');
       setEmail('');
       setPromoDiscountPct(0);
       setPromoExpirationDate('');
+      setPlanId('');
     }
     setError('');
   }, [initialData]);
@@ -103,7 +127,26 @@ export function useStudentForm({
           promotion_discount_pct: promoDiscountPct,
           promotion_expiration_date: promoExpirationDate || undefined,
         });
-        showSuccess('Alumno actualizado con éxito.');
+
+        const planChanged = planId !== '' && planId !== (initialData.plan_id ?? '');
+        if (planChanged) {
+          const { planChangeAudited } = await usersService.assignStudentPlan(
+            initialData.id,
+            planId,
+          );
+          if (planChangeAudited) {
+            showSuccess(
+              'Plan asignado. No se registró ningún pago: acordate de cobrarlo desde Finanzas.',
+            );
+          } else {
+            showAlert(
+              'Advertencia',
+              'El plan se asignó, pero no se pudo guardar el registro de auditoría del cambio de plan. Avisá a soporte para conciliarlo.',
+            );
+          }
+        } else {
+          showSuccess('Alumno actualizado con éxito.');
+        }
       }
       onSuccess?.();
     } catch (err: unknown) {
@@ -119,8 +162,10 @@ export function useStudentForm({
     email,
     promoDiscountPct,
     promoExpirationDate,
+    planId,
     current_studio_id,
     onSuccess,
+    showAlert,
     showError,
     showSuccess,
   ]);
@@ -130,6 +175,10 @@ export function useStudentForm({
     email,
     promoDiscountPct,
     promoExpirationDate,
+    availablePlans,
+    plansLoading: plansResource.loading,
+    planId,
+    setPlanId,
     loading,
     error,
     setField,

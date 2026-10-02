@@ -1,8 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { useUsersStore } from '@/core/store/useUsersStore';
 import { useStudentForm } from '@/core/hooks/shared/useStudentForm';
-import { Modal, Input, Button } from '@/ui';
+import { formatCurrency } from '@/core/utils/formatCurrency';
+import { Modal, Input, Button, Select } from '@/ui';
 
 interface StudentFormModalProps {
   isOpen: boolean;
@@ -22,11 +24,23 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
     email,
     promoDiscountPct,
     promoExpirationDate,
+    availablePlans,
+    plansLoading,
+    planId,
+    setPlanId,
     loading,
     error,
     setField,
     handleSubmit,
   } = useStudentForm({ initialData, onSuccess });
+
+  const planOptions = [
+    { value: '', label: 'Sin plan seleccionado' },
+    ...availablePlans.map((plan) => ({
+      value: plan.id,
+      label: `${plan.name} - ${formatCurrency(plan.price)}`,
+    })),
+  ];
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,24 +87,42 @@ export function StudentFormModal({ isOpen, onClose, studentId, onSuccess }: Stud
         {isEditing && (
           <>
             <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>
-              Promociones
+              Plan
             </h3>
+
+            <Select
+              label="Plan"
+              value={planId}
+              onChange={(e) => setPlanId(e.target.value)}
+              options={planOptions}
+              disabled={plansLoading}
+            />
 
             <div
               style={{
-                background: 'rgba(52, 152, 219, 0.1)',
+                background: 'rgba(241, 196, 15, 0.1)',
                 padding: '1rem',
                 borderRadius: '8px',
                 marginBottom: '1.5rem',
-                border: '1px solid rgba(52, 152, 219, 0.3)'
+                border: '1px solid rgba(241, 196, 15, 0.4)'
               }}
             >
               <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                <strong>Para cambiar de plan</strong>, usá la sección{' '}
-                <strong>Finanzas → Registrar Cobro</strong> y activá la opción "Cambiar plan".
-                El cambio de plan requiere el registro de un pago.
+                <strong>Importante:</strong> asignar un plan desde acá{' '}
+                <strong>no registra ningún pago</strong>. El cobro debe registrarse por separado
+                desde Finanzas.
               </p>
+              <Link
+                to="/admin/finances"
+                style={{ display: 'inline-block', marginTop: '0.5rem', color: 'var(--primary-color)' }}
+              >
+                Ir a Finanzas → Registrar Cobro
+              </Link>
             </div>
+
+            <h3 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>
+              Promociones
+            </h3>
 
             <div className="form-group" style={{ display: 'flex', gap: '1rem', marginBottom: 0 }}>
               <div style={{ flex: 1, marginBottom: 0 }}>

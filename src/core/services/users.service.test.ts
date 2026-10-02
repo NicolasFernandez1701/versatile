@@ -70,7 +70,7 @@ vi.mock('./supabase', () => ({
 
 vi.mock('../store/useAuthStore', () => ({
   useAuthStore: {
-    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID })),
+    getState: vi.fn(() => ({ current_studio_id: STUDIO_ID, user: { id: 'admin-001' } })),
   },
 }));
 
@@ -501,6 +501,118 @@ describe('usersService', () => {
       });
 
       await expect(usersService.addSelfAsTeacher(STUDIO_ID)).rejects.toThrow('Error DB');
+    });
+  });
+
+  // ────────────────────────────────────────────
+  // assignStudentPlan (asignación auditada, sin pago)
+  // ────────────────────────────────────────────
+  describe('assignStudentPlan', () => {
+    // Mismo fin de mes que usa la app al asignar un plan desde el formulario de alumno.
+    const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0];
+
+    function createProfileReadChain(planId: string | null, error: Error | null = null) {
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: planId ? { plan_id: planId } : null,
+              error,
+            }),
+          })),
+        })),
+      };
+    }
+
+    it('actualiza el perfil con el plan y su vencimiento de fin de mes, y audita el cambio', async () => {
+      const updateProfileMock = vi.fn(() => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }));
+      const insertPlanChangeMock = vi.fn().mockResolvedValue({ error: null });
+
+      mockFrom.mockReturnValueOnce(createProfileReadChain('plan-001'));
+      mockFrom.mockReturnValueOnce({ update: updateProfileMock });
+      mockFrom.mockReturnValueOnce({ insert: insertPlanChangeMock });
+
+      const result = await usersService.assignStudentPlan('stu-001', 'plan-002');
+
+      expect(result).toEqual({ planChangeAudited: true });
+      expect(mockFrom).toHaveBeenNthCalledWith(1, 'profiles');
+      expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
+      expect(mockFrom).toHaveBeenNthCalledWith(3, 'plan_changes');
+      expect(updateProfileMock).toHaveBeenCalledWith({
+        plan_id: 'plan-002',
+        plan_expiration_date: monthEnd,
+      });
+      expect(insertPlanChangeMock).toHaveBeenCalledWith({
+        profile_id: 'stu-001',
+        old_plan_id: 'plan-001',
+        new_plan_id: 'plan-002',
+        changed_by: 'admin-001',
+        payment_id: null,
+      });
+    });
+
+    it('mantiene la asignación aunque falle la auditoría y reporta planChangeAudited: false', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const auditError = new Error('Error al auditar el cambio de plan');
+      const updateProfileMock = vi.fn(() => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }));
+
+      mockFrom.mockReturnValueOnce(createProfileReadChain('plan-001'));
+      mockFrom.mockReturnValueOnce({ update: updateProfileMock });
+      mockFrom.mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: auditError }) });
+
+      const result = await usersService.assignStudentPlan('stu-001', 'plan-002');
+
+      expect(updateProfileMock).toHaveBeenCalledWith({
+        plan_id: 'plan-002',
+        plan_expiration_date: monthEnd,
+      });
+      expect(result).toEqual({ planChangeAudited: false });
+      expect(consoleSpy).toHaveBeenCalledWith(auditError);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('asigna el plan aunque falle la lectura del plan anterior y reporta planChangeAudited: false', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const readError = new Error('Lectura de perfil fallida');
+      const updateProfileMock = vi.fn(() => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }));
+
+      mockFrom.mockReturnValueOnce(createProfileReadChain(null, readError));
+      mockFrom.mockReturnValueOnce({ update: updateProfileMock });
+
+      const result = await usersService.assignStudentPlan('stu-001', 'plan-002');
+
+      expect(updateProfileMock).toHaveBeenCalledWith({
+        plan_id: 'plan-002',
+        plan_expiration_date: monthEnd,
+      });
+      expect(result).toEqual({ planChangeAudited: false });
+      expect(consoleSpy).toHaveBeenCalledWith(readError);
+      // Sin lectura del plan anterior no se intenta auditar: solo lectura + asignación.
+      expect(mockFrom).toHaveBeenCalledTimes(2);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('lanza error si falla la actualización del perfil (no hay asignación que preservar)', async () => {
+      mockFrom.mockReturnValueOnce(createProfileReadChain('plan-001'));
+      mockFrom.mockReturnValueOnce({
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ error: new Error('Error al asignar plan') }),
+        })),
+      });
+
+      await expect(usersService.assignStudentPlan('stu-001', 'plan-002')).rejects.toThrow(
+        'Error al asignar plan',
+      );
     });
   });
 });

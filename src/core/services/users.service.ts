@@ -107,6 +107,77 @@ export const usersService = {
     if (error) throw error;
   },
 
+  async assignStudentPlan(
+    studentId: string,
+    planId: string,
+  ): Promise<{ planChangeAudited: boolean }> {
+    const currentUser = useAuthStore.getState().user;
+
+    // Same month-end convention the app already used to assign a plan from the
+    // student form: the last day of the current month.
+    const planExpirationDate = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth() + 1,
+      0,
+    )
+      .toISOString()
+      .split('T')[0];
+
+    // Read the current plan first so the audit row records the old plan. A failed
+    // read must not block the assignment (the primary outcome): it only disables
+    // the audit row, mirroring recordPayment's honesty pattern.
+    let oldPlanId: string | null = null;
+    let planChangeAuditable = true;
+
+    try {
+      const { data: profileData, error: profileReadError } = await supabase
+        .from('profiles')
+        .select('plan_id')
+        .eq('id', studentId)
+        .single();
+
+      if (profileReadError) throw profileReadError;
+
+      oldPlanId = profileData?.plan_id ?? null;
+    } catch (readError) {
+      planChangeAuditable = false;
+      console.error(readError instanceof Error ? readError : new Error(String(readError)));
+    }
+
+    // The assignment is the primary outcome: it must persist even if the audit fails.
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ plan_id: planId, plan_expiration_date: planExpirationDate })
+      .eq('id', studentId);
+
+    if (profileError) throw profileError;
+
+    if (!planChangeAuditable) {
+      return { planChangeAudited: false };
+    }
+
+    try {
+      const { error: planChangeError } = await supabase.from('plan_changes').insert({
+        profile_id: studentId,
+        old_plan_id: oldPlanId,
+        new_plan_id: planId,
+        changed_by: currentUser?.id ?? studentId,
+        payment_id: null,
+      });
+
+      if (planChangeError) throw planChangeError;
+
+      return { planChangeAudited: true };
+    } catch (planChangeError) {
+      // The assignment is already committed; log for manual reconciliation instead
+      // of throwing, so the caller reports the audit as failed, not the assignment.
+      console.error(
+        planChangeError instanceof Error ? planChangeError : new Error(String(planChangeError)),
+      );
+      return { planChangeAudited: false };
+    }
+  },
+
   async updatePassword(newPassword: string): Promise<void> {
     const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
     if (authError) throw authError;

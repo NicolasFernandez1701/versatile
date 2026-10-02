@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useStudentForm } from './useStudentForm';
 import type { UserProfile } from '@/core/types/users.types';
+import type { PlanEntity } from '@/core/types/plans.types';
 
 const mockCreateUser = vi.hoisted(() => vi.fn());
 const mockUpdateUser = vi.hoisted(() => vi.fn());
+const mockAssignStudentPlan = vi.hoisted(() => vi.fn());
+const mockGetActivePlans = vi.hoisted(() => vi.fn());
+const mockShowAlert = vi.hoisted(() => vi.fn());
 const mockShowError = vi.hoisted(() => vi.fn());
 const mockShowSuccess = vi.hoisted(() => vi.fn());
 const mockOnSuccess = vi.hoisted(() => vi.fn());
@@ -14,11 +18,19 @@ vi.mock('@/core/services', () => ({
   usersService: {
     createUser: mockCreateUser,
     updateUser: mockUpdateUser,
+    assignStudentPlan: mockAssignStudentPlan,
+  },
+  plansService: {
+    getActivePlans: mockGetActivePlans,
   },
 }));
 
 vi.mock('@/ui/useAlert', () => ({
-  useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
+  useAlert: () => ({
+    showAlert: mockShowAlert,
+    showError: mockShowError,
+    showSuccess: mockShowSuccess,
+  }),
 }));
 
 vi.mock('@/core/store/useAuthStore', () => ({
@@ -42,12 +54,37 @@ const baseStudent: UserProfile = {
   created_at: '2024-01-01',
 };
 
+const studentWithPlan: UserProfile = { ...baseStudent, plan_id: 'plan-001' };
+
+const mockPlans: PlanEntity[] = [
+  {
+    id: 'plan-001',
+    name: 'Plan Básico',
+    price: 20000,
+    classes_per_week: 2,
+    is_active: true,
+    created_at: '2024-01-01',
+    updated_at: '2024-01-01',
+  },
+  {
+    id: 'plan-002',
+    name: 'Plan Premium',
+    price: 35000,
+    classes_per_week: 4,
+    is_active: true,
+    created_at: '2024-01-01',
+    updated_at: '2024-01-01',
+  },
+];
+
 describe('useStudentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuthStore.mockReturnValue({ current_studio_id: 'studio-001' });
     mockCreateUser.mockResolvedValue(undefined);
     mockUpdateUser.mockResolvedValue(undefined);
+    mockAssignStudentPlan.mockResolvedValue({ planChangeAudited: true });
+    mockGetActivePlans.mockResolvedValue(mockPlans);
   });
 
   it('initializes with empty fields', () => {
@@ -223,5 +260,96 @@ describe('useStudentForm', () => {
     expect(mockUpdateUser).not.toHaveBeenCalled();
     expect(result.current.error).toBe('Completa el nombre completo y el correo electrónico.');
     expect(result.current.loading).toBe(false);
+  });
+
+  it('inicializa planId con el plan actual del alumno', () => {
+    const { result } = renderHook(() => useStudentForm({ initialData: studentWithPlan }));
+
+    expect(result.current.planId).toBe('plan-001');
+  });
+
+  it('carga los planes activos al editar un alumno existente', async () => {
+    const { result } = renderHook(() => useStudentForm({ initialData: studentWithPlan }));
+
+    await waitFor(() => expect(result.current.plansLoading).toBe(false));
+
+    expect(mockGetActivePlans).toHaveBeenCalledTimes(1);
+    expect(result.current.availablePlans).toEqual(mockPlans);
+  });
+
+  it('no carga planes al crear un alumno nuevo', () => {
+    const { result } = renderHook(() => useStudentForm());
+
+    expect(mockGetActivePlans).not.toHaveBeenCalled();
+    expect(result.current.availablePlans).toEqual([]);
+  });
+
+  it('asigna el nuevo plan sin registrar pago cuando cambia el plan', async () => {
+    const { result } = renderHook(() =>
+      useStudentForm({ initialData: studentWithPlan, onSuccess: mockOnSuccess }),
+    );
+
+    act(() => {
+      result.current.setPlanId('plan-002');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockUpdateUser).toHaveBeenCalledWith('stu-001', {
+      full_name: 'María García',
+      email: 'maria@test.com',
+      promotion_discount_pct: 15,
+      promotion_expiration_date: '2026-12-31',
+    });
+    expect(mockAssignStudentPlan).toHaveBeenCalledWith('stu-001', 'plan-002');
+    expect(mockShowSuccess).toHaveBeenCalledWith(
+      'Plan asignado. No se registró ningún pago: acordate de cobrarlo desde Finanzas.',
+    );
+    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(mockOnSuccess).toHaveBeenCalled();
+  });
+
+  it('no llama a assignStudentPlan cuando el plan no cambió', async () => {
+    const { result } = renderHook(() => useStudentForm({ initialData: studentWithPlan }));
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockAssignStudentPlan).not.toHaveBeenCalled();
+    expect(mockShowSuccess).toHaveBeenCalledWith('Alumno actualizado con éxito.');
+  });
+
+  it('no llama a assignStudentPlan cuando no hay plan seleccionado', async () => {
+    const { result } = renderHook(() => useStudentForm({ initialData: studentWithPlan }));
+
+    act(() => {
+      result.current.setPlanId('');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockAssignStudentPlan).not.toHaveBeenCalled();
+  });
+
+  it('advierte cuando falla la auditoría del cambio de plan', async () => {
+    mockAssignStudentPlan.mockResolvedValueOnce({ planChangeAudited: false });
+    const { result } = renderHook(() => useStudentForm({ initialData: studentWithPlan }));
+
+    act(() => {
+      result.current.setPlanId('plan-002');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockAssignStudentPlan).toHaveBeenCalledWith('stu-001', 'plan-002');
+    expect(mockShowAlert).toHaveBeenCalledWith('Advertencia', expect.any(String));
+    expect(mockShowSuccess).not.toHaveBeenCalled();
   });
 });
