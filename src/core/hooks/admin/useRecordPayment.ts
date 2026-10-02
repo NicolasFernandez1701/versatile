@@ -40,6 +40,7 @@ export interface UseRecordPaymentResult {
   today: Date;
   calculation: ReturnType<typeof usePaymentCalculation>['calculation'];
   calculationLoading: boolean;
+  calculationError: ReturnType<typeof usePaymentCalculation>['error'];
   isFirstPayment: boolean;
   handleStudentSearch: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
@@ -50,7 +51,7 @@ export function useRecordPayment({
   onClose,
   onSuccess,
 }: UseRecordPaymentParams): UseRecordPaymentResult {
-  const { showError, showSuccess } = useAlert();
+  const { showAlert, showError, showSuccess } = useAlert();
   const { current_studio_id } = useAuthStore();
 
   const [students, setStudents] = useState<StudentWithPlan[]>([]);
@@ -123,7 +124,7 @@ export function useRecordPayment({
     [selectedPlan],
   );
 
-  const { calculation, loading: calculationLoading, isFirstPayment } = usePaymentCalculation({
+  const { calculation, loading: calculationLoading, error: calculationError, isFirstPayment } = usePaymentCalculation({
     studentId: selectedStudentId || null,
     plan: planInfo,
     paymentMethod,
@@ -168,7 +169,7 @@ export function useRecordPayment({
 
       setIsSubmitting(true);
       try {
-        await financesService.recordPayment({
+        const { planChangeAudited } = await financesService.recordPayment({
           student_id: selectedStudentId,
           plan_id: selectedPlan?.id ?? currentPlan?.id,
           amount: finalAmount,
@@ -185,9 +186,18 @@ export function useRecordPayment({
             ? { planChange: { newPlanId, studentId: selectedStudentId } }
             : {}),
         });
-        showSuccess(
-          isPlanChange ? 'Pago y cambio de plan registrados con éxito.' : 'Pago registrado con éxito.',
-        );
+        // The payment and the assignment already committed. A failed audit must not
+        // masquerade as success nor as a payment failure, so warn distinctly.
+        if (isPlanChange && !planChangeAudited) {
+          showAlert(
+            'Advertencia',
+            'El pago y el plan se registraron, pero no se pudo guardar el registro de auditoría del cambio de plan. Avisá a soporte para conciliarlo.',
+          );
+        } else {
+          showSuccess(
+            isPlanChange ? 'Pago y cambio de plan registrados con éxito.' : 'Pago registrado con éxito.',
+          );
+        }
         onSuccess();
         onClose();
       } catch (error) {
@@ -212,6 +222,7 @@ export function useRecordPayment({
       isFirstPayment,
       showError,
       showSuccess,
+      showAlert,
       onSuccess,
       onClose,
     ],
@@ -244,6 +255,7 @@ export function useRecordPayment({
     today,
     calculation,
     calculationLoading,
+    calculationError,
     isFirstPayment,
     handleStudentSearch,
     handleSubmit,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { financesService } from './finances.service';
+import type { RecordPaymentPayload } from '../types/finances.types';
 
 // ──────────────────────────────────────────────
 // 1. Datos de prueba
@@ -187,6 +188,55 @@ describe('financesService', () => {
     is_first_payment: false,
   };
 
+    it('envía SOLO las columnas reales de payments al insertar y nunca incluye planChange', async () => {
+      const planChangePayload: RecordPaymentPayload = {
+        ...payload,
+        planChange: { newPlanId: 'plan-002', studentId: 'stu-001' },
+      };
+      const insertPaymentMock = vi.fn();
+      mockFrom.mockReturnValueOnce({
+        insert: insertPaymentMock.mockImplementation(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { id: 'pay-123' }, error: null }),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { plan_id: 'plan-001' }, error: null }),
+          })),
+        })),
+      });
+      mockFrom.mockReturnValueOnce({ insert: vi.fn().mockResolvedValue({ error: null }) });
+      mockFrom.mockReturnValueOnce({
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        })),
+      });
+
+      await financesService.recordPayment(planChangePayload);
+
+      expect(insertPaymentMock).toHaveBeenCalledTimes(1);
+      // Key by key: exactly the real payments columns plus studio_id, nothing else.
+      expect(insertPaymentMock).toHaveBeenCalledWith({
+        student_id: 'stu-001',
+        plan_id: 'plan-001',
+        amount: 25000,
+        expiration_date: '2024-07-01',
+        plan_details: 'Plan Mensual',
+        payment_method: 'efectivo',
+        original_amount: 25000,
+        discount_applied: 0,
+        surcharge_applied: 0,
+        late_payment: false,
+        late_fee_applied: false,
+        is_first_payment: false,
+        studio_id: 'studio-001',
+      });
+      expect(insertPaymentMock.mock.calls[0][0]).not.toHaveProperty('planChange');
+    });
+
     it('debería registrar un pago con studio_id y actualizar la fecha de expiración', async () => {
       mockFrom.mockReturnValueOnce({
         insert: vi.fn(() => ({
@@ -274,8 +324,9 @@ describe('financesService', () => {
       }));
       mockFrom.mockReturnValueOnce({ update: updateProfileMock });
 
-      await financesService.recordPayment(planChangePayload);
+      const result = await financesService.recordPayment(planChangePayload);
 
+      expect(result).toEqual({ planChangeAudited: true });
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
       expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
       expect(mockFrom).toHaveBeenNthCalledWith(3, 'plan_changes');
@@ -312,12 +363,13 @@ describe('financesService', () => {
       expect(mockFrom).toHaveBeenNthCalledWith(1, 'payments');
     });
 
-    it('debería loguear el error si el cambio de plan falla después del pago', async () => {
+    it('asigna el plan aunque falle la auditoría y reporta planChangeAudited: false', async () => {
       const planChangePayload = {
         ...payload,
         planChange: { newPlanId: 'plan-002', studentId: 'stu-001' },
       };
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const auditError = new Error('Error al registrar cambio de plan');
 
       // 1. Insert payment
       mockFrom.mockReturnValueOnce({
@@ -337,17 +389,62 @@ describe('financesService', () => {
       });
       // 3. Insert plan_changes fails
       mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: new Error('Error al registrar cambio de plan') }),
+        insert: vi.fn().mockResolvedValue({ error: auditError }),
       });
-      // 4. Still update profile expiration (without plan_id)
+      // 4. Profile is still updated WITH plan_id: the assignment is the primary outcome.
+      const updateProfileMock = vi.fn(() => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }));
+      mockFrom.mockReturnValueOnce({ update: updateProfileMock });
+
+      const result = await financesService.recordPayment(planChangePayload);
+
+      expect(updateProfileMock).toHaveBeenCalledWith({
+        plan_expiration_date: payload.expiration_date,
+        plan_id: 'plan-002',
+      });
+      expect(result).toEqual({ planChangeAudited: false });
+      expect(consoleSpy).toHaveBeenCalledWith(auditError);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('asigna el plan aunque falle la lectura del plan anterior', async () => {
+      const planChangePayload = {
+        ...payload,
+        planChange: { newPlanId: 'plan-002', studentId: 'stu-001' },
+      };
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const profileReadError = new Error('Lectura de perfil fallida');
+
       mockFrom.mockReturnValueOnce({
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: { id: 'pay-123' }, error: null }),
+          })),
         })),
       });
+      // Profile read fails: the audit cannot be written, but the assignment must still happen.
+      mockFrom.mockReturnValueOnce({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: profileReadError }),
+          })),
+        })),
+      });
+      const updateProfileMock = vi.fn(() => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }));
+      mockFrom.mockReturnValueOnce({ update: updateProfileMock });
 
-      await expect(financesService.recordPayment(planChangePayload)).resolves.toBeUndefined();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+      const result = await financesService.recordPayment(planChangePayload);
+
+      expect(updateProfileMock).toHaveBeenCalledWith({
+        plan_expiration_date: payload.expiration_date,
+        plan_id: 'plan-002',
+      });
+      expect(result).toEqual({ planChangeAudited: false });
+      expect(consoleSpy).toHaveBeenCalledWith(profileReadError);
 
       consoleSpy.mockRestore();
     });

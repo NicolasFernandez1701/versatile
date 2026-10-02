@@ -10,11 +10,12 @@ const mockGetActivePlans = vi.hoisted(() => vi.fn());
 const mockRecordPayment = vi.hoisted(() => vi.fn());
 const mockShowError = vi.hoisted(() => vi.fn());
 const mockShowSuccess = vi.hoisted(() => vi.fn());
+const mockShowAlert = vi.hoisted(() => vi.fn());
 const mockOnClose = vi.hoisted(() => vi.fn());
 const mockOnSuccess = vi.hoisted(() => vi.fn());
 const mockUseAuthStore = vi.hoisted(() => vi.fn());
 
-vi.mock('./usePaymentCalculation', () => ({
+vi.mock('../shared/usePaymentCalculation', () => ({
   usePaymentCalculation: mockUsePaymentCalculation,
 }));
 
@@ -29,7 +30,11 @@ vi.mock('@/core/services', () => ({
 }));
 
 vi.mock('@/ui/GlobalAlertProvider', () => ({
-  useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
+  useAlert: () => ({
+    showAlert: mockShowAlert,
+    showError: mockShowError,
+    showSuccess: mockShowSuccess,
+  }),
 }));
 
 vi.mock('@/core/store/useAuthStore', () => ({
@@ -83,8 +88,12 @@ describe('useRecordPayment', () => {
     });
     mockGetStudentsWithPlans.mockResolvedValue(mockStudents);
     mockGetActivePlans.mockResolvedValue(mockPlans);
-    mockRecordPayment.mockResolvedValue(undefined);
+    mockRecordPayment.mockResolvedValue({ planChangeAudited: true });
   });
+
+  function createSubmitEvent(): React.FormEvent {
+    return { preventDefault: () => {} } as React.FormEvent;
+  }
 
   function renderWithOpen() {
     return renderHook(
@@ -189,5 +198,63 @@ describe('useRecordPayment', () => {
     });
 
     expect(result.current.finalAmount).toBe(12000);
+  });
+
+  it('forwards usePaymentCalculation error as calculationError', async () => {
+    const calculationError = new Error('No se pudieron obtener los pagos previos');
+    mockUsePaymentCalculation.mockReturnValue({
+      calculation: null,
+      loading: false,
+      error: calculationError,
+      isFirstPayment: false,
+    });
+
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    expect(result.current.calculationError).toBe(calculationError);
+  });
+
+  it('shows a warning instead of success when the plan audit fails', async () => {
+    mockRecordPayment.mockResolvedValueOnce({ planChangeAudited: false });
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-001');
+      result.current.setIsPlanChange(true);
+      result.current.setNewPlanId('plan-002');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(createSubmitEvent());
+    });
+
+    expect(mockShowSuccess).not.toHaveBeenCalled();
+    expect(mockShowAlert).toHaveBeenCalledWith('Advertencia', expect.stringContaining('auditoría'));
+    expect(mockOnSuccess).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('still shows success when the plan audit is recorded', async () => {
+    mockRecordPayment.mockResolvedValue({ planChangeAudited: true });
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-001');
+      result.current.setIsPlanChange(true);
+      result.current.setNewPlanId('plan-002');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(createSubmitEvent());
+    });
+
+    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(mockShowSuccess).toHaveBeenCalledWith('Pago y cambio de plan registrados con éxito.');
   });
 });
