@@ -8,6 +8,7 @@ import type { StudentWithPlan } from '@/core/types/finances.types';
 const mockOnClose = vi.fn();
 const mockOnSuccess = vi.fn();
 const mockHandleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
+const mockSelectStudent = vi.fn();
 
 // Lets each test decide whether the selected student already owns a plan.
 const mockState = vi.hoisted(() => ({
@@ -29,6 +30,15 @@ const mockStudents: StudentWithPlan[] = [
       price: 25000,
       classes_per_week: 3,
     },
+    promotion_expiration_date: null,
+    promotion_discount_pct: null,
+  },
+  {
+    id: 'stu-002',
+    full_name: 'Juan Pérez',
+    email: 'juan@test.com',
+    plan_id: null,
+    plans: null,
     promotion_expiration_date: null,
     promotion_discount_pct: null,
   },
@@ -54,17 +64,22 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
   useRecordPayment: () => {
     const [isPlanChange, setIsPlanChange] = useState(false);
     const [newPlanId, setNewPlanId] = useState('');
+    const [selectedStudentId, setSelectedStudentId] = useState('stu-001');
 
     const currentPlan = mockState.hasPlan ? mockStudents[0].plans : null;
     const isPlanAssignment = !currentPlan;
     const availablePlans = mockState.emptyPlans ? [] : mockPlans;
     const calculation = mockState.calculationNull ? null : baseCalculation;
 
+    const selectStudent = (studentId: string) => {
+      mockSelectStudent(studentId);
+      setSelectedStudentId(studentId);
+    };
+
     return {
       students: mockStudents,
-      studentSearchText: mockState.hasPlan
-        ? 'María García (Plan Mensual)'
-        : 'Juan Pérez (Sin Plan)',
+      selectedStudentId,
+      selectStudent,
       availablePlans,
       paymentMethod: 'transferencia' as const,
       setPaymentMethod: vi.fn(),
@@ -78,7 +93,6 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
       setIsPlanChange,
       newPlanId,
       setNewPlanId,
-      selectedStudentId: 'stu-001',
       selectedStudent: mockStudents[0],
       currentPlan,
       selectedPlan:
@@ -93,7 +107,6 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
       calculationLoading: false,
       calculationError: mockState.calculationError,
       isFirstPayment: false,
-      handleStudentSearch: vi.fn(),
       handleSubmit: mockHandleSubmit,
     };
   },
@@ -110,6 +123,38 @@ describe('RecordPaymentModal', () => {
 
   const renderModal = () =>
     render(<RecordPaymentModal isOpen={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+  it('renderiza una opción por alumno más el placeholder y no la reduce al seleccionar', () => {
+    renderModal();
+
+    const studentSelect = screen.getByLabelText('Alumno') as HTMLSelectElement;
+
+    // Placeholder + one option per student. jsdom cannot reproduce the browser-side
+    // datalist filtering that hid every other student, so the option count is the
+    // honest proxy: a native <select> always keeps every option present.
+    expect(studentSelect.options).toHaveLength(mockStudents.length + 1);
+    expect(studentSelect.options[0]).toHaveValue('');
+    expect(screen.getByRole('option', { name: 'Seleccionar alumno...' })).toBeInTheDocument();
+    mockStudents.forEach((student) => {
+      const label = `${student.full_name} ${student.plans ? `(${student.plans.name})` : '(Sin Plan)'}`;
+      expect(screen.getByRole('option', { name: label })).toBeInTheDocument();
+    });
+
+    fireEvent.change(studentSelect, { target: { value: 'stu-002' } });
+
+    expect(studentSelect).toHaveValue('stu-002');
+    expect(studentSelect.options).toHaveLength(mockStudents.length + 1);
+    expect(screen.getByRole('option', { name: 'María García (Plan Mensual)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Juan Pérez (Sin Plan)' })).toBeInTheDocument();
+  });
+
+  it('llama a selectStudent con el id al elegir otro alumno', () => {
+    renderModal();
+
+    fireEvent.change(screen.getByLabelText('Alumno'), { target: { value: 'stu-002' } });
+
+    expect(mockSelectStudent).toHaveBeenCalledWith('stu-002');
+  });
 
   it('renderiza selector de cambio de plan', async () => {
     renderModal();

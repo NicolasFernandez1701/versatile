@@ -16,7 +16,8 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
   const {
     students,
-    studentSearchText,
+    selectedStudentId,
+    selectStudent,
     availablePlans,
     paymentMethod,
     setPaymentMethod,
@@ -38,7 +39,6 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     calculation,
     calculationLoading,
     calculationError,
-    handleStudentSearch,
     handleSubmit,
   } = payment;
 
@@ -49,22 +49,19 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         <form id="record-payment-form" onSubmit={handleSubmit} className="standard-form">
           <div className="form-group">
             <label>Alumno</label>
-            <input
-              list="students-list"
-              type="text"
-              placeholder="Seleccionar alumno..."
-              value={studentSearchText}
-              onChange={handleStudentSearch}
+            <select
+              value={selectedStudentId}
+              onChange={(e) => selectStudent(e.target.value)}
               required
-            />
-            <datalist id="students-list">
+              aria-label="Alumno"
+            >
+              <option value="">Seleccionar alumno...</option>
               {students.map((s) => (
-                <option
-                  key={s.id}
-                  value={`${s.full_name} ${s.plans ? `(${s.plans.name})` : '(Sin Plan)'}`}
-                />
+                <option key={s.id} value={s.id}>
+                  {`${s.full_name} ${s.plans ? `(${s.plans.name})` : '(Sin Plan)'}`}
+                </option>
               ))}
-            </datalist>
+            </select>
             {isPlanAssignment && (
               <small className="text-secondary" style={{ display: 'block', marginTop: '0.5rem' }}>
                 <AlertTriangle

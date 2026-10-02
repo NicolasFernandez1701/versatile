@@ -139,7 +139,7 @@ describe('useRecordPayment', () => {
     expect(result.current.availablePlans).toEqual(mockPlans);
   });
 
-  it('selects student from search text and clears amount override', async () => {
+  it('selects a student by id and clears the amount override', async () => {
     const { result } = renderWithOpen();
 
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
@@ -149,13 +149,30 @@ describe('useRecordPayment', () => {
     });
 
     act(() => {
-      result.current.handleStudentSearch({
-        target: { value: 'María García (Plan Mensual)' },
-      } as React.ChangeEvent<HTMLInputElement>);
+      result.current.selectStudent('stu-001');
     });
 
     expect(result.current.selectedStudentId).toBe('stu-001');
     expect(result.current.amountOverride).toBe('');
+  });
+
+  it('clears the selection when an empty id is passed', async () => {
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.selectStudent('stu-001');
+    });
+    expect(result.current.selectedStudentId).toBe('stu-001');
+
+    act(() => {
+      result.current.selectStudent('');
+    });
+
+    expect(result.current.selectedStudentId).toBe('');
+    expect(result.current.isPlanChange).toBe(false);
+    expect(result.current.newPlanId).toBe('');
   });
 
   it('shows error when submitting without selected student', async () => {
@@ -164,7 +181,7 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     await act(async () => {
-      await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
+      await result.current.handleSubmit(createSubmitEvent());
     });
 
     expect(mockShowError).toHaveBeenCalledWith('Seleccione un alumno.');
@@ -177,13 +194,13 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-001');
+      result.current.selectStudent('stu-001');
       result.current.setIsPlanChange(true);
       result.current.setNewPlanId('plan-002');
     });
 
     await act(async () => {
-      await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
+      await result.current.handleSubmit(createSubmitEvent());
     });
 
     expect(mockRecordPayment).toHaveBeenCalledWith(
@@ -202,12 +219,12 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-001');
+      result.current.selectStudent('stu-001');
       result.current.setIsPlanChange(true);
     });
 
     await act(async () => {
-      await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
+      await result.current.handleSubmit(createSubmitEvent());
     });
 
     expect(mockShowError).toHaveBeenCalledWith('Seleccione el plan.');
@@ -220,7 +237,7 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-001');
+      result.current.selectStudent('stu-001');
       result.current.setAmountOverride('12000');
     });
 
@@ -233,12 +250,12 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-001');
+      result.current.selectStudent('stu-001');
     });
     expect(result.current.isPlanAssignment).toBe(false);
 
     act(() => {
-      result.current.setSelectedStudentId('stu-002');
+      result.current.selectStudent('stu-002');
     });
     expect(result.current.isPlanAssignment).toBe(true);
   });
@@ -249,7 +266,7 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-002');
+      result.current.selectStudent('stu-002');
       result.current.setNewPlanId('plan-001');
     });
 
@@ -263,12 +280,12 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-002');
+      result.current.selectStudent('stu-002');
       result.current.setNewPlanId('plan-001');
     });
 
     await act(async () => {
-      await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
+      await result.current.handleSubmit(createSubmitEvent());
     });
 
     expect(mockRecordPayment).toHaveBeenCalledWith(
@@ -288,26 +305,24 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-002');
+      result.current.selectStudent('stu-002');
     });
 
     await act(async () => {
-      await result.current.handleSubmit({ preventDefault: vi.fn() } as unknown as React.FormEvent);
+      await result.current.handleSubmit(createSubmitEvent());
     });
 
     expect(mockShowError).toHaveBeenCalledWith('Seleccione el plan.');
     expect(mockRecordPayment).not.toHaveBeenCalled();
   });
 
-  it('resets the plan selection when the chosen student changes', async () => {
+  it('resets the plan selection when a different student is selected', async () => {
     const { result } = renderWithOpen();
 
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.handleStudentSearch({
-        target: { value: 'Juan Pérez (Sin Plan)' },
-      } as React.ChangeEvent<HTMLInputElement>);
+      result.current.selectStudent('stu-002');
     });
 
     act(() => {
@@ -316,14 +331,35 @@ describe('useRecordPayment', () => {
     });
 
     act(() => {
-      result.current.handleStudentSearch({
-        target: { value: 'María García (Plan Mensual)' },
-      } as React.ChangeEvent<HTMLInputElement>);
+      result.current.selectStudent('stu-001');
     });
 
     expect(result.current.selectedStudentId).toBe('stu-001');
     expect(result.current.newPlanId).toBe('');
     expect(result.current.isPlanChange).toBe(false);
+  });
+
+  it('keeps the plan selection when the same student is re-selected', async () => {
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.selectStudent('stu-002');
+    });
+
+    act(() => {
+      result.current.setNewPlanId('plan-001');
+      result.current.setIsPlanChange(true);
+    });
+
+    act(() => {
+      result.current.selectStudent('stu-002');
+    });
+
+    expect(result.current.selectedStudentId).toBe('stu-002');
+    expect(result.current.newPlanId).toBe('plan-001');
+    expect(result.current.isPlanChange).toBe(true);
   });
 
   it('keeps a stable today value across re-renders', () => {
@@ -351,8 +387,7 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-001');
-      result.current.setStudentSearchText('María García (Plan Mensual)');
+      result.current.selectStudent('stu-001');
       result.current.setPaymentMethod('efectivo');
       result.current.setApplyLateFee(!result.current.isAfter10th);
       result.current.setAmountOverride('12000');
@@ -362,7 +397,6 @@ describe('useRecordPayment', () => {
 
     // The fields really carried non-default values before the reopen.
     expect(result.current.selectedStudentId).toBe('stu-001');
-    expect(result.current.studentSearchText).toBe('María García (Plan Mensual)');
     expect(result.current.paymentMethod).toBe('efectivo');
     expect(result.current.amountOverride).toBe('12000');
     expect(result.current.isPlanChange).toBe(true);
@@ -374,7 +408,6 @@ describe('useRecordPayment', () => {
     });
 
     expect(result.current.selectedStudentId).toBe('');
-    expect(result.current.studentSearchText).toBe('');
     expect(result.current.paymentMethod).toBe('transferencia');
     expect(result.current.applyLateFee).toBe(result.current.isAfter10th);
     expect(result.current.amountOverride).toBe('');
@@ -415,7 +448,7 @@ describe('useRecordPayment', () => {
     expect(mockGetStudentsWithPlans).toHaveBeenCalledTimes(1);
 
     act(() => {
-      result.current.setSelectedStudentId('stu-001');
+      result.current.selectStudent('stu-001');
       result.current.setPaymentMethod('efectivo');
       result.current.setAmountOverride('12000');
     });
@@ -454,7 +487,7 @@ describe('useRecordPayment', () => {
     await waitFor(() => expect(result.current.students).toEqual(mockStudents));
 
     act(() => {
-      result.current.setSelectedStudentId('stu-002');
+      result.current.selectStudent('stu-002');
       result.current.setNewPlanId('plan-001');
     });
 

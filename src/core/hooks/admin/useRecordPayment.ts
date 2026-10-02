@@ -17,9 +17,7 @@ export interface UseRecordPaymentParams {
 export interface UseRecordPaymentResult {
   students: StudentWithPlan[];
   selectedStudentId: string;
-  setSelectedStudentId: (id: string) => void;
-  studentSearchText: string;
-  setStudentSearchText: (value: string) => void;
+  selectStudent: (studentId: string) => void;
   availablePlans: PlanEntity[];
   paymentMethod: 'efectivo' | 'transferencia';
   setPaymentMethod: (value: 'efectivo' | 'transferencia') => void;
@@ -44,7 +42,6 @@ export interface UseRecordPaymentResult {
   calculationLoading: boolean;
   calculationError: ReturnType<typeof usePaymentCalculation>['error'];
   isFirstPayment: boolean;
-  handleStudentSearch: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
@@ -63,7 +60,6 @@ export function useRecordPayment({
   const isAfter10th = today.getDate() > 10;
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [studentSearchText, setStudentSearchText] = useState('');
   // Seeded to its reset value: mounting while already open fires no
   // closed->open transition, so this is the only field whose reset would
   // otherwise be skipped on the mount-open path (every other initial value
@@ -87,7 +83,6 @@ export function useRecordPayment({
     if (isOpen) {
       setApplyLateFee(isAfter10th);
       setSelectedStudentId('');
-      setStudentSearchText('');
       setPaymentMethod('transferencia');
       setAmountOverride('');
       setIsPlanChange(false);
@@ -176,32 +171,19 @@ export function useRecordPayment({
 
   const finalAmount = amountOverride !== '' ? Number(amountOverride) : (calculation?.total ?? 0);
 
-  const handleStudentSearch = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setStudentSearchText(value);
-
-      const found = students.find((s) => {
-        const label = `${s.full_name} ${s.plans ? `(${s.plans.name})` : '(Sin Plan)'}`;
-        return label === value;
-      });
-
-      if (found) {
-        // Reset the plan selection only when the chosen student actually changes,
-        // otherwise retyping the same name would discard a valid selection.
-        if (found.id !== selectedStudentId) {
-          setIsPlanChange(false);
-          setNewPlanId('');
-        }
-        setSelectedStudentId(found.id);
-        setAmountOverride('');
-      } else {
-        setSelectedStudentId('');
+  const selectStudent = useCallback(
+    (studentId: string) => {
+      // Reset the plan selection and the manual amount only when the chosen
+      // student actually changes, otherwise re-selecting the same student
+      // would discard a valid selection.
+      if (studentId !== selectedStudentId) {
         setIsPlanChange(false);
         setNewPlanId('');
+        setAmountOverride('');
       }
+      setSelectedStudentId(studentId);
     },
-    [students, selectedStudentId],
+    [selectedStudentId],
   );
 
   const handleSubmit = useCallback(
@@ -291,9 +273,7 @@ export function useRecordPayment({
   return {
     students,
     selectedStudentId,
-    setSelectedStudentId,
-    studentSearchText,
-    setStudentSearchText,
+    selectStudent,
     availablePlans,
     paymentMethod,
     setPaymentMethod,
@@ -318,7 +298,6 @@ export function useRecordPayment({
     calculationLoading,
     calculationError,
     isFirstPayment,
-    handleStudentSearch,
     handleSubmit,
   };
 }
