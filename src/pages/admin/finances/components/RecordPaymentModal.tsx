@@ -37,6 +37,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     today,
     calculation,
     calculationLoading,
+    calculationError,
     handleStudentSearch,
     handleSubmit,
   } = payment;
@@ -141,6 +142,15 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
                   </option>
                 ))}
               </select>
+              {availablePlans.length === 0 && (
+                <small
+                  role="alert"
+                  style={{ display: 'block', marginTop: '0.5rem', color: 'var(--error-color)' }}
+                >
+                  No hay planes activos en este estudio. Creá o activá un plan en Planes antes de
+                  registrar el cobro.
+                </small>
+              )}
             </div>
           )}
 
@@ -157,6 +167,12 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               }
             />
           </div>
+
+          {payment.selectedStudentId && selectedPlan && !calculation && !calculationLoading && calculationError && (
+            <div className="form-group" role="alert" style={{ color: 'var(--error-color)' }}>
+              No se pudo calcular el cobro: {calculationError.message}
+            </div>
+          )}
         </form>
 
         {/* Panel de Desglose (Preview) */}

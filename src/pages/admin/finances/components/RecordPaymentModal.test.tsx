@@ -10,7 +10,12 @@ const mockOnSuccess = vi.fn();
 const mockHandleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
 
 // Lets each test decide whether the selected student already owns a plan.
-const mockState = vi.hoisted(() => ({ hasPlan: true }));
+const mockState = vi.hoisted(() => ({
+  hasPlan: true,
+  emptyPlans: false,
+  calculationNull: false,
+  calculationError: null as Error | null,
+}));
 
 const mockStudents: StudentWithPlan[] = [
   {
@@ -52,13 +57,15 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
 
     const currentPlan = mockState.hasPlan ? mockStudents[0].plans : null;
     const isPlanAssignment = !currentPlan;
+    const availablePlans = mockState.emptyPlans ? [] : mockPlans;
+    const calculation = mockState.calculationNull ? null : baseCalculation;
 
     return {
       students: mockStudents,
       studentSearchText: mockState.hasPlan
         ? 'María García (Plan Mensual)'
         : 'Juan Pérez (Sin Plan)',
-      availablePlans: mockPlans,
+      availablePlans,
       paymentMethod: 'transferencia' as const,
       setPaymentMethod: vi.fn(),
       applyLateFee: false,
@@ -82,8 +89,9 @@ vi.mock('@/core/hooks/admin/useRecordPayment', () => ({
       finalAmount: 25000,
       isAfter10th: false,
       today: new Date(),
-      calculation: baseCalculation,
+      calculation,
       calculationLoading: false,
+      calculationError: mockState.calculationError,
       isFirstPayment: false,
       handleStudentSearch: vi.fn(),
       handleSubmit: mockHandleSubmit,
@@ -95,6 +103,9 @@ describe('RecordPaymentModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.hasPlan = true;
+    mockState.emptyPlans = false;
+    mockState.calculationNull = false;
+    mockState.calculationError = null;
   });
 
   const renderModal = () =>
@@ -159,5 +170,27 @@ describe('RecordPaymentModal', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Registrar Pago/i })).toBeEnabled();
     });
+  });
+
+  it('explica que no hay planes activos cuando la asignación no tiene opciones', () => {
+    mockState.hasPlan = false;
+    mockState.emptyPlans = true;
+    renderModal();
+
+    expect(
+      screen.getByText(
+        'No hay planes activos en este estudio. Creá o activá un plan en Planes antes de registrar el cobro.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('muestra el error de cálculo cuando hay alumno y plan pero no se puede calcular', () => {
+    mockState.calculationNull = true;
+    mockState.calculationError = new Error('No se pudieron obtener los pagos previos');
+    renderModal();
+
+    expect(
+      screen.getByText(/No se pudo calcular el cobro: No se pudieron obtener los pagos previos/),
+    ).toBeInTheDocument();
   });
 });

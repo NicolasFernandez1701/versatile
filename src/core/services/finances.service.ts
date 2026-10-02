@@ -35,46 +35,58 @@ export const financesService = {
     return (count ?? 0) > 0;
   },
 
-  async recordPayment(payload: RecordPaymentPayload): Promise<void> {
+  async recordPayment(payload: RecordPaymentPayload): Promise<{ planChangeAudited: boolean }> {
     const studioId = useAuthStore.getState().current_studio_id;
     const currentUser = useAuthStore.getState().user;
     if (!studioId) throw new Error('No active studio');
 
+    // `planChange` is a control field of the hook contract, not a payments column:
+    // PostgREST rejects unknown columns, so it must never reach the insert.
+    const { planChange, ...paymentColumns } = payload;
+
     const { data: paymentData, error } = await supabase
       .from('payments')
-      .insert({ ...payload, studio_id: studioId })
+      .insert({ ...paymentColumns, studio_id: studioId })
       .select('id')
       .single();
     if (error) throw error;
 
     // Update the student's expiration date in their profile so the badge reflects the payment
-    let profileUpdate: { plan_expiration_date: string; plan_id?: string } = {
+    const profileUpdate: { plan_expiration_date: string; plan_id?: string } = {
       plan_expiration_date: payload.expiration_date,
     };
 
-    if (payload.planChange) {
+    let planChangeAudited = true;
+
+    if (planChange) {
+      // The assignment is the primary outcome: persist plan_id even when the audit
+      // row cannot be written, so the student never ends up without their plan.
+      profileUpdate.plan_id = planChange.newPlanId;
+      planChangeAudited = false;
+
       try {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('plan_id')
-          .eq('id', payload.planChange.studentId)
+          .eq('id', planChange.studentId)
           .single();
 
         if (profileError) throw profileError;
 
         const { error: planChangeError } = await supabase.from('plan_changes').insert({
-          profile_id: payload.planChange.studentId,
+          profile_id: planChange.studentId,
           old_plan_id: profileData?.plan_id ?? null,
-          new_plan_id: payload.planChange.newPlanId,
+          new_plan_id: planChange.newPlanId,
           changed_by: currentUser?.id ?? payload.student_id,
           payment_id: paymentData?.id ?? null,
         });
 
         if (planChangeError) throw planChangeError;
 
-        profileUpdate = { ...profileUpdate, plan_id: payload.planChange.newPlanId };
+        planChangeAudited = true;
       } catch (planChangeError) {
-        // Payment is already committed; log the error so support can reconcile manually
+        // Payment and assignment are already committed; log the error so support can
+        // reconcile manually. The caller reports the audit as failed, not the payment.
         console.error(planChangeError instanceof Error ? planChangeError : new Error(String(planChangeError)));
       }
     }
@@ -85,5 +97,7 @@ export const financesService = {
       .eq('id', payload.student_id);
 
     if (profileError) throw profileError;
+
+    return { planChangeAudited };
   }
 };

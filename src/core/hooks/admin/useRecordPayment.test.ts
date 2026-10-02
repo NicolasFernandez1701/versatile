@@ -10,11 +10,12 @@ const mockGetActivePlans = vi.hoisted(() => vi.fn());
 const mockRecordPayment = vi.hoisted(() => vi.fn());
 const mockShowError = vi.hoisted(() => vi.fn());
 const mockShowSuccess = vi.hoisted(() => vi.fn());
+const mockShowAlert = vi.hoisted(() => vi.fn());
 const mockOnClose = vi.hoisted(() => vi.fn());
 const mockOnSuccess = vi.hoisted(() => vi.fn());
 const mockUseAuthStore = vi.hoisted(() => vi.fn());
 
-vi.mock('./usePaymentCalculation', () => ({
+vi.mock('../shared/usePaymentCalculation', () => ({
   usePaymentCalculation: mockUsePaymentCalculation,
 }));
 
@@ -29,7 +30,7 @@ vi.mock('@/core/services', () => ({
 }));
 
 vi.mock('@/ui/useAlert', () => ({
-  useAlert: () => ({ showError: mockShowError, showSuccess: mockShowSuccess }),
+  useAlert: () => ({ showAlert: mockShowAlert, showError: mockShowError, showSuccess: mockShowSuccess }),
 }));
 
 vi.mock('@/core/store/useAuthStore', () => ({
@@ -89,6 +90,10 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+function createSubmitEvent(): React.FormEvent {
+  return { preventDefault: () => {} } as React.FormEvent;
+}
+
 describe('useRecordPayment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -101,7 +106,7 @@ describe('useRecordPayment', () => {
     });
     mockGetStudentsWithPlans.mockResolvedValue(mockStudents);
     mockGetActivePlans.mockResolvedValue(mockPlans);
-    mockRecordPayment.mockResolvedValue(undefined);
+    mockRecordPayment.mockResolvedValue({ planChangeAudited: true });
   });
 
   function renderWithOpen() {
@@ -440,5 +445,45 @@ describe('useRecordPayment', () => {
     expect(mockShowError).not.toHaveBeenCalled();
 
     consoleSpy.mockRestore();
+  });
+
+  it('avisa con una advertencia cuando el plan se asignó pero la auditoría falló', async () => {
+    mockRecordPayment.mockResolvedValueOnce({ planChangeAudited: false });
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    act(() => {
+      result.current.setSelectedStudentId('stu-002');
+      result.current.setNewPlanId('plan-001');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(createSubmitEvent());
+    });
+
+    expect(mockShowSuccess).not.toHaveBeenCalled();
+    expect(mockShowAlert).toHaveBeenCalledWith(
+      'Advertencia',
+      expect.stringContaining('auditoría'),
+    );
+    expect(mockOnSuccess).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('expone el error de cálculo de usePaymentCalculation sin tocar su contrato', async () => {
+    const calculationError = new Error('No se pudieron obtener los pagos previos');
+    mockUsePaymentCalculation.mockReturnValue({
+      calculation: null,
+      loading: false,
+      error: calculationError,
+      isFirstPayment: false,
+    });
+
+    const { result } = renderWithOpen();
+
+    await waitFor(() => expect(result.current.students).toEqual(mockStudents));
+
+    expect(result.current.calculationError).toBe(calculationError);
   });
 });
