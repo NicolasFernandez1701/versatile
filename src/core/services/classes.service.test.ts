@@ -327,16 +327,17 @@ describe('classesService', () => {
       expect(mockFrom).toHaveBeenCalledWith('classes');
     });
 
-    it('debería continuar incluso si el upsert falla (el error se ignora)', async () => {
+    it('debería lanzar error y no crear la clase si falla el upsert de la especialidad', async () => {
       mockFrom.mockReturnValueOnce({
         upsert: vi.fn().mockResolvedValue({ error: new Error('Error en specialties') }),
       });
-      mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
-      });
 
-      await expect(classesService.createClass(payload)).resolves.toBeUndefined();
-      expect(mockFrom).toHaveBeenNthCalledWith(2, 'classes');
+      await expect(classesService.createClass(payload)).rejects.toThrow('Error en specialties');
+
+      // The class must not be created when the catalog could not be updated:
+      // otherwise the activity never shows up in the specialty list.
+      expect(mockFrom).toHaveBeenCalledTimes(1);
+      expect(mockFrom).toHaveBeenCalledWith('specialties');
     });
 
     it('debería lanzar error si el insert falla', async () => {
@@ -438,18 +439,17 @@ describe('classesService', () => {
       await expect(classesService.updateClass('cls-001', { capacity: 25 })).rejects.toThrow('Error al actualizar');
     });
 
-    it('debería continuar si el upsert de specialties falla (el error se ignora)', async () => {
+    it('debería lanzar error y no actualizar la clase si falla el upsert de la especialidad', async () => {
       mockFrom.mockReturnValueOnce({
         upsert: vi.fn().mockResolvedValue({ error: new Error('Error en specialties') }),
       });
-      mockFrom.mockReturnValueOnce({
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        })),
-      });
 
-      await expect(classesService.updateClass('cls-001', payload)).resolves.toBeUndefined();
-      expect(mockFrom).toHaveBeenNthCalledWith(2, 'classes');
+      await expect(classesService.updateClass('cls-001', payload)).rejects.toThrow(
+        'Error en specialties',
+      );
+
+      expect(mockFrom).toHaveBeenCalledTimes(1);
+      expect(mockFrom).toHaveBeenCalledWith('specialties');
     });
 
     it('debería lanzar error si no hay studio activo', async () => {

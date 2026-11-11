@@ -230,6 +230,20 @@ y qué ocurre con las inscripciones.
 
 ---
 
+## T5 — Falla silenciosa en el catálogo de especialidades
+
+`createClass`, `createClasses` y `updateClass` hacían el upsert en `specialties`
+y **descartaban el resultado**. Si fallaba, la clase se creaba pero la actividad
+nunca llegaba al catálogo: el filtro del formulario de clases y la lista de
+especialidades del profesor quedaban desincronizados, sin señal.
+
+Peor: dos tests **afirmaban** ese comportamiento como esperado
+("debería continuar incluso si el upsert falla").
+
+**Implementado:** helper `upsertActivitySpecialty` que propaga el error. Si el
+catálogo no se puede actualizar, la clase no se crea ni se modifica. Los dos tests
+se invirtieron para exigir el rechazo.
+
 ## Verificación de esquema
 
 ```bash

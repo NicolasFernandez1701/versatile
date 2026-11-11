@@ -2,6 +2,20 @@ import { supabase } from './supabase';
 import { useAuthStore } from '../store/useAuthStore';
 import type { ClassEntity, EnrollmentEntity, Profile } from '../types/classes.types';
 
+/**
+ * Ensures the class activity exists in the studio specialty catalog.
+ * The result used to be ignored: a failed upsert left the class created while the
+ * activity never appeared in the specialty list, with no signal to anyone.
+ */
+async function upsertActivitySpecialty(activityName: string, studioId: string): Promise<void> {
+  const { error } = await supabase
+    .from('specialties')
+    .upsert({ name: activityName, studio_id: studioId }, { onConflict: 'name,studio_id' });
+
+  if (error) throw error;
+}
+
+
 export const classesService = {
   async getClasses(studioId: string): Promise<ClassEntity[]> {
     const { data, error } = await supabase
@@ -80,10 +94,9 @@ export const classesService = {
     if (!studioId) throw new Error('No active studio');
 
     if (payload.activity_name) {
-      await supabase
-        .from('specialties')
-        .upsert({ name: payload.activity_name, studio_id: studioId }, { onConflict: 'name,studio_id' });
+      await upsertActivitySpecialty(payload.activity_name, studioId);
     }
+
     const { error } = await supabase.from('classes').insert({ ...payload, studio_id: studioId });
     if (error) throw error;
   },
@@ -93,9 +106,7 @@ export const classesService = {
     if (!studioId) throw new Error('No active studio');
 
     if (payload.activity_name) {
-      await supabase
-        .from('specialties')
-        .upsert({ name: payload.activity_name, studio_id: studioId }, { onConflict: 'name,studio_id' });
+      await upsertActivitySpecialty(payload.activity_name, studioId);
     }
 
     const records = days.map((day) => ({
@@ -120,10 +131,9 @@ export const classesService = {
     if (!studioId) throw new Error('No active studio');
 
     if (payload.activity_name) {
-      await supabase
-        .from('specialties')
-        .upsert({ name: payload.activity_name, studio_id: studioId }, { onConflict: 'name,studio_id' });
+      await upsertActivitySpecialty(payload.activity_name, studioId);
     }
+
     const { error } = await supabase.from('classes').update(payload).eq('id', id);
 
     if (error) throw error;
