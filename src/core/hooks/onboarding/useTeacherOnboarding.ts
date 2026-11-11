@@ -59,8 +59,13 @@ export function useTeacherOnboarding(): UseTeacherOnboardingResult {
         return;
       }
       setIsSubmitting(true);
-      const success = await passwordStep.submitPassword();
-      setIsSubmitting(false);
+      let success: boolean;
+      try {
+        success = await passwordStep.submitPassword();
+      } finally {
+        // If submitPassword throws, the button must not stay disabled forever.
+        setIsSubmitting(false);
+      }
       if (!success) return;
     }
     if (step === 2) {
