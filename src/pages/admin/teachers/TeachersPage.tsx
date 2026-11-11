@@ -6,6 +6,7 @@ import { useAddSelfAsTeacher } from '@/core/hooks/admin/useAddSelfAsTeacher';
 import { TeacherList } from './components/TeacherList';
 import { TeacherFormModal } from './components/TeacherFormModal';
 import { ConfirmModal } from '@/ui';
+import { getErrorMessage } from '@/core/utils/errorMessage';
 import type { UserProfile } from '@/core/types/users.types';
 import './TeachersPage.css';
 
@@ -20,6 +21,7 @@ export function TeachersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<UserProfile | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchTeachers();
@@ -30,13 +32,15 @@ export function TeachersPage() {
   };
 
   const confirmDelete = async () => {
-    if (!deletingId) return;
+    if (!deletingId || isDeleting) return;
+    setIsDeleting(true);
     try {
       await deleteTeacher(deletingId, 'teacher');
       showSuccess('Profesor desvinculado del estudio.');
     } catch (err: unknown) {
-      showError(err instanceof Error ? err.message : 'Error al desvincular profesor');
+      showError(getErrorMessage(err, 'Error al desvincular profesor'));
     } finally {
+      setIsDeleting(false);
       setDeletingId(null);
     }
   };
@@ -117,6 +121,7 @@ export function TeachersPage() {
         isDestructive={true}
         onConfirm={confirmDelete}
         onCancel={() => setDeletingId(null)}
+        isBusy={isDeleting}
       />
     </div>
   );

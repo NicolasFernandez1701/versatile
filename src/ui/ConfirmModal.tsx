@@ -11,6 +11,8 @@ interface ConfirmModalProps {
   onCancel: () => void;
   isDestructive?: boolean;
   hideCancel?: boolean;
+  /** Disables both actions while an in-flight operation is running. */
+  isBusy?: boolean;
 }
 
 export function ConfirmModal({
@@ -22,20 +24,23 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
   isDestructive = false,
-  hideCancel = false
+  hideCancel = false,
+  isBusy = false
 }: ConfirmModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title={title}>
       <div style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>{message}</div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
         {!hideCancel && (
-          <button className="btn-secondary" onClick={onCancel}>
+          <button className="btn-secondary" onClick={onCancel} disabled={isBusy}>
             {cancelText}
           </button>
         )}
         <button
           className="btn-primary"
           onClick={onConfirm}
+          disabled={isBusy}
+          aria-busy={isBusy}
           style={
             isDestructive
               ? { background: 'var(--error-color)', boxShadow: '0 4px 15px rgba(255, 82, 82, 0.3)' }
