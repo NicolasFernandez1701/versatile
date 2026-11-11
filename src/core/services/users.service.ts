@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import type { UserProfile } from '../types/users.types';
 import type { Specialty } from '../types/users.types';
 import type { StudentOnboardingPayload, TeacherOnboardingPayload } from '../types/users.types';
+import type { CreateUserPayload, AssignStudentPlanResult } from '../types/users.types';
 
 // Cliente secundario para no pisar la sesión del administrador al crear usuarios
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -75,14 +76,7 @@ export const usersService = {
       .eq('id', userId);
   },
 
-  async createUser(payload: {
-    email: string;
-    full_name: string;
-    phone?: string;
-    role: 'student' | 'teacher';
-    password: string;
-    studio_id: string;
-  }): Promise<void> {
+  async createUser(payload: CreateUserPayload): Promise<void> {
     // 1. Crear en Auth (esto dispara el trigger handle_new_user en la DB)
     const { data, error } = await authClient.auth.signUp({
       email: payload.email,
@@ -110,7 +104,7 @@ export const usersService = {
   async assignStudentPlan(
     studentId: string,
     planId: string,
-  ): Promise<{ planChangeAudited: boolean }> {
+  ): Promise<AssignStudentPlanResult> {
     const currentUser = useAuthStore.getState().user;
 
     // Same month-end convention the app already used to assign a plan from the
@@ -230,9 +224,20 @@ export const usersService = {
   },
 
   async deleteUser(id: string): Promise<void> {
-    // Al borrar el perfil, no se borra de Auth, pero por ahora como no tenemos backend
-    // borraremos el perfil local para ocultarlo (o desactivarlo)
-    const { error } = await supabase.from('profiles').delete().eq('id', id);
-    if (error) throw error;
+    // Unlinking never deletes the profile. The RPC removes the studio membership and
+    // unassigns the classes taught in that studio in one transaction. Access is
+    // revoked because every rule derives from studio_members (auth_studio_ids),
+    // while the profile, the historical classes and the commissions are preserved.
+    const studioId = useAuthStore.getState().current_studio_id;
+    if (!studioId) throw new Error('No hay un estudio activo');
+
+    const { error } = await supabase.rpc('unlink_studio_member', {
+      p_studio_id: studioId,
+      p_user_id: id,
+    });
+
+    // The RPC raises on every rejected case (not an admin, not a member, last admin),
+    // so a silent no-op is impossible. Surface the real database message.
+    if (error) throw new Error(error.message || 'No se pudo desvincular al profesor');
   }
 };

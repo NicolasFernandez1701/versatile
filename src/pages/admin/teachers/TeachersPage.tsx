@@ -33,9 +33,9 @@ export function TeachersPage() {
     if (!deletingId) return;
     try {
       await deleteTeacher(deletingId, 'teacher');
-      showSuccess('Profesor eliminado.');
-    } catch {
-      showError('Error al borrar profesor');
+      showSuccess('Profesor desvinculado del estudio.');
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : 'Error al desvincular profesor');
     } finally {
       setDeletingId(null);
     }
@@ -111,9 +111,9 @@ export function TeachersPage() {
 
       <ConfirmModal
         isOpen={!!deletingId}
-        title="Eliminar Profesor"
-        message="¿Eliminar a este profesor? Se desvinculará de sus clases actuales."
-        confirmText="Eliminar"
+        title="Desvincular Profesor"
+        message="¿Desvincular a este profesor del estudio? Sus clases quedarán sin profesor asignado y se conservará el historial de comisiones."
+        confirmText="Desvincular"
         isDestructive={true}
         onConfirm={confirmDelete}
         onCancel={() => setDeletingId(null)}

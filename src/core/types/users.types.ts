@@ -103,3 +103,16 @@ export interface TeacherOnboardingPayload {
   birth_date: string;
   specialties: string[];
 }
+
+export interface CreateUserPayload {
+  email: string;
+  full_name: string;
+  phone?: string;
+  role: 'student' | 'teacher';
+  password: string;
+  studio_id: string;
+}
+
+export interface AssignStudentPlanResult {
+  planChangeAudited: boolean;
+}

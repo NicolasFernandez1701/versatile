@@ -227,13 +227,13 @@ describe('TeachersPage', () => {
     expect(deleteBtn).not.toBeNull();
     fireEvent.click(deleteBtn!);
 
-    expect(screen.getByText('Eliminar Profesor')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    expect(screen.getByText('Desvincular Profesor')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Desvincular' }));
 
     await waitFor(() => {
       expect(mockDeleteUser).toHaveBeenCalledWith('t-1', 'teacher');
     });
-    expect(mockShowSuccess).toHaveBeenCalledWith('Profesor eliminado.');
+    expect(mockShowSuccess).toHaveBeenCalledWith('Profesor desvinculado del estudio.');
   });
 
   it('muestra error cuando el store rechaza la eliminación', async () => {
@@ -246,10 +246,10 @@ describe('TeachersPage', () => {
     expect(deleteBtn).not.toBeNull();
     fireEvent.click(deleteBtn!);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Desvincular' }));
 
     await waitFor(() => {
-      expect(mockShowError).toHaveBeenCalledWith('Error al borrar profesor');
+      expect(mockShowError).toHaveBeenCalledWith('boom');
     });
     expect(mockDeleteUser).toHaveBeenCalledWith('t-1', 'teacher');
   });

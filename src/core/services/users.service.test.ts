@@ -45,8 +45,9 @@ const STUDIO_ID = 'studio-001';
 // 2. Mock de Supabase
 // ──────────────────────────────────────────────
 
-const { mockFrom } = vi.hoisted(() => ({
+const { mockFrom, mockRpc } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
+  mockRpc: vi.fn(),
 }));
 
 // Mockeamos @supabase/supabase-js completa para controlar authClient
@@ -64,6 +65,7 @@ const { mockSignUp, mockUpdateUser, mockGetSession, mockSupabaseAuth } = vi.hois
 vi.mock('./supabase', () => ({
   supabase: {
     from: mockFrom,
+    rpc: mockRpc,
     auth: mockSupabaseAuth.auth,
   },
 }));
@@ -274,28 +276,28 @@ describe('usersService', () => {
   // deleteUser
   // ────────────────────────────────────────────
   describe('deleteUser', () => {
-    beforeEach(() => {
-      mockFrom.mockReturnValue({
-        delete: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        })),
+    // La baja desvincula vía RPC atómico. Nunca borra el perfil ni toca tablas directo.
+    it('debería desvincular al miembro llamando al RPC', async () => {
+      mockRpc.mockResolvedValue({ data: 1, error: null });
+
+      await usersService.deleteUser('tea-001');
+
+      expect(mockRpc).toHaveBeenCalledWith('unlink_studio_member', {
+        p_studio_id: STUDIO_ID,
+        p_user_id: 'tea-001',
       });
+      expect(mockFrom).not.toHaveBeenCalled();
     });
 
-    it('debería eliminar un usuario', async () => {
-      await usersService.deleteUser('stu-001');
-
-      expect(mockFrom).toHaveBeenCalledWith('profiles');
-    });
-
-    it('debería lanzar error si la eliminación falla', async () => {
-      mockFrom.mockReturnValue({
-        delete: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: new Error('Error al eliminar') }),
-        })),
+    it('debería lanzar el mensaje real si el RPC rechaza la operación', async () => {
+      mockRpc.mockResolvedValue({
+        data: null,
+        error: { message: 'Access denied: only a studio admin can unlink members' },
       });
 
-      await expect(usersService.deleteUser('stu-001')).rejects.toThrow('Error al eliminar');
+      await expect(usersService.deleteUser('tea-001')).rejects.toThrow(
+        'Access denied: only a studio admin can unlink members',
+      );
     });
   });
 

@@ -745,6 +745,90 @@ BEGIN
 END;
 $$;
 
+-- unlink_studio_member: studio-scoped member unlinking (atomic)
+-- Unassigns the classes taught inside the studio and removes the memberships in a
+-- single transaction. Validates p_studio_id is one the caller belongs to, that the
+-- caller is an admin of it, and that the last admin is never unlinked.
+CREATE OR REPLACE FUNCTION public.unlink_studio_member(
+    p_studio_id UUID,
+    p_user_id   UUID
+)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_is_admin        BOOLEAN;
+    v_target_is_admin BOOLEAN;
+    v_admin_count     INTEGER;
+    v_removed         INTEGER;
+BEGIN
+    -- Guard: caller must belong to the requested studio
+    IF p_studio_id NOT IN (SELECT public.auth_studio_ids()) THEN
+        RAISE EXCEPTION 'Access denied: studio not accessible to current user';
+    END IF;
+
+    -- Guard: caller must hold an admin membership in that studio
+    SELECT EXISTS (
+        SELECT 1
+        FROM   public.studio_members me
+        WHERE  me.studio_id = p_studio_id
+          AND  me.user_id   = auth.uid()
+          AND  me.role      = 'admin'
+    ) INTO v_is_admin;
+
+    IF NOT v_is_admin THEN
+        RAISE EXCEPTION 'Access denied: only a studio admin can unlink members';
+    END IF;
+
+    -- Guard: target user must currently belong to that studio
+    IF NOT EXISTS (
+        SELECT 1
+        FROM   public.studio_members t
+        WHERE  t.studio_id = p_studio_id
+          AND  t.user_id   = p_user_id
+    ) THEN
+        RAISE EXCEPTION 'User % is not a member of this studio', p_user_id;
+    END IF;
+
+    -- Guard: the last admin of a studio can never be unlinked
+    SELECT EXISTS (
+        SELECT 1
+        FROM   public.studio_members t
+        WHERE  t.studio_id = p_studio_id
+          AND  t.user_id   = p_user_id
+          AND  t.role      = 'admin'
+    ) INTO v_target_is_admin;
+
+    IF v_target_is_admin THEN
+        SELECT COUNT(*) INTO v_admin_count
+        FROM   public.studio_members
+        WHERE  studio_id = p_studio_id
+          AND  role      = 'admin';
+
+        IF v_admin_count <= 1 THEN
+            RAISE EXCEPTION 'Cannot unlink the last admin of the studio';
+        END IF;
+    END IF;
+
+    -- Unassign the classes taught by this member inside this studio
+    UPDATE public.classes
+       SET teacher_id = NULL
+     WHERE studio_id  = p_studio_id
+       AND teacher_id = p_user_id;
+
+    -- Remove every membership of that user in that studio
+    DELETE FROM public.studio_members
+     WHERE studio_id = p_studio_id
+       AND user_id   = p_user_id;
+
+    GET DIAGNOSTICS v_removed = ROW_COUNT;
+
+    RETURN v_removed;
+END;
+$$;
+
 -- ==========================================
 -- BOOTSTRAP — Default studio for fresh installs
 -- ==========================================
