@@ -5,6 +5,7 @@ import { usersService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
 import { usePasswordStep } from './usePasswordStep';
 import { useDateInput } from './useDateInput';
+import { getErrorMessage } from '@/core/utils/errorMessage';
 import type { StudentOnboardingPayload } from '@/core/types/users.types';
 
 export interface UseStudentOnboardingResult {
@@ -200,7 +201,7 @@ export function useStudentOnboarding(): UseStudentOnboardingResult {
       await usersService.saveOnboardingDetails(user.id, payload);
       window.location.href = '/';
     } catch (error: unknown) {
-      showError(`Error al guardar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      showError(`Error al guardar: ${getErrorMessage(error, 'Error desconocido')}`);
       setIsSubmitting(false);
     }
   }, [

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { usersService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
+import { getErrorMessage } from '@/core/utils/errorMessage';
 
 export interface UsePasswordStepResult {
   newPassword: string;
@@ -55,7 +56,7 @@ export function usePasswordStep(): UsePasswordStepResult {
       await usersService.updatePassword(newPassword);
       return true;
     } catch (error: unknown) {
-      showError(`Error al actualizar contraseña: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      showError(`Error al actualizar contraseña: ${getErrorMessage(error, 'Error desconocido')}`);
       return false;
     } finally {
       setIsSubmitting(false);

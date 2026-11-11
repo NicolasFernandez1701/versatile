@@ -179,4 +179,41 @@ describe('useTeacherOnboarding', () => {
     expect(mockShowError).toHaveBeenCalledWith('Debés seleccionar al menos una especialidad');
     expect(mockSaveTeacherOnboardingDetails).not.toHaveBeenCalled();
   });
+
+  it('surfaces the real database message instead of the generic fallback', async () => {
+    // PostgrestError is a plain object, not an Error subclass: the generic
+    // 'instanceof Error' check used to swallow the real cause.
+    mockSaveTeacherOnboardingDetails.mockRejectedValueOnce({
+      message: 'null value in column "studio_id" violates not-null constraint',
+      code: '23502',
+      details: null,
+      hint: null,
+    });
+
+    const { result } = renderHook(() => useTeacherOnboarding());
+
+    await advanceToStep(result, 2);
+
+    act(() => {
+      result.current.setAddress('Av. Siempre Viva 123');
+      result.current.dateInput.setValue('25/10/1990');
+    });
+
+    await act(async () => {
+      await result.current.handleNext();
+    });
+
+    act(() => {
+      result.current.toggleSpecialty('spec-001');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockShowError).toHaveBeenCalledWith(
+      'null value in column "studio_id" violates not-null constraint',
+    );
+    expect(mockShowError).not.toHaveBeenCalledWith('Error guardando datos');
+  });
 });

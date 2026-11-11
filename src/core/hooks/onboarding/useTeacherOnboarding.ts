@@ -4,6 +4,7 @@ import { usersService } from '@/core/services';
 import { useAlert } from '@/ui/useAlert';
 import { usePasswordStep } from './usePasswordStep';
 import { useDateInput } from './useDateInput';
+import { getErrorMessage } from '@/core/utils/errorMessage';
 import type { Specialty, TeacherOnboardingPayload } from '@/core/types/users.types';
 
 export interface UseTeacherOnboardingResult {
@@ -103,7 +104,7 @@ export function useTeacherOnboarding(): UseTeacherOnboardingResult {
       await usersService.saveTeacherOnboardingDetails(user.id, payload);
       window.location.href = '/teacher/dashboard';
     } catch (error: unknown) {
-      showError(error instanceof Error ? error.message : 'Error guardando datos');
+      showError(getErrorMessage(error, 'Error guardando datos'));
       setIsSubmitting(false);
     }
   }, [selectedSpecialties, user, dateInput.value, address, showError]);

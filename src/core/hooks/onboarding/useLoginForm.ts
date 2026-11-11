@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { authService } from '@/core/services';
 import { isValidEmail } from '@/core/utils/validation';
+import { getErrorMessage } from '@/core/utils/errorMessage';
 
 export interface UseLoginFormResult {
   email: string;
@@ -44,7 +45,7 @@ export function useLoginForm(): UseLoginFormResult {
     try {
       await authService.login(email.trim(), password);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      const message = getErrorMessage(err, 'Error al iniciar sesión');
       setError(message);
     } finally {
       setLoading(false);
