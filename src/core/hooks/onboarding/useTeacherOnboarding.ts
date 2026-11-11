@@ -101,7 +101,7 @@ export function useTeacherOnboarding(): UseTeacherOnboardingResult {
         specialties: selectedSpecialties,
       };
 
-      await usersService.saveTeacherOnboardingDetails(user.id, payload);
+      await usersService.saveTeacherOnboardingDetails(payload);
       window.location.href = '/teacher/dashboard';
     } catch (error: unknown) {
       showError(getErrorMessage(error, 'Error guardando datos'));

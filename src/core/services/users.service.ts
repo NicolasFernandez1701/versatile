@@ -196,21 +196,18 @@ export const usersService = {
     if (profileError) throw profileError;
   },
 
-  async saveTeacherOnboardingDetails(profileId: string, details: TeacherOnboardingPayload): Promise<void> {
-    const studioId = useAuthStore.getState().current_studio_id;
+  async saveTeacherOnboardingDetails(details: TeacherOnboardingPayload): Promise<void> {
+    // The studio is derived server-side from auth_studio_ids() instead of read from
+    // the auth store: current_studio_id can be empty right after signup or a token
+    // refresh, which sent studio_id as null and failed the insert with 23502.
+    // The RPC also upserts, so retrying after a partial failure is safe.
+    const { error } = await supabase.rpc('save_teacher_onboarding_details', {
+      p_address: details.address,
+      p_birth_date: details.birth_date,
+      p_specialties: details.specialties,
+    });
 
-    const { error: detailsError } = await supabase
-      .from('teacher_details')
-      .insert([{ profile_id: profileId, studio_id: studioId, ...details }]);
-
-    if (detailsError) throw detailsError;
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ has_completed_onboarding: true })
-      .eq('id', profileId);
-
-    if (profileError) throw profileError;
+    if (error) throw new Error(error.message || 'No se pudieron guardar los datos del profesor');
   },
 
   async getSpecialties(): Promise<Specialty[]> {

@@ -91,6 +91,34 @@ con su fila en `teacher_details` y `has_completed_onboarding = true`.
 
 **Depende de:** T1 (sin el mensaje real, se adivina).
 
+**RESUELTO — el diagnóstico real no era ninguna de las tres hipótesis.**
+
+La consulta a producción mostró 7 profesores: 2 con `teacher_details` y
+`has_completed_onboarding = true`; 5 con 0 filas y `false`. **Todos con
+`memberships = 1`.** Eso descarta H1 (membership ausente), H2 (duplicado) y H3 (tipo).
+
+Causa raíz: **`current_studio_id` quedaba nulo en el cliente por una carrera en la
+hidratación del store.** `App.tsx` hacía `setUser((session?.user as AppUser) || null)`
+dentro de `onAuthStateChange`. Ese objeto no tiene `memberships`, así que `setUser`
+dejaba `current_studio_id = null`. Como ese callback compite con `getCurrentUser()`,
+ganaba el último que resolvía: de ahí que funcionara para 2 usuarios y fallara para 5.
+El insert enviaba `studio_id: undefined` → `23502`.
+
+```
+src/App.tsx                          re-fetch del usuario completo; nunca castear session.user
+database/migrations/007_..._rpc.sql  RPC save_teacher_onboarding_details
+database/schema.sql                  + la función en "17. RPC FUNCTIONS"
+src/core/services/users.service.ts   saveTeacherOnboardingDetails → RPC (sin profileId)
+src/core/hooks/onboarding/...        pasa el payload sin user.id
+tests                                servicio + cableado actualizados
+```
+
+**Dos defensas independientes:** el store ya no pierde las memberships, y el
+`studio_id` se deriva en el servidor desde `auth_studio_ids()`, así que aunque el
+cliente vuelva a quedar sin estado, el guardado funciona. El RPC además hace upsert:
+reintentar es seguro y un fallo parcial ya no deja datos a medias.
+
+
 ---
 
 ## T3 — Borrado de profesores: éxito fantasma por RLS

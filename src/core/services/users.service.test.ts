@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usersService } from './users.service';
-import type { UserProfile, StudentOnboardingPayload, TeacherOnboardingPayload } from '../types/users.types';
+import type { UserProfile, StudentOnboardingPayload } from '../types/users.types';
 
 // ──────────────────────────────────────────────
 // 1. Datos de prueba
@@ -384,48 +384,34 @@ describe('usersService', () => {
   // saveTeacherOnboardingDetails (insert + update)
   // ────────────────────────────────────────────
   describe('saveTeacherOnboardingDetails', () => {
-    it('debería guardar detalles del profesor con studio_id y marcar onboarding completo', async () => {
-      const insertFn = vi.fn().mockResolvedValue({ error: null });
-      mockFrom.mockReturnValueOnce({ insert: insertFn });
-      mockFrom.mockReturnValueOnce({
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        })),
+    const DETAILS = {
+      address: 'Av. Siempre Viva 123',
+      birth_date: '1990-10-25',
+      specialties: ['spec-001', 'spec-002'],
+    };
+
+    it('debería guardar los detalles vía RPC sin depender del studio del cliente', async () => {
+      mockRpc.mockResolvedValue({ data: STUDIO_ID, error: null });
+
+      await usersService.saveTeacherOnboardingDetails(DETAILS);
+
+      expect(mockRpc).toHaveBeenCalledWith('save_teacher_onboarding_details', {
+        p_address: 'Av. Siempre Viva 123',
+        p_birth_date: '1990-10-25',
+        p_specialties: ['spec-001', 'spec-002'],
       });
-
-      await usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] } as TeacherOnboardingPayload);
-
-      expect(insertFn).toHaveBeenCalledWith([
-        expect.objectContaining({ profile_id: 'tea-001', studio_id: STUDIO_ID }),
-      ]);
-      expect(mockFrom).toHaveBeenCalledTimes(2);
-      expect(mockFrom).toHaveBeenNthCalledWith(1, 'teacher_details');
-      expect(mockFrom).toHaveBeenNthCalledWith(2, 'profiles');
+      expect(mockFrom).not.toHaveBeenCalled();
     });
 
-    it('debería lanzar error si falla el insert', async () => {
-      mockFrom.mockReturnValue({
-        insert: vi.fn().mockResolvedValue({ error: new Error('Error DB') }),
+    it('debería lanzar el mensaje real si el RPC rechaza la operación', async () => {
+      mockRpc.mockResolvedValue({
+        data: null,
+        error: { message: 'Access denied: user does not belong to any studio' },
       });
 
-      await expect(
-        usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] } as TeacherOnboardingPayload),
-      ).rejects.toThrow('Error DB');
-    });
-
-    it('debería lanzar error si falla el update del perfil', async () => {
-      mockFrom.mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
-      });
-      mockFrom.mockReturnValueOnce({
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: new Error('Error al actualizar perfil') }),
-        })),
-      });
-
-      await expect(
-        usersService.saveTeacherOnboardingDetails('tea-001', { specialties: ['Ballet'] } as TeacherOnboardingPayload),
-      ).rejects.toThrow('Error al actualizar perfil');
+      await expect(usersService.saveTeacherOnboardingDetails(DETAILS)).rejects.toThrow(
+        'Access denied: user does not belong to any studio',
+      );
     });
   });
 

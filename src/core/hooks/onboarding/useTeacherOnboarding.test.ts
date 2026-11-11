@@ -145,7 +145,7 @@ describe('useTeacherOnboarding', () => {
       await result.current.handleSubmit();
     });
 
-    expect(mockSaveTeacherOnboardingDetails).toHaveBeenCalledWith('teacher-001', {
+    expect(mockSaveTeacherOnboardingDetails).toHaveBeenCalledWith({
       address: 'Av. Siempre Viva 123',
       birth_date: '1990-10-25',
       specialties: ['spec-001', 'spec-002'],
