@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authService } from '@/core/services';
 import { useAuthStore } from './core/store/useAuthStore';
 import { useThemeStore } from './core/store/useThemeStore';
-import type { AppUser } from './core/types/auth.types';
 import { LoginPage } from './pages/auth/LoginPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { TeacherOnboardingPage } from './pages/onboarding/TeacherOnboardingPage';
@@ -69,7 +68,18 @@ export default function App() {
     const {
       data: { subscription }
     } = authService.onAuthStateChange((session) => {
-      setUser((session?.user as AppUser) || null);
+      if (!session) {
+        setUser(null);
+        return;
+      }
+
+      // Never cast the raw session user to AppUser: it carries no memberships, so
+      // setUser would leave current_studio_id null and break every studio-scoped
+      // read and write. Re-fetch the full user instead.
+      authService
+        .getCurrentUser()
+        .then((user) => setUser(user))
+        .catch(console.error);
     });
 
     return () => {
