@@ -268,6 +268,45 @@ Si una función recién creada sigue dando 404: `NOTIFY pgrst, 'reload schema';`
 
 ---
 
+## Estado al cierre — retomar por acá
+
+**Deployado en `main` y con migraciones aplicadas:**
+
+| | |
+|---|---|
+| T1 | Superficie del error real — `getErrorMessage` en auth y onboarding |
+| T2 | Guardado de especialidades — RPC `save_teacher_onboarding_details` (007 aplicada) |
+| T3 | Borrado de profesores — RPC `unlink_studio_member` (006 aplicada) |
+| T4 | Clases — `deactivateClass` en vez de borrado en cascada |
+| T5 | Especialidades — el upsert ya no falla en silencio |
+| + | Doble submit en modales · botón del onboarding que quedaba muerto |
+| + | `npm run db:verify` como guard contra migraciones sin aplicar |
+
+**Verificado técnicamente:** 804 tests · build · lint · GGA en los 7 commits · `db:verify`.
+
+**NO verificado todavía por el usuario** — pendiente para mañana:
+
+1. Desvincular un profesor → desaparece de la lista y sus clases quedan sin profesor asignado.
+2. Que uno de los 5 profesores trabados complete el paso 3 del onboarding.
+
+```sql
+select p.email, p.has_completed_onboarding, count(td.profile_id) as details
+  from profiles p left join teacher_details td on td.profile_id = p.id
+ where p.role = 'teacher' group by 1,2;
+```
+
+Los 7 tienen que quedar en `true / 1`.
+
+**Cuando esas dos pasen:** `git tag v1-operativo`, confirmar que la lista del usuario
+está vacía, y recién entonces abrir `dev` y arrancar el refactor.
+
+**No se tagueó `v1-operativo` a propósito:** esa etiqueta significa "verificado por el
+usuario". Ponerla antes sería una etiqueta falsa, y en esta misma sesión ya hubo una
+afirmación sin verificar (la 006 dada por aplicada sin estarlo).
+
+**Pendiente de seguridad:** backup con `pg_dump` de producción. Nunca se hizo y es lo
+único que no se puede recuperar si algo sale mal.
+
 ## Definición de terminado de esta etapa
 
 - [ ] Los bugs reportados por el usuario resueltos y verificados por él
