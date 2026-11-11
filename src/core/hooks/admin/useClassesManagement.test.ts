@@ -9,7 +9,7 @@ const mockGetClasses = vi.hoisted(() => vi.fn());
 const mockGetTeachers = vi.hoisted(() => vi.fn());
 const mockCreateClass = vi.hoisted(() => vi.fn());
 const mockUpdateClass = vi.hoisted(() => vi.fn());
-const mockDeleteClass = vi.hoisted(() => vi.fn());
+const mockDeactivateClass = vi.hoisted(() => vi.fn());
 const mockGetEnrolledStudents = vi.hoisted(() => vi.fn());
 const mockShowError = vi.hoisted(() => vi.fn());
 const mockShowSuccess = vi.hoisted(() => vi.fn());
@@ -20,7 +20,7 @@ vi.mock('@/core/services', () => ({
     getClasses: mockGetClasses,
     createClass: mockCreateClass,
     updateClass: mockUpdateClass,
-    deleteClass: mockDeleteClass,
+    deactivateClass: mockDeactivateClass,
     getEnrolledStudents: mockGetEnrolledStudents,
   },
   usersService: {
@@ -114,7 +114,7 @@ describe('useClassesManagement', () => {
     mockGetTeachers.mockResolvedValue([mockTeacher]);
     mockCreateClass.mockResolvedValue(undefined);
     mockUpdateClass.mockResolvedValue(undefined);
-    mockDeleteClass.mockResolvedValue(undefined);
+    mockDeactivateClass.mockResolvedValue(undefined);
     mockGetEnrolledStudents.mockResolvedValue([mockEnrollment]);
   });
 
@@ -188,21 +188,23 @@ describe('useClassesManagement', () => {
     expect(mockShowSuccess).toHaveBeenCalledWith('Clase actualizada con éxito.');
   });
 
-  it('deleteClass calls service and refreshes classes', async () => {
+  it('deactivateClass calls service and refreshes classes', async () => {
     const { result } = renderHook(() => useClassesManagement());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     let refresh!: Promise<void>;
     await act(async () => {
-      refresh = result.current.deleteClass('class-001');
+      refresh = result.current.deactivateClass('class-001');
     });
     await act(async () => {});
     await refresh;
 
-    expect(mockDeleteClass).toHaveBeenCalledWith('class-001');
+    expect(mockDeactivateClass).toHaveBeenCalledWith('class-001');
     expect(mockGetClasses).toHaveBeenCalledTimes(2);
-    expect(mockShowSuccess).toHaveBeenCalledWith('Clase eliminada con éxito.');
+    expect(mockShowSuccess).toHaveBeenCalledWith(
+      'Clase desactivada. El historial de asistencia y comisiones se conserva.',
+    );
   });
 
   it('toggleStatus updates class optimistically and calls service', async () => {

@@ -198,7 +198,27 @@ del deploy del cliente. Sin el RPC, el cliente llama a una función inexistente.
 
 ---
 
-## T4 — Verificación de que el borrado de clases es correcto
+## T4 — RESUELTO: el borrado de clases destruía historial
+
+```sql
+enrollments.class_id  NOT NULL REFERENCES classes(id) ON DELETE CASCADE
+commissions.class_id  NOT NULL REFERENCES classes(id) ON DELETE CASCADE
+```
+
+Borrar una clase borraba en cascada **todas sus inscripciones** (historial de
+asistencia) y **todas sus comisiones** (plata del profesor), sin recuperación. El
+diálogo solo decía "esta acción no se puede deshacer" e ignoraba las consecuencias.
+
+Además `classes` ya tenía `is_active BOOLEAN DEFAULT true` y el hook ya exponía
+`toggleStatus`, así que el borrado duro era **redundante además de destructivo**.
+
+**Implementado:** `deleteClass` → `deactivateClass` (`UPDATE … SET is_active = false`),
+con guard de 0 filas para no repetir el éxito fantasma. El diálogo pasa a
+"Desactivar Clase", explica que el historial se conserva y deja de ser destructivo.
+
+---
+
+## T4 — Verificación original
 
 **Tipo:** verificación (no hay bug reportado)
 **Motivo:** sirve de patrón de referencia para T3 e informa si `classes` tiene

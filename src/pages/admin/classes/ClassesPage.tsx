@@ -18,7 +18,7 @@ export function ClassesPage() {
     students,
     loadingStudents,
     fetchClasses,
-    deleteClass,
+    deactivateClass,
     openStudentsModal,
     closeStudentsModal,
   } = useClassesManagement();
@@ -30,17 +30,23 @@ export function ClassesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassEntity | null>(null);
 
-  // Modal State for Confirm Delete
+  // Confirmation state for deactivating a class
   const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   const handleDeleteClick = (id: string) => {
     setDeletingClassId(id);
   };
 
-  const confirmDelete = async () => {
-    if (!deletingClassId) return;
-    await deleteClass(deletingClassId);
-    setDeletingClassId(null);
+  const confirmDeactivate = async () => {
+    if (!deletingClassId || isDeactivating) return;
+    setIsDeactivating(true);
+    try {
+      await deactivateClass(deletingClassId);
+    } finally {
+      setIsDeactivating(false);
+      setDeletingClassId(null);
+    }
   };
 
   const openFormModal = (cls?: ClassEntity) => {
@@ -122,12 +128,12 @@ export function ClassesPage() {
 
       <ConfirmModal
         isOpen={!!deletingClassId}
-        title="Eliminar Clase"
-        message="¿Estás seguro de que quieres eliminar esta clase? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        isDestructive={true}
-        onConfirm={confirmDelete}
+        title="Desactivar Clase"
+        message="La clase dejará de estar activa. El historial de asistencia y las comisiones de los profesores se conservan, y podés volver a activarla cuando quieras."
+        confirmText="Desactivar"
+        onConfirm={confirmDeactivate}
         onCancel={() => setDeletingClassId(null)}
+        isBusy={isDeactivating}
       />
     </div>
   );

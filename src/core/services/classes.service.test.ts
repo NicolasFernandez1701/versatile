@@ -144,27 +144,47 @@ describe('classesService', () => {
   // ────────────────────────────────────────────
   // deleteClass
   // ────────────────────────────────────────────
-  describe('deleteClass', () => {
-    it('debería eliminar una clase por ID', async () => {
-      mockFrom.mockReturnValue({
-        delete: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        })),
-      });
+  describe('deactivateClass', () => {
+    // Borrar una clase arrastra en cascada las inscripciones y las comisiones,
+    // así que la clase se desactiva en lugar de eliminarse.
+    it('debería desactivar la clase sin borrarla', async () => {
+      const mockSelect = vi.fn().mockResolvedValue({ data: [{ id: 'cls-001' }], error: null });
+      const mockEq = vi.fn(() => ({ select: mockSelect }));
+      const mockUpdate = vi.fn(() => ({ eq: mockEq }));
+      mockFrom.mockReturnValue({ update: mockUpdate });
 
-      await classesService.deleteClass('cls-001');
+      await classesService.deactivateClass('cls-001');
 
       expect(mockFrom).toHaveBeenCalledWith('classes');
+      expect(mockUpdate).toHaveBeenCalledWith({ is_active: false });
+      expect(mockEq).toHaveBeenCalledWith('id', 'cls-001');
+      expect(mockSelect).toHaveBeenCalledWith('id');
     });
 
-    it('debería lanzar error si la eliminación falla', async () => {
+    it('debería lanzar error si la desactivación falla', async () => {
       mockFrom.mockReturnValue({
-        delete: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: new Error('Error al eliminar') }),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            select: vi.fn().mockResolvedValue({ data: null, error: new Error('Error al desactivar') }),
+          })),
         })),
       });
 
-      await expect(classesService.deleteClass('cls-999')).rejects.toThrow('Error al eliminar');
+      await expect(classesService.deactivateClass('cls-999')).rejects.toThrow('Error al desactivar');
+    });
+
+    it('debería lanzar error cuando RLS no actualiza ninguna fila', async () => {
+      mockFrom.mockReturnValue({
+        update: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
+        })),
+      });
+
+      await expect(classesService.deactivateClass('cls-999')).rejects.toThrow(
+        'No se desactivó ninguna clase',
+      );
     });
   });
 

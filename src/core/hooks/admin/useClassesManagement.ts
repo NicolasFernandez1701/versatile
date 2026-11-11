@@ -3,6 +3,7 @@ import { useAuthStore } from '@/core/store/useAuthStore';
 import { useAlert } from '@/ui/useAlert';
 import { classesService, usersService } from '@/core/services';
 import { useAsyncResource } from '@/core/hooks/shared/useAsyncResource';
+import { getErrorMessage } from '@/core/utils/errorMessage';
 import type { ClassEntity, EnrollmentEntity, Profile } from '@/core/types/classes.types';
 
 export interface UseClassesManagementResult {
@@ -15,7 +16,7 @@ export interface UseClassesManagementResult {
   fetchClasses: () => Promise<void>;
   createClass: (payload: Partial<ClassEntity>) => Promise<void>;
   updateClass: (id: string, payload: Partial<ClassEntity>) => Promise<void>;
-  deleteClass: (id: string) => Promise<void>;
+  deactivateClass: (id: string) => Promise<void>;
   toggleStatus: (id: string, currentStatus: boolean) => Promise<void>;
   openStudentsModal: (cls: ClassEntity) => Promise<void>;
   closeStudentsModal: () => void;
@@ -100,15 +101,15 @@ export function useClassesManagement(): UseClassesManagementResult {
     [fetchClasses, showError, showSuccess],
   );
 
-  const deleteClass = useCallback(
+  const deactivateClass = useCallback(
     async (id: string) => {
       try {
-        await classesService.deleteClass(id);
+        await classesService.deactivateClass(id);
         await fetchClasses();
         setStatusOverrides({});
-        showSuccess('Clase eliminada con éxito.');
-      } catch {
-        showError('Error eliminando la clase.');
+        showSuccess('Clase desactivada. El historial de asistencia y comisiones se conserva.');
+      } catch (err: unknown) {
+        showError(getErrorMessage(err, 'Error desactivando la clase.'));
       }
     },
     [fetchClasses, showError, showSuccess],
@@ -166,7 +167,7 @@ export function useClassesManagement(): UseClassesManagementResult {
     fetchClasses,
     createClass,
     updateClass,
-    deleteClass,
+    deactivateClass,
     toggleStatus,
     openStudentsModal,
     closeStudentsModal,

@@ -26,9 +26,22 @@ export const classesService = {
     return data as ClassEntity[];
   },
 
-  async deleteClass(id: string): Promise<void> {
-    const { error } = await supabase.from('classes').delete().eq('id', id);
+  async deactivateClass(id: string): Promise<void> {
+    // Classes are deactivated, never deleted: enrollments.class_id and
+    // commissions.class_id both cascade on delete, so removing a class would
+    // destroy the attendance history and the teacher commission records with it.
+    const { data, error } = await supabase
+      .from('classes')
+      .update({ is_active: false })
+      .eq('id', id)
+      .select('id');
+
     if (error) throw error;
+
+    // RLS blocks are silent; never report success when nothing was updated.
+    if (!data || data.length === 0) {
+      throw new Error('No se desactivó ninguna clase (permisos insuficientes o la clase ya no existe)');
+    }
   },
 
   async getEnrolledStudents(
