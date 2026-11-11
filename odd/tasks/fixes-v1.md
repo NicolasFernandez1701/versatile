@@ -210,6 +210,21 @@ y qué ocurre con las inscripciones.
 
 ---
 
+## Verificación de esquema
+
+```bash
+npm run db:verify
+```
+
+Comprueba contra el proyecto real que existan los RPC que el cliente llama
+(`save_teacher_onboarding_details`, `unlink_studio_member`, `get_financial_balance`).
+PostgREST responde `PGRST202` cuando la función no existe, y el script lo detecta:
+un archivo de migración commiteado no garantiza que se haya aplicado.
+
+**Correr antes de cada deploy que dependa de una migración nueva.**
+
+Si una función recién creada sigue dando 404: `NOTIFY pgrst, 'reload schema';`
+
 ## Fuera de alcance (backlog)
 
 - Cualquier pedido de funcionalidad nueva del usuario.

@@ -11,6 +11,7 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests",
+    "db:verify": "node scripts/verify-db.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
